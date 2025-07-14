@@ -295,6 +295,7 @@ export function EditPostModal({
                     "w-[180px] justify-start text-left font-normal",
                     !editDate && "text-muted-foreground"
                   )}
+                  type="button"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {editDate ? format(editDate, "PPP", { locale: ko }) : <span>날짜 선택</span>}
@@ -304,8 +305,11 @@ export function EditPostModal({
                 <Calendar
                   mode="single"
                   selected={editDate}
-                  onSelect={setEditDate}
-                  initialFocus
+                  onSelect={(date) => {
+                    console.log('Calendar date selected:', date);
+                    setEditDate(date);
+                  }}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 />
               </PopoverContent>
             </Popover>

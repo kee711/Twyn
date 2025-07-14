@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { postThreadChain, ThreadContent } from '@/app/actions/threadChain';
 import { getCurrentUTCISO } from '@/lib/utils/time';
+import { decryptToken } from '@/lib/utils/crypto';
 
 // Helper function to fetch access tokens by social_id
 async function getAccessTokenBySocialId(socialId: string): Promise<string | null> {
@@ -34,7 +35,25 @@ async function getAccessTokenBySocialId(socialId: string): Promise<string | null
     hasToken: !!account?.access_token
   });
 
-  return account?.access_token || null;
+  const encryptedToken = account?.access_token;
+  if (!encryptedToken) {
+    console.error(`❌ [route.ts:getAccessTokenBySocialId:35] No encrypted token found for socialId: ${socialId}`);
+    return null;
+  }
+
+  // Decrypt the token
+  console.log(`🔐 [route.ts:getAccessTokenBySocialId:40] Decrypting access token for socialId: ${socialId}`);
+  try {
+    const decryptedToken = decryptToken(encryptedToken);
+    console.log(`✅ [route.ts:getAccessTokenBySocialId:43] Token decryption successful for socialId: ${socialId}`);
+    return decryptedToken;
+  } catch (error) {
+    console.error(`❌ [route.ts:getAccessTokenBySocialId:46] Token decryption failed for socialId: ${socialId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return null;
+  }
 }
 
 // Helper function to rebuild thread chains from database records
@@ -227,21 +246,69 @@ export async function POST() {
           });
 
           if (!accessToken) {
-            throw new Error(`No access token found for social_id ${socialId}`);
+            throw new Error(`Access token fetch failed for social_id ${socialId}. This may be due to: 1) Token not found in database, 2) Token decryption failure, 3) Invalid social_id. Check encryption key and token validity.`);
           }
 
-          // Use existing postThreadChain function with auth options
-          console.log(`🚀 [route.ts:POST:209] Calling postThreadChain function`);
-          console.log(`🚀 [route.ts:POST:210] PostThreadChain parameters:`, {
-            threadChainLength: threadChain.length,
-            socialId,
-            hasAccessToken: !!accessToken
-          });
+          // Check if we should use BullMQ or direct processing
+          console.log(`🚀 [route.ts:POST:209] Checking processing method for thread chain`);
+          const shouldUseBullMQ = threadChain.length > 1; // Use BullMQ for multi-thread chains
 
-          const threadChainResult = await (postThreadChain as any)(
-            threadChain,
-            { accessToken, selectedSocialId: socialId }
-          );
+          let threadChainResult;
+
+          if (shouldUseBullMQ) {
+            console.log(`📥 [route.ts:POST:213] Using BullMQ for thread chain processing`);
+            const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
+            
+            // Post first thread immediately
+            const firstThread = threadChain[0];
+            console.log(`🚀 [route.ts:POST:217] Posting first thread directly`);
+            
+            const firstThreadResult = await (postThreadChain as any)(
+              [firstThread],
+              { accessToken, selectedSocialId: socialId }
+            );
+
+            if (firstThreadResult.success && threadChain.length > 1) {
+              // Queue remaining threads
+              const queueResult = await enqueueThreadChain({
+                parentThreadId: firstThreadResult.parentThreadId,
+                threads: threadChain.slice(1).map(thread => ({
+                  content: thread.content,
+                  mediaUrls: thread.media_urls || [],
+                  mediaType: thread.media_type || 'TEXT'
+                })),
+                socialId,
+                accessToken,
+                userId: chainRecord?.user_id || ''
+              });
+
+              if (queueResult.success) {
+                console.log(`✅ [route.ts:POST:234] Thread chain queued: ${queueResult.jobId}`);
+                threadChainResult = {
+                  success: true,
+                  parentThreadId: firstThreadResult.parentThreadId,
+                  threadIds: [firstThreadResult.parentThreadId], // Only first thread ID for now
+                  isQueued: true,
+                  jobId: queueResult.jobId
+                };
+              } else {
+                console.error(`❌ [route.ts:POST:242] Failed to queue thread chain: ${queueResult.error}`);
+                // Fallback to direct processing
+                threadChainResult = await (postThreadChain as any)(
+                  threadChain,
+                  { accessToken, selectedSocialId: socialId }
+                );
+              }
+            } else {
+              threadChainResult = firstThreadResult;
+            }
+          } else {
+            console.log(`🚀 [route.ts:POST:252] Using direct processing for single thread`);
+            threadChainResult = await (postThreadChain as any)(
+              threadChain,
+              { accessToken, selectedSocialId: socialId }
+            );
+          }
 
           console.log(`🚀 [route.ts:POST:220] PostThreadChain result:`, {
             parentId,
@@ -252,39 +319,76 @@ export async function POST() {
           });
 
           if (threadChainResult.success) {
-            console.log(`✅ [route.ts:POST:230] Thread chain posted successfully:`, {
+            console.log(`✅ [route.ts:POST:230] Thread chain processed successfully:`, {
               parentId,
               parentThreadId: threadChainResult.parentThreadId,
-              threadIds: threadChainResult.threadIds
+              threadIds: threadChainResult.threadIds,
+              isQueued: threadChainResult.isQueued || false,
+              jobId: threadChainResult.jobId
             });
 
-            // Update all threads in this chain to 'posted' status
-            console.log(`📝 [route.ts:POST:237] Updating chain records to 'posted' status`);
             const chainRecords = threadChainRecords.filter(r => r.parent_media_id === parentId);
-            console.log(`📝 [route.ts:POST:239] Found ${chainRecords.length} records to update for chain ${parentId}`);
+            console.log(`📝 [route.ts:POST:237] Found ${chainRecords.length} records to update for chain ${parentId}`);
 
-            await Promise.all(
-              chainRecords.map(async (record, index) => {
-                const mediaId = threadChainResult.threadIds?.[index] || threadChainResult.parentThreadId;
-                console.log(`📝 [route.ts:POST:244] Updating record ${index + 1}/${chainRecords.length}:`, {
-                  recordId: record.my_contents_id,
-                  mediaId,
-                  threadSequence: record.thread_sequence
-                });
+            if (threadChainResult.isQueued) {
+              // For queued jobs, update first thread as posted, others as processing
+              console.log(`📝 [route.ts:POST:241] Updating records for queued job`);
+              
+              await Promise.all(
+                chainRecords.map(async (record, index) => {
+                  const isFirstThread = index === 0;
+                  const status = isFirstThread ? 'posted' : 'ready_to_publish';
+                  const mediaId = isFirstThread ? threadChainResult.parentThreadId : null;
 
-                await supabase
-                  .from('my_contents')
-                  .update({
-                    publish_status: 'posted',
-                    media_id: mediaId
-                  })
-                  .eq('my_contents_id', record.my_contents_id);
-              })
-            );
+                  console.log(`📝 [route.ts:POST:248] Updating record ${index + 1}/${chainRecords.length}:`, {
+                    recordId: record.my_contents_id,
+                    status,
+                    mediaId,
+                    threadSequence: record.thread_sequence
+                  });
 
-            console.log(`📝 [route.ts:POST:259] All ${chainRecords.length} records updated successfully`);
+                  await supabase
+                    .from('my_contents')
+                    .update({
+                      publish_status: status,
+                      media_id: mediaId
+                    })
+                    .eq('my_contents_id', record.my_contents_id);
+                })
+              );
+            } else {
+              // For direct processing, update all threads as posted
+              console.log(`📝 [route.ts:POST:262] Updating all records as posted (direct processing)`);
+              
+              await Promise.all(
+                chainRecords.map(async (record, index) => {
+                  const mediaId = threadChainResult.threadIds?.[index] || threadChainResult.parentThreadId;
+                  console.log(`📝 [route.ts:POST:267] Updating record ${index + 1}/${chainRecords.length}:`, {
+                    recordId: record.my_contents_id,
+                    mediaId,
+                    threadSequence: record.thread_sequence
+                  });
+
+                  await supabase
+                    .from('my_contents')
+                    .update({
+                      publish_status: 'posted',
+                      media_id: mediaId
+                    })
+                    .eq('my_contents_id', record.my_contents_id);
+                })
+              );
+            }
+
+            console.log(`📝 [route.ts:POST:279] All ${chainRecords.length} records updated successfully`);
             processedCount += chainRecords.length;
-            results.push({ type: 'thread_chain', parentId, success: true });
+            results.push({ 
+              type: 'thread_chain', 
+              parentId, 
+              success: true,
+              isQueued: threadChainResult.isQueued || false,
+              jobId: threadChainResult.jobId
+            });
           } else {
             console.error(`❌ [route.ts:POST:264] Thread chain posting failed:`, {
               parentId,
@@ -393,7 +497,7 @@ export async function POST() {
         });
 
         if (!accessToken) {
-          throw new Error(`No access token found for social_id ${post.social_id}`);
+          throw new Error(`Access token fetch failed for social_id ${post.social_id}. This may be due to: 1) Token not found in database, 2) Token decryption failure, 3) Invalid social_id. Check encryption key and token validity.`);
         }
 
         // Use existing postThreadChain function with single thread and auth options
