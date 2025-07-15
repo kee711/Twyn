@@ -785,7 +785,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
 
   // For cron jobs, use BullMQ for remaining threads
   if (options?.accessToken && options?.selectedSocialId) {
-    // This is a cron job - use BullMQ
+    console.log(`📥 [threadChain.ts:postThreadChainOptimized:787] CRON detected - using BullMQ for remaining ${threads.length - 1} threads`);
     const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
 
     // Get user ID from social account
@@ -797,6 +797,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       .single();
 
     if (account?.user_id && threads.length > 1) {
+      console.log(`📥 [threadChain.ts:postThreadChainOptimized:800] Enqueueing ${threads.length - 1} threads to BullMQ`);
       const queueResult = await enqueueThreadChain({
         parentThreadId,
         threads: threads.slice(1).map(thread => ({
@@ -810,7 +811,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       });
 
       if (queueResult.success) {
-        console.log(`✅ [BullMQ] Thread chain queued successfully: ${queueResult.jobId}`);
+        console.log(`✅ [threadChain.ts:postThreadChainOptimized:814] Thread chain queued successfully: ${queueResult.jobId}`);
       } else {
         console.error(`❌ [BullMQ] Failed to queue thread chain: ${queueResult.error}`);
         // Fallback to direct processing if BullMQ fails

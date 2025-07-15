@@ -249,66 +249,18 @@ export async function POST() {
             throw new Error(`Access token fetch failed for social_id ${socialId}. This may be due to: 1) Token not found in database, 2) Token decryption failure, 3) Invalid social_id. Check encryption key and token validity.`);
           }
 
-          // Check if we should use BullMQ or direct processing
-          console.log(`🚀 [route.ts:POST:209] Checking processing method for thread chain`);
-          const shouldUseBullMQ = threadChain.length > 1; // Use BullMQ for multi-thread chains
+          // Use postThreadChain which internally handles BullMQ for multi-thread chains
+          console.log(`🚀 [route.ts:POST:209] Calling postThreadChain function`);
+          console.log(`🚀 [route.ts:POST:210] PostThreadChain parameters:`, {
+            threadChainLength: threadChain.length,
+            socialId,
+            hasAccessToken: !!accessToken
+          });
 
-          let threadChainResult;
-
-          if (shouldUseBullMQ) {
-            console.log(`📥 [route.ts:POST:213] Using BullMQ for thread chain processing`);
-            const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
-            
-            // Post first thread immediately
-            const firstThread = threadChain[0];
-            console.log(`🚀 [route.ts:POST:217] Posting first thread directly`);
-            
-            const firstThreadResult = await (postThreadChain as any)(
-              [firstThread],
-              { accessToken, selectedSocialId: socialId }
-            );
-
-            if (firstThreadResult.success && threadChain.length > 1) {
-              // Queue remaining threads
-              const queueResult = await enqueueThreadChain({
-                parentThreadId: firstThreadResult.parentThreadId,
-                threads: threadChain.slice(1).map(thread => ({
-                  content: thread.content,
-                  mediaUrls: thread.media_urls || [],
-                  mediaType: thread.media_type || 'TEXT'
-                })),
-                socialId,
-                accessToken,
-                userId: chainRecord?.user_id || ''
-              });
-
-              if (queueResult.success) {
-                console.log(`✅ [route.ts:POST:234] Thread chain queued: ${queueResult.jobId}`);
-                threadChainResult = {
-                  success: true,
-                  parentThreadId: firstThreadResult.parentThreadId,
-                  threadIds: [firstThreadResult.parentThreadId], // Only first thread ID for now
-                  isQueued: true,
-                  jobId: queueResult.jobId
-                };
-              } else {
-                console.error(`❌ [route.ts:POST:242] Failed to queue thread chain: ${queueResult.error}`);
-                // Fallback to direct processing
-                threadChainResult = await (postThreadChain as any)(
-                  threadChain,
-                  { accessToken, selectedSocialId: socialId }
-                );
-              }
-            } else {
-              threadChainResult = firstThreadResult;
-            }
-          } else {
-            console.log(`🚀 [route.ts:POST:252] Using direct processing for single thread`);
-            threadChainResult = await (postThreadChain as any)(
-              threadChain,
-              { accessToken, selectedSocialId: socialId }
-            );
-          }
+          const threadChainResult = await (postThreadChain as any)(
+            threadChain,
+            { accessToken, selectedSocialId: socialId }
+          );
 
           console.log(`🚀 [route.ts:POST:220] PostThreadChain result:`, {
             parentId,
@@ -322,63 +274,43 @@ export async function POST() {
             console.log(`✅ [route.ts:POST:230] Thread chain processed successfully:`, {
               parentId,
               parentThreadId: threadChainResult.parentThreadId,
-              threadIds: threadChainResult.threadIds,
-              isQueued: threadChainResult.isQueued || false,
-              jobId: threadChainResult.jobId
+              threadIds: threadChainResult.threadIds
             });
 
             const chainRecords = threadChainRecords.filter(r => r.parent_media_id === parentId);
             console.log(`📝 [route.ts:POST:237] Found ${chainRecords.length} records to update for chain ${parentId}`);
 
-            if (threadChainResult.isQueued) {
-              // For queued jobs, update first thread as posted, others as processing
-              console.log(`📝 [route.ts:POST:241] Updating records for queued job`);
-              
-              await Promise.all(
-                chainRecords.map(async (record, index) => {
-                  const isFirstThread = index === 0;
-                  const status = isFirstThread ? 'posted' : 'ready_to_publish';
-                  const mediaId = isFirstThread ? threadChainResult.parentThreadId : null;
+            // For multi-thread chains with CRON (BullMQ), only first thread is posted immediately
+            // Remaining threads will be processed by BullMQ worker
+            const shouldUpdateAllAsPosted = threadChain.length === 1;
+            console.log(`📝 [route.ts:POST:241] Update strategy:`, {
+              threadChainLength: threadChain.length,
+              shouldUpdateAllAsPosted,
+              strategy: shouldUpdateAllAsPosted ? 'All posted' : 'First posted, others queued'
+            });
 
-                  console.log(`📝 [route.ts:POST:248] Updating record ${index + 1}/${chainRecords.length}:`, {
-                    recordId: record.my_contents_id,
-                    status,
-                    mediaId,
-                    threadSequence: record.thread_sequence
-                  });
+            await Promise.all(
+              chainRecords.map(async (record, index) => {
+                const isFirstThread = index === 0;
+                const status = shouldUpdateAllAsPosted || isFirstThread ? 'posted' : 'ready_to_publish';
+                const mediaId = isFirstThread ? threadChainResult.parentThreadId : null;
 
-                  await supabase
-                    .from('my_contents')
-                    .update({
-                      publish_status: status,
-                      media_id: mediaId
-                    })
-                    .eq('my_contents_id', record.my_contents_id);
-                })
-              );
-            } else {
-              // For direct processing, update all threads as posted
-              console.log(`📝 [route.ts:POST:262] Updating all records as posted (direct processing)`);
-              
-              await Promise.all(
-                chainRecords.map(async (record, index) => {
-                  const mediaId = threadChainResult.threadIds?.[index] || threadChainResult.parentThreadId;
-                  console.log(`📝 [route.ts:POST:267] Updating record ${index + 1}/${chainRecords.length}:`, {
-                    recordId: record.my_contents_id,
-                    mediaId,
-                    threadSequence: record.thread_sequence
-                  });
+                console.log(`📝 [route.ts:POST:252] Updating record ${index + 1}/${chainRecords.length}:`, {
+                  recordId: record.my_contents_id,
+                  status,
+                  mediaId,
+                  threadSequence: record.thread_sequence
+                });
 
-                  await supabase
-                    .from('my_contents')
-                    .update({
-                      publish_status: 'posted',
-                      media_id: mediaId
-                    })
-                    .eq('my_contents_id', record.my_contents_id);
-                })
-              );
-            }
+                await supabase
+                  .from('my_contents')
+                  .update({
+                    publish_status: status,
+                    media_id: mediaId
+                  })
+                  .eq('my_contents_id', record.my_contents_id);
+              })
+            );
 
             console.log(`📝 [route.ts:POST:279] All ${chainRecords.length} records updated successfully`);
             processedCount += chainRecords.length;
@@ -386,8 +318,8 @@ export async function POST() {
               type: 'thread_chain', 
               parentId, 
               success: true,
-              isQueued: threadChainResult.isQueued || false,
-              jobId: threadChainResult.jobId
+              threadCount: threadChain.length,
+              usedBullMQ: threadChain.length > 1
             });
           } else {
             console.error(`❌ [route.ts:POST:264] Thread chain posting failed:`, {
@@ -638,5 +570,4 @@ export async function POST() {
       { status: 500 }
     );
   }
-  console.log(`🏁 [route.ts:POST:509] CRON job function completed`);
 }
