@@ -8,7 +8,7 @@ export async function GET() {
     const isConnected = await testRedisConnection();
 
     // Redis URL 정보 수집 (보안상 마스킹)
-    const redisUrl = process.env.REDIS_URL;
+    const redisUrl = process.env.REDIS_PUBLIC_URL;
     let redisUrlInfo = { configured: false, masked: '', protocol: '', host: '', port: '' };
 
     if (redisUrl) {
