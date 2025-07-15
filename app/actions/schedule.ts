@@ -154,6 +154,30 @@ export async function createThreadsContainer(
   accessToken: string,
   params: PublishPostParams
 ) {
+  console.log(`🔧 [createThreadsContainer] Starting container creation:`, {
+    threadsUserId,
+    hasAccessToken: !!accessToken,
+    tokenLength: accessToken?.length || 0,
+    mediaType: params.mediaType,
+    contentLength: params.content.length,
+    mediaUrlsCount: params.media_urls?.length || 0
+  });
+
+  // Validate token format
+  if (accessToken && !accessToken.includes('|')) {
+    console.error(`❌ [createThreadsContainer] Invalid access token format:`, {
+      threadsUserId,
+      tokenLength: accessToken.length,
+      tokenPrefix: accessToken.substring(0, 10),
+      tokenSuffix: accessToken.substring(accessToken.length - 10)
+    });
+    return {
+      success: false,
+      creationId: null,
+      error: 'Invalid access token format. Token may not be properly decrypted.'
+    };
+  }
+
   const { content, mediaType, media_urls } = params;
 
   // 케이스별 처리
@@ -166,8 +190,65 @@ export async function createThreadsContainer(
     urlParams.append("access_token", accessToken);
 
     const containerUrl = `${baseUrl}?${urlParams.toString()}`;
+
+    console.log(`📝 [createThreadsContainer:TEXT] Making API request:`, {
+      url: containerUrl.replace(accessToken, '[REDACTED]'),
+      method: 'POST',
+      params: {
+        media_type: "TEXT",
+        text: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+        access_token: '[REDACTED]'
+      }
+    });
+
+    const startTime = Date.now();
     const response = await fetch(containerUrl, { method: "POST" });
-    const data = await response.json();
+    const responseTime = Date.now() - startTime;
+
+    console.log(`📝 [createThreadsContainer:TEXT] API Response:`, {
+      status: response.status,
+      statusText: response.statusText,
+      responseTime: `${responseTime}ms`,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    let data;
+    try {
+      const responseText = await response.text();
+      if (!responseText.trim()) {
+        throw new Error('Empty response body');
+      }
+      data = JSON.parse(responseText);
+    } catch (jsonError) {
+      console.error(`❌ [createThreadsContainer:TEXT] JSON parsing error:`, {
+        error: jsonError instanceof Error ? jsonError.message : 'Unknown JSON error',
+        responseHeaders: Object.fromEntries(response.headers.entries())
+      });
+      return {
+        success: false,
+        creationId: null,
+        error: `Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`
+      };
+    }
+
+    console.log(`📝 [createThreadsContainer:TEXT] Parsed response data:`, data);
+
+    // If response is OK but still has error, it means API returned an error
+    if (response.ok && data.error) {
+      console.error(`❌ [createThreadsContainer:TEXT] API returned error in successful response:`, {
+        threadsUserId,
+        error: data.error,
+        errorCode: data.error?.code,
+        errorMessage: data.error?.message,
+        tokenLength: accessToken?.length || 0,
+        contentLength: content.length
+      });
+      return {
+        success: false,
+        creationId: null,
+        error: `컨테이너 생성 실패: ${JSON.stringify(data.error)}`
+      };
+    }
 
     return {
       success: response.ok,

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { PostCard } from '@/components/PostCard'
 import { ThreadChain } from '@/components/ThreadChain'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownTime } from '@/components/ui/dropdown-time'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
@@ -295,39 +295,29 @@ export function EditPostModal({
                     "w-[180px] justify-start text-left font-normal",
                     !editDate && "text-muted-foreground"
                   )}
+                  type="button"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {editDate ? format(editDate, "PPP", { locale: ko }) : <span>날짜 선택</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0 z-[100]" align="start">
                 <Calendar
                   mode="single"
                   selected={editDate}
-                  onSelect={setEditDate}
+                  onSelect={(date) => {
+                    console.log('Calendar date selected:', date);
+                    if (date) {
+                      setEditDate(date);
+                    }
+                  }}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
 
-            <Select value={editTime} onValueChange={setEditTime}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="시간 선택" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[200px] overflow-y-auto">
-                {Array.from({ length: 24 }).flatMap((_, hour) =>
-                  Array.from({ length: 4 }).map((_, minuteIndex) => {
-                    const minute = minuteIndex * 15
-                    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-                    return (
-                      <SelectItem key={timeString} value={timeString}>
-                        {timeString}
-                      </SelectItem>
-                    )
-                  })
-                )}
-              </SelectContent>
-            </Select>
+            <DropdownTime value={editTime} onValueChange={setEditTime} />
           </div>
 
           <DialogFooter className="flex justify-between items-center pt-4 border-t">
