@@ -10,9 +10,17 @@ if (!REDIS_URL) {
 function validateAndFixRedisUrl(url: string): string {
   console.log('🔍 Original Redis URL format check:', {
     url: url.replace(/:[^:@]+@/, ':***@'), // 비밀번호 마스킹
+    length: url.length,
     startsWithRedis: url.startsWith('redis://'),
     startsWithDoubleSlash: url.startsWith('//')
   });
+
+  // 잘못된 환경변수 형식 감지 (예: "redis_url=redis")
+  if (url.includes('=') && !url.startsWith('redis://')) {
+    console.error('❌ Invalid Redis URL format detected - contains "=" character');
+    console.error('❌ Check your environment variable configuration');
+    throw new Error(`Invalid Redis URL format: ${url.substring(0, 20)}...`);
+  }
 
   // redis:// 접두사가 없는 경우 추가
   if (url.startsWith('//')) {
@@ -34,13 +42,21 @@ function validateAndFixRedisUrl(url: string): string {
 }
 
 // Redis 연결 설정
-export const redis = REDIS_URL ? new Redis(validateAndFixRedisUrl(REDIS_URL), {
-  maxRetriesPerRequest: 3,
-  enableReadyCheck: false,
-  lazyConnect: true,
-  connectTimeout: 10000,
-  commandTimeout: 5000,
-}) : null;
+export const redis = REDIS_URL ? (() => {
+  try {
+    return new Redis(validateAndFixRedisUrl(REDIS_URL), {
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: false,
+      lazyConnect: true,
+      connectTimeout: 10000,
+      commandTimeout: 5000,
+    });
+  } catch (error) {
+    console.error('❌ Failed to create Redis client:', error);
+    console.error('❌ BullMQ features will be disabled');
+    return null;
+  }
+})() : null;
 
 if (redis) {
   redis.on('connect', () => {
