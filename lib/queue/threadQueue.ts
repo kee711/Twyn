@@ -14,18 +14,26 @@ export interface ThreadJobData {
 }
 
 // BullMQ 큐 설정
-export const threadQueue = redis ? new Queue('thread-processing', {
-  connection: redis,
-  defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 50,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-  },
-}) : null;
+export const threadQueue = redis ? (() => {
+  try {
+    return new Queue('thread-processing', {
+      connection: redis,
+      defaultJobOptions: {
+        removeOnComplete: 100,
+        removeOnFail: 50,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('❌ Failed to create BullMQ queue:', error);
+    console.error('❌ Queue features will be disabled');
+    return null;
+  }
+})() : null;
 
 /**
  * 스레드 체인을 BullMQ 큐에 추가
