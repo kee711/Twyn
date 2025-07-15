@@ -788,15 +788,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
     console.log(`📥 [threadChain.ts:postThreadChainOptimized:787] CRON detected - using BullMQ for remaining ${threads.length - 1} threads`);
     const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
 
-    // Get user ID from social account
-    const supabase = await createClient();
-    const { data: account } = await supabase
-      .from('social_accounts')
-      .select('user_id')
-      .eq('social_id', options.selectedSocialId)
-      .single();
-
-    if (account?.user_id && threads.length > 1) {
+    if (threads.length > 1) {
       console.log(`📥 [threadChain.ts:postThreadChainOptimized:800] Enqueueing ${threads.length - 1} threads to BullMQ`);
       const queueResult = await enqueueThreadChain({
         parentThreadId,
@@ -807,7 +799,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
         })),
         socialId: options.selectedSocialId,
         accessToken: options.accessToken,
-        userId: account.user_id
+        userId: 'cron' // Static value for CRON jobs
       });
 
       if (queueResult.success) {
