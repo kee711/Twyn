@@ -404,7 +404,9 @@ export class ThreadQueue {
       mediaUrlsCount: mediaUrls.length,
       mediaType,
       socialId,
-      hasAccessToken: !!accessToken
+      hasAccessToken: !!accessToken,
+      tokenLength: accessToken?.length || 0,
+      tokenPrefix: accessToken ? accessToken.substring(0, 8) + '...' : 'null'
     });
 
     try {
@@ -479,9 +481,10 @@ export class ThreadQueue {
             
             publishData = JSON.parse(responseText);
           } catch (jsonError) {
+            const errorResponseText = await publishResponse.text();
             console.error(`❌ [threadQueue.ts:postRegularThread:479] JSON parsing error:`, {
               error: jsonError instanceof Error ? jsonError.message : 'Unknown JSON error',
-              responseText: responseText,
+              responseText: errorResponseText,
               attempt: attempt + 1
             });
             
