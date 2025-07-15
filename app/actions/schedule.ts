@@ -158,23 +158,23 @@ export async function createThreadsContainer(
     threadsUserId,
     hasAccessToken: !!accessToken,
     tokenLength: accessToken?.length || 0,
+    tokenPrefix: accessToken ? accessToken.substring(0, 8) + '...' : 'null',
     mediaType: params.mediaType,
     contentLength: params.content.length,
     mediaUrlsCount: params.media_urls?.length || 0
   });
 
-  // Validate token format
-  if (accessToken && !accessToken.includes('|')) {
-    console.error(`❌ [createThreadsContainer] Invalid access token format:`, {
+  // Validate token exists and has reasonable length
+  if (!accessToken || accessToken.length < 10) {
+    console.error(`❌ [createThreadsContainer] Invalid access token:`, {
       threadsUserId,
-      tokenLength: accessToken.length,
-      tokenPrefix: accessToken.substring(0, 10),
-      tokenSuffix: accessToken.substring(accessToken.length - 10)
+      hasToken: !!accessToken,
+      tokenLength: accessToken?.length || 0
     });
     return {
       success: false,
       creationId: null,
-      error: 'Invalid access token format. Token may not be properly decrypted.'
+      error: 'Access token is missing or too short.'
     };
   }
 
