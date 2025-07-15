@@ -468,8 +468,33 @@ export class ThreadQueue {
         });
 
         if (publishResponse.ok) {
-          const publishData = await publishResponse.json();
-          console.log(`✅ [threadQueue.ts:postRegularThread:378] Publish successful:`, {
+          let publishData;
+          try {
+            const responseText = await publishResponse.text();
+            console.log(`📝 [threadQueue.ts:postRegularThread:471] Raw response text:`, responseText);
+            
+            if (!responseText.trim()) {
+              throw new Error('Empty response body');
+            }
+            
+            publishData = JSON.parse(responseText);
+          } catch (jsonError) {
+            console.error(`❌ [threadQueue.ts:postRegularThread:479] JSON parsing error:`, {
+              error: jsonError instanceof Error ? jsonError.message : 'Unknown JSON error',
+              responseText: responseText,
+              attempt: attempt + 1
+            });
+            
+            if (attempt === maxAttempts - 1) {
+              return { 
+                success: false, 
+                error: `JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}` 
+              };
+            }
+            continue; // Try next attempt
+          }
+
+          console.log(`✅ [threadQueue.ts:postRegularThread:494] Publish successful:`, {
             threadId: publishData.id,
             attempt: attempt + 1,
             responseTime: `${responseTime}ms`,
@@ -556,8 +581,16 @@ export class ThreadQueue {
           return { success: false, error: `Failed to create image container: ${errorText}` };
         }
 
-        const data = await response.json();
-        mediaContainerId = data.id;
+        try {
+          const responseText = await response.text();
+          if (!responseText.trim()) {
+            throw new Error('Empty response body');
+          }
+          const data = JSON.parse(responseText);
+          mediaContainerId = data.id;
+        } catch (jsonError) {
+          return { success: false, error: `JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}` };
+        }
       } else if (mediaType === "VIDEO" && mediaUrls.length === 1) {
         const urlParams = new URLSearchParams({
           media_type: "VIDEO",
@@ -574,8 +607,16 @@ export class ThreadQueue {
           return { success: false, error: `Failed to create video container: ${errorText}` };
         }
 
-        const data = await response.json();
-        mediaContainerId = data.id;
+        try {
+          const responseText = await response.text();
+          if (!responseText.trim()) {
+            throw new Error('Empty response body');
+          }
+          const data = JSON.parse(responseText);
+          mediaContainerId = data.id;
+        } catch (jsonError) {
+          return { success: false, error: `JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}` };
+        }
       } else if ((mediaType === "IMAGE" || mediaType === "CAROUSEL") && mediaUrls.length > 1) {
         // Handle carousel replies with retry logic
         console.log(`🎠 [QUEUE-CAROUSEL] Starting carousel reply creation with ${mediaUrls.length} items`);
@@ -617,16 +658,29 @@ export class ThreadQueue {
               });
 
               if (response.ok) {
-                const data = await response.json();
-                console.log(`✅ [QUEUE-CAROUSEL] Item ${itemIndex + 1} created successfully:`, {
-                  containerId: data.id,
-                  imageUrl,
-                  attempt: attempts + 1,
-                  responseTime: `${responseTime}ms`,
-                  fullResponse: data
-                });
-                itemContainers.push(data.id);
-                success = true;
+                try {
+                  const responseText = await response.text();
+                  if (!responseText.trim()) {
+                    throw new Error('Empty response body');
+                  }
+                  const data = JSON.parse(responseText);
+                  console.log(`✅ [QUEUE-CAROUSEL] Item ${itemIndex + 1} created successfully:`, {
+                    containerId: data.id,
+                    imageUrl,
+                    attempt: attempts + 1,
+                    responseTime: `${responseTime}ms`,
+                    fullResponse: data
+                  });
+                  itemContainers.push(data.id);
+                  success = true;
+                } catch (jsonError) {
+                  console.error(`❌ [QUEUE-CAROUSEL] JSON parsing error for item ${itemIndex + 1}:`, {
+                    error: jsonError instanceof Error ? jsonError.message : 'Unknown JSON error',
+                    attempt: attempts + 1
+                  });
+                  attempts++;
+                  continue;
+                }
               } else {
                 const errorText = await response.text();
                 console.error(`❌ [QUEUE-CAROUSEL] Item ${itemIndex + 1} attempt ${attempts + 1} failed:`, {
@@ -757,7 +811,16 @@ export class ThreadQueue {
           return { success: false, error: `Failed to create carousel container (${response.status}): ${errorText}` };
         }
 
-        const data = await response.json();
+        let data;
+        try {
+          const responseText = await response.text();
+          if (!responseText.trim()) {
+            throw new Error('Empty response body');
+          }
+          data = JSON.parse(responseText);
+        } catch (jsonError) {
+          return { success: false, error: `JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}` };
+        }
         console.log(`✅ [QUEUE-CAROUSEL] Final container created successfully:`, {
           containerId: data.id,
           responseTime: `${responseTime}ms`,
@@ -784,8 +847,23 @@ export class ThreadQueue {
         });
 
         if (publishResponse.ok) {
-          const publishData = await publishResponse.json();
-          return { success: true, threadId: publishData.id };
+          try {
+            const responseText = await publishResponse.text();
+            if (!responseText.trim()) {
+              throw new Error('Empty response body');
+            }
+            const publishData = JSON.parse(responseText);
+            return { success: true, threadId: publishData.id };
+          } catch (jsonError) {
+            console.error(`❌ [threadQueue.ts:publishReplyThread:812] JSON parsing error:`, {
+              error: jsonError instanceof Error ? jsonError.message : 'Unknown JSON error',
+              attempt: attempt + 1
+            });
+            if (attempt === maxAttempts - 1) {
+              return { success: false, error: `JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}` };
+            }
+            continue;
+          }
         } else {
           const errorText = await publishResponse.text();
           console.error(`Reply publish attempt ${attempt + 1} failed:`, errorText);

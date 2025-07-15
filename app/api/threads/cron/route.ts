@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { postThreadChain, ThreadContent } from '@/app/actions/threadChain';
 import { getCurrentUTCISO } from '@/lib/utils/time';
+import { decryptToken } from '@/lib/utils/crypto';
 
 // Helper function to fetch access tokens by social_id
 async function getAccessTokenBySocialId(socialId: string): Promise<string | null> {
@@ -34,7 +35,25 @@ async function getAccessTokenBySocialId(socialId: string): Promise<string | null
     hasToken: !!account?.access_token
   });
 
-  return account?.access_token || null;
+  const encryptedToken = account?.access_token;
+  if (!encryptedToken) {
+    console.error(`❌ [route.ts:getAccessTokenBySocialId:35] No encrypted token found for socialId: ${socialId}`);
+    return null;
+  }
+
+  // Decrypt the token
+  console.log(`🔐 [route.ts:getAccessTokenBySocialId:40] Decrypting access token for socialId: ${socialId}`);
+  try {
+    const decryptedToken = decryptToken(encryptedToken);
+    console.log(`✅ [route.ts:getAccessTokenBySocialId:43] Token decryption successful for socialId: ${socialId}`);
+    return decryptedToken;
+  } catch (error) {
+    console.error(`❌ [route.ts:getAccessTokenBySocialId:46] Token decryption failed for socialId: ${socialId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return null;
+  }
 }
 
 // Helper function to rebuild thread chains from database records
@@ -227,10 +246,10 @@ export async function POST() {
           });
 
           if (!accessToken) {
-            throw new Error(`No access token found for social_id ${socialId}`);
+            throw new Error(`Access token fetch failed for social_id ${socialId}. This may be due to: 1) Token not found in database, 2) Token decryption failure, 3) Invalid social_id. Check encryption key and token validity.`);
           }
 
-          // Use existing postThreadChain function with auth options
+          // Use postThreadChain which internally handles BullMQ for multi-thread chains
           console.log(`🚀 [route.ts:POST:209] Calling postThreadChain function`);
           console.log(`🚀 [route.ts:POST:210] PostThreadChain parameters:`, {
             threadChainLength: threadChain.length,
@@ -252,22 +271,33 @@ export async function POST() {
           });
 
           if (threadChainResult.success) {
-            console.log(`✅ [route.ts:POST:230] Thread chain posted successfully:`, {
+            console.log(`✅ [route.ts:POST:230] Thread chain processed successfully:`, {
               parentId,
               parentThreadId: threadChainResult.parentThreadId,
               threadIds: threadChainResult.threadIds
             });
 
-            // Update all threads in this chain to 'posted' status
-            console.log(`📝 [route.ts:POST:237] Updating chain records to 'posted' status`);
             const chainRecords = threadChainRecords.filter(r => r.parent_media_id === parentId);
-            console.log(`📝 [route.ts:POST:239] Found ${chainRecords.length} records to update for chain ${parentId}`);
+            console.log(`📝 [route.ts:POST:237] Found ${chainRecords.length} records to update for chain ${parentId}`);
+
+            // For multi-thread chains with CRON (BullMQ), only first thread is posted immediately
+            // Remaining threads will be processed by BullMQ worker
+            const shouldUpdateAllAsPosted = threadChain.length === 1;
+            console.log(`📝 [route.ts:POST:241] Update strategy:`, {
+              threadChainLength: threadChain.length,
+              shouldUpdateAllAsPosted,
+              strategy: shouldUpdateAllAsPosted ? 'All posted' : 'First posted, others queued'
+            });
 
             await Promise.all(
               chainRecords.map(async (record, index) => {
-                const mediaId = threadChainResult.threadIds?.[index] || threadChainResult.parentThreadId;
-                console.log(`📝 [route.ts:POST:244] Updating record ${index + 1}/${chainRecords.length}:`, {
+                const isFirstThread = index === 0;
+                const status = shouldUpdateAllAsPosted || isFirstThread ? 'posted' : 'ready_to_publish';
+                const mediaId = isFirstThread ? threadChainResult.parentThreadId : null;
+
+                console.log(`📝 [route.ts:POST:252] Updating record ${index + 1}/${chainRecords.length}:`, {
                   recordId: record.my_contents_id,
+                  status,
                   mediaId,
                   threadSequence: record.thread_sequence
                 });
@@ -275,16 +305,22 @@ export async function POST() {
                 await supabase
                   .from('my_contents')
                   .update({
-                    publish_status: 'posted',
+                    publish_status: status,
                     media_id: mediaId
                   })
                   .eq('my_contents_id', record.my_contents_id);
               })
             );
 
-            console.log(`📝 [route.ts:POST:259] All ${chainRecords.length} records updated successfully`);
+            console.log(`📝 [route.ts:POST:279] All ${chainRecords.length} records updated successfully`);
             processedCount += chainRecords.length;
-            results.push({ type: 'thread_chain', parentId, success: true });
+            results.push({ 
+              type: 'thread_chain', 
+              parentId, 
+              success: true,
+              threadCount: threadChain.length,
+              usedBullMQ: threadChain.length > 1
+            });
           } else {
             console.error(`❌ [route.ts:POST:264] Thread chain posting failed:`, {
               parentId,
@@ -393,7 +429,7 @@ export async function POST() {
         });
 
         if (!accessToken) {
-          throw new Error(`No access token found for social_id ${post.social_id}`);
+          throw new Error(`Access token fetch failed for social_id ${post.social_id}. This may be due to: 1) Token not found in database, 2) Token decryption failure, 3) Invalid social_id. Check encryption key and token validity.`);
         }
 
         // Use existing postThreadChain function with single thread and auth options
@@ -534,5 +570,4 @@ export async function POST() {
       { status: 500 }
     );
   }
-  console.log(`🏁 [route.ts:POST:509] CRON job function completed`);
 }

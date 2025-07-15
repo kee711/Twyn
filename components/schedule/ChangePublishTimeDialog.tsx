@@ -3,7 +3,7 @@ import { updatePublishTimes } from '@/app/actions/user'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Clock, Edit, Plus, Check } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownTime } from "@/components/ui/dropdown-time"
 import { utcTimeToLocalTime, localTimeToUTCTime, isUTCISOString } from "@/lib/utils/time"
 
 interface ChangePublishTimeDialogProps {
@@ -136,24 +136,11 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
                   {editingIndex === index ? (
                     <div className="flex items-center gap-2 w-full">
                       <div className="flex-1">
-                        <Select value={newTime} onValueChange={setNewTime}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="시간 선택" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[200px] overflow-y-auto">
-                            {Array.from({ length: 24 }).flatMap((_, hour: number) =>
-                              Array.from({ length: 4 }).map((_, minuteIndex: number) => {
-                                const minute = minuteIndex * 15
-                                const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-                                return (
-                                  <SelectItem key={timeString} value={timeString}>
-                                    {timeString}
-                                  </SelectItem>
-                                )
-                              })
-                            )}
-                          </SelectContent>
-                        </Select>
+                        <DropdownTime 
+                          value={newTime} 
+                          onValueChange={setNewTime}
+                          className="w-full"
+                        />
                       </div>
                       <Button variant='outline' size='icon' onClick={() => saveTime(index)}>
                         <Check className="h-4 w-4" />
@@ -190,24 +177,11 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
 
           <div className="flex items-center gap-2 w-full mt-4">
             <div className="flex-1">
-              <Select value={newTime} onValueChange={setNewTime}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="시간 선택" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
-                  {Array.from({ length: 24 }).flatMap((_, hour: number) =>
-                    Array.from({ length: 4 }).map((_, minuteIndex: number) => {
-                      const minute = minuteIndex * 15
-                      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-                      return (
-                        <SelectItem key={timeString} value={timeString}>
-                          {timeString}
-                        </SelectItem>
-                      )
-                    })
-                  )}
-                </SelectContent>
-              </Select>
+              <DropdownTime 
+                value={newTime} 
+                onValueChange={setNewTime}
+                className="w-full"
+              />
             </div>
             <Button variant="outline" onClick={addTime} disabled={!newTime}>
               <Plus className="h-4 w-4 mr-2" />
