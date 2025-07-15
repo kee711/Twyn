@@ -83,7 +83,7 @@ export class ThreadQueue {
         accessToken,
         userId,
         replyToId: index === 0 ? undefined : (firstThreadId || parentMediaId),
-        status: index === 0 ? 'completed' : 'pending', // 첫 번째는 이미 완료됨
+        status: (index === 0 ? 'completed' : 'pending') as 'completed' | 'pending', // 첫 번째는 이미 완료됨
         createdAt: currentTime,
         retryCount: 0,
         maxRetries: 3
@@ -471,27 +471,27 @@ export class ThreadQueue {
 
         if (publishResponse.ok) {
           let publishData;
+          let responseText = '';
           try {
-            const responseText = await publishResponse.text();
+            responseText = await publishResponse.text();
             console.log(`📝 [threadQueue.ts:postRegularThread:471] Raw response text:`, responseText);
-            
+
             if (!responseText.trim()) {
               throw new Error('Empty response body');
             }
-            
+
             publishData = JSON.parse(responseText);
           } catch (jsonError) {
-            const errorResponseText = await publishResponse.text();
             console.error(`❌ [threadQueue.ts:postRegularThread:479] JSON parsing error:`, {
               error: jsonError instanceof Error ? jsonError.message : 'Unknown JSON error',
-              responseText: errorResponseText,
+              responseText: responseText || 'Failed to read response',
               attempt: attempt + 1
             });
-            
+
             if (attempt === maxAttempts - 1) {
-              return { 
-                success: false, 
-                error: `JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}` 
+              return {
+                success: false,
+                error: `JSON parsing failed: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`
               };
             }
             continue; // Try next attempt
