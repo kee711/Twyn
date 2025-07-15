@@ -242,7 +242,8 @@ export async function POST() {
           console.log(`🔐 [route.ts:POST:199] Access token fetch result:`, {
             socialId,
             hasToken: !!accessToken,
-            tokenLength: accessToken?.length || 0
+            tokenLength: accessToken?.length || 0,
+            tokenPrefix: accessToken ? accessToken.substring(0, 8) + '...' : 'null'
           });
 
           if (!accessToken) {
