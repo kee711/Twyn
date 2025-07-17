@@ -765,24 +765,52 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
   threadIds.push(firstResult.threadId);
   parentThreadId = firstResult.threadId;
 
-  // For cron jobs, use BullMQ for remaining threads
-  if (options?.accessToken && options?.selectedSocialId) {
-    console.log(`📥 [threadChain.ts:postThreadChainOptimized:787] CRON detected - using BullMQ for remaining ${threads.length - 1} threads`);
+  // Use BullMQ for multi-thread chains if available
+  if (threads.length > 1) {
+    console.log(`📥 [threadChain.ts:postThreadChainOptimized:787] Multi-thread detected - attempting BullMQ for remaining ${threads.length - 1} threads`);
+    
+    let accessTokenForQueue: string;
+    let selectedSocialIdForQueue: string;
+    
+    if (options?.accessToken && options?.selectedSocialId) {
+      // CRON job context - use provided tokens
+      console.log(`🔐 [threadChain.ts:postThreadChainOptimized:792] Using CRON provided tokens`);
+      accessTokenForQueue = options.accessToken;
+      selectedSocialIdForQueue = options.selectedSocialId;
+    } else {
+      // User action context - get tokens from session
+      console.log(`🔐 [threadChain.ts:postThreadChainOptimized:797] User action - fetching tokens from session`);
+      const tokenData = await getThreadsAccessToken();
+      accessTokenForQueue = tokenData.accessToken;
+      selectedSocialIdForQueue = tokenData.selectedSocialId;
+    }
+    
     const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
 
-    if (threads.length > 1) {
-      console.log(`📥 [threadChain.ts:postThreadChainOptimized:800] Enqueueing ${threads.length - 1} threads to BullMQ`);
-      const queueResult = await enqueueThreadChain({
-        parentThreadId,
-        threads: threads.slice(1).map(thread => ({
-          content: thread.content,
-          mediaUrls: thread.media_urls || [],
-          mediaType: thread.media_type || 'TEXT'
-        })),
-        socialId: options.selectedSocialId,
-        accessToken: options.accessToken,
-        userId: 'cron' // Static value for CRON jobs
-      });
+    console.log(`📥 [threadChain.ts:postThreadChainOptimized:805] Enqueueing ${threads.length - 1} threads to BullMQ`);
+    console.log(`🔐 [threadChain.ts:postThreadChainOptimized:806] BullMQ data preparation:`, {
+      parentThreadId,
+      threadsCount: threads.slice(1).length,
+      socialId: selectedSocialIdForQueue,
+      hasAccessToken: !!accessTokenForQueue,
+      accessTokenLength: accessTokenForQueue?.length || 0,
+      accessTokenPreview: accessTokenForQueue ? `${accessTokenForQueue.substring(0, 10)}...` : 'undefined',
+      userId: options?.accessToken ? 'cron' : 'user'
+    });
+    
+    const bullMQData = {
+      parentThreadId,
+      threads: threads.slice(1).map(thread => ({
+        content: thread.content,
+        mediaUrls: thread.media_urls || [],
+        mediaType: thread.media_type || 'TEXT'
+      })),
+      socialId: selectedSocialIdForQueue,
+      accessToken: accessTokenForQueue,
+      userId: options?.accessToken ? 'cron' : 'user'
+    };
+    
+    const queueResult = await enqueueThreadChain(bullMQData);
 
       if (queueResult.success) {
         console.log(`✅ [threadChain.ts:postThreadChainOptimized:814] Thread chain queued successfully: ${queueResult.jobId}`);
