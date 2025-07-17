@@ -812,107 +812,28 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
     
     const queueResult = await enqueueThreadChain(bullMQData);
 
-      if (queueResult.success) {
-        console.log(`✅ [threadChain.ts:postThreadChainOptimized:814] Thread chain queued successfully: ${queueResult.jobId}`);
-      } else {
-        console.error(`❌ [BullMQ] Failed to queue thread chain: ${queueResult.error}`);
-        // Fallback to direct processing if BullMQ fails
-        console.log('🔄 [Fallback] Processing threads directly...');
-      }
-    }
-  } else {
-    // Regular user request - try BullMQ first, fallback to direct processing
-    const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
-    
-    if (threads.length > 1) {
-      // Get user session for BullMQ
-      const session = await getServerSession(authOptions);
-      const supabase = await createClient();
+    if (queueResult.success) {
+      console.log(`✅ [threadChain.ts:postThreadChainOptimized:814] Thread chain queued successfully: ${queueResult.jobId}`);
+    } else {
+      console.error(`❌ [BullMQ] Failed to queue thread chain: ${queueResult.error}`);
+      // Fallback to direct processing if BullMQ fails
+      console.log('🔄 [Fallback] Processing threads directly...');
       
-      let shouldUseBullMQ = false;
-      let userId = '';
-      let selectedSocialId = '';
-
-      if (session?.user?.id) {
-        userId = session.user.id;
-        
-        // Get selected social account
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('selected_social_id')
-          .eq('user_id', userId)
-          .single();
-        
-        selectedSocialId = profile?.selected_social_id || '';
-        
-        // Get access token
-        if (selectedSocialId) {
-          const { data: account } = await supabase
-            .from('social_accounts')
-            .select('access_token')
-            .eq('social_id', selectedSocialId)
-            .eq('platform', 'threads')
-            .eq('is_active', true)
-            .single();
-          
-          if (account?.access_token) {
-            shouldUseBullMQ = true;
-          }
-        }
-      }
-
-      // Try BullMQ for user requests too
-      if (shouldUseBullMQ) {
-        const queueResult = await enqueueThreadChain({
-          parentThreadId,
-          threads: threads.slice(1).map(thread => ({
-            content: thread.content,
-            mediaUrls: thread.media_urls || [],
-            mediaType: thread.media_type || 'TEXT'
-          })),
-          socialId: selectedSocialId,
-          accessToken: options?.accessToken || '',
-          userId
-        });
-
-        if (queueResult.success) {
-          console.log(`✅ [BullMQ] User thread chain queued: ${queueResult.jobId}`);
-        } else {
-          console.log('🔄 [Fallback] BullMQ failed, processing directly...');
-          shouldUseBullMQ = false;
-        }
-      }
-
-      // Fallback to direct processing if BullMQ is not available or failed
-      if (!shouldUseBullMQ) {
-        const hasMedia = firstThread.media_urls && firstThread.media_urls.length > 0;
-        const waitTime = hasMedia ? 10000 : 2000;
-
-        console.log(`Waiting ${waitTime}ms for parent post to be processed...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-
-        // Post subsequent threads with reduced delays
-        for (let i = 1; i < threads.length; i++) {
-          const thread = threads[i];
-
-          if (i > 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-
-          try {
-            const replyResult = await createThreadsReplyOptimized(
-              thread.content,
-              parentThreadId,
-              thread.media_urls,
-              thread.media_type,
-              options
-            );
-
-            threadIds.push(replyResult?.id || `reply_${i}`);
-          } catch (error) {
-            console.error(`Failed to post thread ${i + 1}:`, error);
-            threadIds.push(`failed_${i}`);
-          }
+      // Direct processing fallback
+      for (let i = 1; i < threads.length; i++) {
+        const thread = threads[i];
+        try {
+          const replyResult = await createThreadsReplyOptimized(
+            thread.content,
+            parentThreadId,
+            thread.media_urls,
+            thread.media_type,
+            options
+          );
+          threadIds.push(replyResult?.id || `reply_${i}`);
+        } catch (error) {
+          console.error(`Failed to post thread ${i + 1}:`, error);
+          threadIds.push(`failed_${i}`);
         }
       }
     }
