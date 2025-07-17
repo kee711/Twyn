@@ -658,7 +658,7 @@ function RightSidebarContent({
       <div className="p-4 space-y-2 border-t bg-background">
         <Button
           variant="outline"
-          size="lg"
+          size="xl"
           className="w-full"
           onClick={() => {
             handleSaveToDraft();
@@ -673,7 +673,7 @@ function RightSidebarContent({
           <div className="flex-1 flex items-center gap-2 relative">
             <Button
               variant="default"
-              size="lg"
+              size="xl"
               className="!p-0 w-full rounded-r-sm mr-8 border-r border-dotted border-r-white bg-black text-white hover:bg-black/90"
               onClick={handleSchedule}
               disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
@@ -704,7 +704,7 @@ function RightSidebarContent({
           </div>
           <Button
             variant="default"
-            size="lg"
+            size="xl"
             className="bg-black text-white hover:bg-black/90"
             onClick={handlePublish}
             disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
