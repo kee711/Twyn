@@ -165,11 +165,11 @@ async function createThreadsPostOptimized(content: string, mediaUrls?: string[],
           try {
             const responseText = await publishResponse.text();
             console.log(`📝 [threadChain.ts:createThreadsPostOptimized:164] Raw response text:`, responseText);
-            
+
             if (!responseText.trim()) {
               throw new Error('Empty response body');
             }
-            
+
             publishData = JSON.parse(responseText);
           } catch (jsonError) {
             console.error(`❌ [threadChain.ts:createThreadsPostOptimized:172] JSON parsing error:`, {
@@ -180,7 +180,7 @@ async function createThreadsPostOptimized(content: string, mediaUrls?: string[],
             });
             throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
           }
-          
+
           console.log(`✅ [threadChain.ts:createThreadsPostOptimized:181] Thread published successfully! ID: ${publishData.id}`);
           return {
             success: true,
@@ -312,7 +312,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
         });
         throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
       }
-      
+
       console.log(`✅ [threadChain.ts:createThreadsReplyOptimized:294] Single image container created: ${data.id}`);
       mediaContainerId = data.id;
     }
@@ -366,7 +366,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
         });
         throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
       }
-      
+
       console.log(`✅ [threadChain.ts:createThreadsReplyOptimized:351] Single video container created: ${data.id}`);
       mediaContainerId = data.id;
     }
@@ -463,7 +463,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
           });
           throw new Error(`Invalid JSON response for carousel item: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
         }
-        
+
         console.log(`✅ [CAROUSEL] Item ${i + 1} created successfully:`, {
           containerId: data.id,
           imageUrl,
@@ -553,7 +553,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
         });
         throw new Error(`Invalid JSON response for final carousel: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
       }
-      
+
       console.log(`✅ [CAROUSEL] Final container created successfully:`, {
         containerId: data.id,
         responseTime: `${responseTime}ms`,
@@ -591,11 +591,11 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
           try {
             const responseText = await publishResponse.text();
             console.log(`💬 [threadChain.ts:createThreadsReplyOptimized:514] Raw response text:`, responseText);
-            
+
             if (!responseText.trim()) {
               throw new Error('Empty response body');
             }
-            
+
             publishData = JSON.parse(responseText);
           } catch (jsonError) {
             console.error(`❌ [threadChain.ts:createThreadsReplyOptimized:522] JSON parsing error:`, {
@@ -606,7 +606,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
             });
             throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
           }
-          
+
           console.log('Reply published successfully!');
           return { id: publishData.id };
         } else {
@@ -768,10 +768,11 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
   // Use BullMQ for multi-thread chains if available
   if (threads.length > 1) {
     console.log(`📥 [threadChain.ts:postThreadChainOptimized:787] Multi-thread detected - attempting BullMQ for remaining ${threads.length - 1} threads`);
-    
+
     let accessTokenForQueue: string;
     let selectedSocialIdForQueue: string;
-    
+
+    // CRON : 이미 route.ts에서 토큰을 가져왔기 때문에 따로 가져오지 않는다.
     if (options?.accessToken && options?.selectedSocialId) {
       // CRON job context - use provided tokens
       console.log(`🔐 [threadChain.ts:postThreadChainOptimized:792] Using CRON provided tokens`);
@@ -784,7 +785,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       accessTokenForQueue = tokenData.accessToken;
       selectedSocialIdForQueue = tokenData.selectedSocialId;
     }
-    
+
     const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
 
     console.log(`📥 [threadChain.ts:postThreadChainOptimized:805] Enqueueing ${threads.length - 1} threads to BullMQ`);
@@ -797,7 +798,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       accessTokenPreview: accessTokenForQueue ? `${accessTokenForQueue.substring(0, 10)}...` : 'undefined',
       userId: options?.accessToken ? 'cron' : 'user'
     });
-    
+
     const bullMQData = {
       parentThreadId,
       threads: threads.slice(1).map(thread => ({
@@ -809,7 +810,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       accessToken: accessTokenForQueue,
       userId: options?.accessToken ? 'cron' : 'user'
     };
-    
+
     const queueResult = await enqueueThreadChain(bullMQData);
 
     if (queueResult.success) {
@@ -818,7 +819,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       console.error(`❌ [BullMQ] Failed to queue thread chain: ${queueResult.error}`);
       // Fallback to direct processing if BullMQ fails
       console.log('🔄 [Fallback] Processing threads directly...');
-      
+
       // Direct processing fallback
       for (let i = 1; i < threads.length; i++) {
         const thread = threads[i];
