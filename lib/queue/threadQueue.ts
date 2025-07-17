@@ -36,7 +36,9 @@ export async function enqueueThreadChain(data: ThreadJobData): Promise<{ success
     threadsCount: data.threads.length,
     socialId: data.socialId,
     userId: data.userId,
-    hasAccessToken: !!data.accessToken
+    hasAccessToken: !!data.accessToken,
+    accessTokenLength: data.accessToken?.length || 0,
+    accessTokenPreview: data.accessToken ? `${data.accessToken.substring(0, 10)}...` : 'undefined'
   });
 
   if (!threadQueue) {
