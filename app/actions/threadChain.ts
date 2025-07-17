@@ -165,11 +165,11 @@ async function createThreadsPostOptimized(content: string, mediaUrls?: string[],
           try {
             const responseText = await publishResponse.text();
             console.log(`📝 [threadChain.ts:createThreadsPostOptimized:164] Raw response text:`, responseText);
-            
+
             if (!responseText.trim()) {
               throw new Error('Empty response body');
             }
-            
+
             publishData = JSON.parse(responseText);
           } catch (jsonError) {
             console.error(`❌ [threadChain.ts:createThreadsPostOptimized:172] JSON parsing error:`, {
@@ -180,7 +180,7 @@ async function createThreadsPostOptimized(content: string, mediaUrls?: string[],
             });
             throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
           }
-          
+
           console.log(`✅ [threadChain.ts:createThreadsPostOptimized:181] Thread published successfully! ID: ${publishData.id}`);
           return {
             success: true,
@@ -312,7 +312,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
         });
         throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
       }
-      
+
       console.log(`✅ [threadChain.ts:createThreadsReplyOptimized:294] Single image container created: ${data.id}`);
       mediaContainerId = data.id;
     }
@@ -366,7 +366,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
         });
         throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
       }
-      
+
       console.log(`✅ [threadChain.ts:createThreadsReplyOptimized:351] Single video container created: ${data.id}`);
       mediaContainerId = data.id;
     }
@@ -463,7 +463,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
           });
           throw new Error(`Invalid JSON response for carousel item: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
         }
-        
+
         console.log(`✅ [CAROUSEL] Item ${i + 1} created successfully:`, {
           containerId: data.id,
           imageUrl,
@@ -553,7 +553,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
         });
         throw new Error(`Invalid JSON response for final carousel: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
       }
-      
+
       console.log(`✅ [CAROUSEL] Final container created successfully:`, {
         containerId: data.id,
         responseTime: `${responseTime}ms`,
@@ -591,11 +591,11 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
           try {
             const responseText = await publishResponse.text();
             console.log(`💬 [threadChain.ts:createThreadsReplyOptimized:514] Raw response text:`, responseText);
-            
+
             if (!responseText.trim()) {
               throw new Error('Empty response body');
             }
-            
+
             publishData = JSON.parse(responseText);
           } catch (jsonError) {
             console.error(`❌ [threadChain.ts:createThreadsReplyOptimized:522] JSON parsing error:`, {
@@ -606,7 +606,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
             });
             throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
           }
-          
+
           console.log('Reply published successfully!');
           return { id: publishData.id };
         } else {
@@ -768,10 +768,11 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
   // Use BullMQ for multi-thread chains if available
   if (threads.length > 1) {
     console.log(`📥 [threadChain.ts:postThreadChainOptimized:787] Multi-thread detected - attempting BullMQ for remaining ${threads.length - 1} threads`);
-    
+
     let accessTokenForQueue: string;
     let selectedSocialIdForQueue: string;
-    
+
+    // CRON : 이미 route.ts에서 토큰을 가져왔기 때문에 따로 가져오지 않는다.
     if (options?.accessToken && options?.selectedSocialId) {
       // CRON job context - use provided tokens
       console.log(`🔐 [threadChain.ts:postThreadChainOptimized:792] Using CRON provided tokens`);
@@ -784,7 +785,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       accessTokenForQueue = tokenData.accessToken;
       selectedSocialIdForQueue = tokenData.selectedSocialId;
     }
-    
+
     const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
 
     console.log(`📥 [threadChain.ts:postThreadChainOptimized:805] Enqueueing ${threads.length - 1} threads to BullMQ`);
@@ -797,7 +798,7 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       accessTokenPreview: accessTokenForQueue ? `${accessTokenForQueue.substring(0, 10)}...` : 'undefined',
       userId: options?.accessToken ? 'cron' : 'user'
     });
-    
+
     const bullMQData = {
       parentThreadId,
       threads: threads.slice(1).map(thread => ({
@@ -809,110 +810,31 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
       accessToken: accessTokenForQueue,
       userId: options?.accessToken ? 'cron' : 'user'
     };
-    
+
     const queueResult = await enqueueThreadChain(bullMQData);
 
-      if (queueResult.success) {
-        console.log(`✅ [threadChain.ts:postThreadChainOptimized:814] Thread chain queued successfully: ${queueResult.jobId}`);
-      } else {
-        console.error(`❌ [BullMQ] Failed to queue thread chain: ${queueResult.error}`);
-        // Fallback to direct processing if BullMQ fails
-        console.log('🔄 [Fallback] Processing threads directly...');
-      }
-    }
-  } else {
-    // Regular user request - try BullMQ first, fallback to direct processing
-    const { enqueueThreadChain } = await import('@/lib/queue/threadQueue');
-    
-    if (threads.length > 1) {
-      // Get user session for BullMQ
-      const session = await getServerSession(authOptions);
-      const supabase = await createClient();
-      
-      let shouldUseBullMQ = false;
-      let userId = '';
-      let selectedSocialId = '';
+    if (queueResult.success) {
+      console.log(`✅ [threadChain.ts:postThreadChainOptimized:814] Thread chain queued successfully: ${queueResult.jobId}`);
+    } else {
+      console.error(`❌ [BullMQ] Failed to queue thread chain: ${queueResult.error}`);
+      // Fallback to direct processing if BullMQ fails
+      console.log('🔄 [Fallback] Processing threads directly...');
 
-      if (session?.user?.id) {
-        userId = session.user.id;
-        
-        // Get selected social account
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('selected_social_id')
-          .eq('user_id', userId)
-          .single();
-        
-        selectedSocialId = profile?.selected_social_id || '';
-        
-        // Get access token
-        if (selectedSocialId) {
-          const { data: account } = await supabase
-            .from('social_accounts')
-            .select('access_token')
-            .eq('social_id', selectedSocialId)
-            .eq('platform', 'threads')
-            .eq('is_active', true)
-            .single();
-          
-          if (account?.access_token) {
-            shouldUseBullMQ = true;
-          }
-        }
-      }
-
-      // Try BullMQ for user requests too
-      if (shouldUseBullMQ) {
-        const queueResult = await enqueueThreadChain({
-          parentThreadId,
-          threads: threads.slice(1).map(thread => ({
-            content: thread.content,
-            mediaUrls: thread.media_urls || [],
-            mediaType: thread.media_type || 'TEXT'
-          })),
-          socialId: selectedSocialId,
-          accessToken: options?.accessToken || '',
-          userId
-        });
-
-        if (queueResult.success) {
-          console.log(`✅ [BullMQ] User thread chain queued: ${queueResult.jobId}`);
-        } else {
-          console.log('🔄 [Fallback] BullMQ failed, processing directly...');
-          shouldUseBullMQ = false;
-        }
-      }
-
-      // Fallback to direct processing if BullMQ is not available or failed
-      if (!shouldUseBullMQ) {
-        const hasMedia = firstThread.media_urls && firstThread.media_urls.length > 0;
-        const waitTime = hasMedia ? 10000 : 2000;
-
-        console.log(`Waiting ${waitTime}ms for parent post to be processed...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-
-        // Post subsequent threads with reduced delays
-        for (let i = 1; i < threads.length; i++) {
-          const thread = threads[i];
-
-          if (i > 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-
-          try {
-            const replyResult = await createThreadsReplyOptimized(
-              thread.content,
-              parentThreadId,
-              thread.media_urls,
-              thread.media_type,
-              options
-            );
-
-            threadIds.push(replyResult?.id || `reply_${i}`);
-          } catch (error) {
-            console.error(`Failed to post thread ${i + 1}:`, error);
-            threadIds.push(`failed_${i}`);
-          }
+      // Direct processing fallback
+      for (let i = 1; i < threads.length; i++) {
+        const thread = threads[i];
+        try {
+          const replyResult = await createThreadsReplyOptimized(
+            thread.content,
+            parentThreadId,
+            thread.media_urls,
+            thread.media_type,
+            options
+          );
+          threadIds.push(replyResult?.id || `reply_${i}`);
+        } catch (error) {
+          console.error(`Failed to post thread ${i + 1}:`, error);
+          threadIds.push(`failed_${i}`);
         }
       }
     }
