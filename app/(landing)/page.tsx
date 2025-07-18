@@ -37,7 +37,7 @@ export default function Home() {
   };
 
   return (
-    <div className="landing-page">
+    <div className="landing-page bg-landing-background-primary">
       <Navigation />
       <HeroSection />
       <FeatureSection />

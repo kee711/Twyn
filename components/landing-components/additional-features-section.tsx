@@ -5,7 +5,7 @@ import { Save, BarChart3, Users, Shield } from "lucide-react";
 
 export const AdditionalFeaturesSection = () => {
   return (
-    <section className="py-20 sm:py-32 bg-white">
+    <section id="benefits" className="py-20 sm:py-32 bg-white">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16 max-w-4xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-landing-text-primary mb-4">

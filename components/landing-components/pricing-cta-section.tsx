@@ -48,7 +48,7 @@ export const PricingCTASection = () => {
   ];
 
   return (
-    <section className="py-20 sm:py-32 bg-gradient-to-br from-gray-50 to-white">
+    <section id="pricing" className="py-20 sm:py-32 bg-gradient-to-br from-gray-50 to-white">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16 max-w-4xl mx-auto">
           <h2 className="text-4xl sm:text-5xl font-bold text-landing-text-primary mb-4">

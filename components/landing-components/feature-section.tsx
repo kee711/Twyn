@@ -53,13 +53,13 @@ const TextSection = ({ title, description1, description2, description3 }: { titl
 
 export const FeatureSection = () => {
   return (
-    <section className="py-20 sm:py-32 bg-gradient-to-br from-gray-50 to-white">
+    <section id="features" className="py-20 sm:py-32 bg-landing-background-primary">
       {/* Feature Sections */}
       <div className="w-full space-y-32">
         {/* First Feature - Left GIF, Right Text */}
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-16 max-w-6xl mx-auto">
-            <MovSection src="/media_contents/vid_topic-finder.mov" />
+            <MovSection src="/landing-page/vid_topic-finder.mov" />
             <TextSection
               title="Never run out of ideas"
               description1="Explore ideas, perfectly suitable for you"
@@ -76,13 +76,13 @@ export const FeatureSection = () => {
               description1="Generate a ready-to-post draft with one click"
               description2="Fine‑tune tone & style with AI"
             />
-            <MovSection src="/media_contents/vid_create-detail.mov" />
+            <MovSection src="/landing-page/vid_create-detail.mov" />
           </div>
         </div>
         {/* Third Feature - Left GIF, Right Text */}
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-16 max-w-6xl mx-auto">
-            <MovSection src="/media_contents/vid_schedule.mov" />
+            <MovSection src="/landing-page/vid_schedule.mov" />
             <TextSection
               title="Auto-post while you rest"
               description1="Post anytime, hands‑free"
@@ -99,7 +99,7 @@ export const FeatureSection = () => {
               description1="Generate Replies to all comments in one click"
               description2="Crafts context‑aware replies that feel human"
             />
-            <MovSection src="/media_contents/vid_comments.mov" />
+            <MovSection src="/landing-page/vid_comments.mov" />
           </div>
         </div>
       </div>
