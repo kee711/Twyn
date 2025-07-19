@@ -29,6 +29,51 @@ module.exports = {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
 				},
+				// Landing Page Design System
+				landing: {
+					// Primary purple colors (from HeroSection)
+					primary: {
+						50: '#faf5ff',
+						100: '#f3e8ff',
+						200: '#e9d5ff',
+						300: '#d8b4fe',
+						400: '#c084fc',
+						500: '#a855f7',
+						600: '#9333ea', // Main primary
+						700: '#7c3aed', // Hover state
+						800: '#6b21a8',
+						900: '#581c87',
+					},
+					// Background colors
+					bg: {
+						primary: 'rgb(249, 250, 251)', // gray-50
+						secondary: 'rgb(255, 255, 255)', // white
+						gradient: 'linear-gradient(to bottom right, rgb(249, 250, 251), rgb(255, 255, 255))',
+					},
+					// Text colors
+					text: {
+						primary: 'rgb(17, 24, 39)', // gray-900
+						secondary: 'rgb(75, 85, 99)', // gray-600  
+						tertiary: 'rgb(55, 65, 81)', // gray-700
+						muted: 'rgb(156, 163, 175)', // gray-400
+						reverse: 'rgb(255, 255, 255)', // white
+					},
+					// Layout
+					container: {
+						padding: '1rem', // px-4
+						paddingMd: '1.5rem', // md:px-6
+						maxWidth: '64rem', // max-w-4xl for text
+						maxWidthLarge: '72rem', // max-w-6xl for images
+					},
+					// Spacing
+					spacing: {
+						section: '5rem', // py-20
+						sectionLarge: '8rem', // py-32
+						sectionTop: '6rem', // pt-24
+						element: '1.5rem', // mb-6
+						elementLarge: '2rem', // mb-8
+					}
+				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
@@ -105,6 +150,10 @@ module.exports = {
 				shimmer: {
 					'0%': { transform: 'translateX(-100%) skewX(-12deg)' },
 					'100%': { transform: 'translateX(200%) skewX(-12deg)' }
+				},
+				"text-shimmer": {
+					"0%": { backgroundPosition: "-100% 50%" },
+					"100%": { backgroundPosition: "100% 50%" }
 				}
 			},
 			animation: {
@@ -113,7 +162,8 @@ module.exports = {
 				"shimmer-slide":
 					"shimmer-slide var(--speed) ease-in-out infinite alternate",
 				"spin-around": "spin-around calc(var(--speed) * 2) infinite linear",
-				shimmer: 'shimmer 1.5s infinite'
+				shimmer: 'shimmer 1.5s infinite',
+				"text-shimmer": "text-shimmer 2s ease-in-out infinite"
 			},
 			// backgroundImage: {
 			// 	'dot-pattern': '`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'%3E%3Cg stroke-width='3.5' stroke='hsla(0, 0%25, 100%25, 1.00)' fill='none'%3E%3Ccircle r='4.29' cx='0' cy='0' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='400' cy='0' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='800' cy='0' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='0' cy='400' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='400' cy='400' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='800' cy='400' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='0' cy='800' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='400' cy='800' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3Ccircle r='4.29' cx='800' cy='800' fill='hsla(0, 0%25, 100%25, 1.00)' stroke='none'/%3E%3C/g%3E%3C/svg%3E")`',
