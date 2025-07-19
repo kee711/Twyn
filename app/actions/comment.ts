@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { authOptions } from "@/lib/auth/authOptions";
 import { getServerSession } from "next-auth/next";
+import { decryptToken } from '@/lib/utils/crypto';
 import { ContentItem } from "@/components/contents-helper/types";
 import axios from 'axios';
 
@@ -35,12 +36,12 @@ export async function getThreadsAccessToken() {
   // user_profiles에서 선택된 소셜 계정 id 가져오기
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('selected_social_account')
+    .select('selected_social_id')
     .eq('user_id', userId)
     .single();
 
-  const selectedAccountId = profile?.selected_social_account;
-  if (!selectedAccountId) {
+  const selectedSocialId = profile?.selected_social_id;
+  if (!selectedSocialId) {
     throw new Error('선택된 소셜 계정이 없습니다.');
   }
 
@@ -48,15 +49,18 @@ export async function getThreadsAccessToken() {
   const { data: account } = await supabase
     .from('social_accounts')
     .select('access_token')
-    .eq('social_id', selectedAccountId)
+    .eq('social_id', selectedSocialId)
     .eq('platform', 'threads')
     .eq('is_active', true)
     .single();
 
-  const accessToken = account?.access_token;
-  if (!accessToken) {
+  const encryptedToken = account?.access_token;
+  if (!encryptedToken) {
     throw new Error('Threads access token이 없습니다.');
   }
+
+  // 토큰 복호화
+  const accessToken = decryptToken(encryptedToken);
   return accessToken;
 }
 
@@ -92,19 +96,19 @@ export async function getComment(id: string, userId: string) { // root post id &
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('selected_social_account')
+    .select('selected_social_id')
     .eq('user_id', userId)
     .single();
 
-  const selectedAccountId = profile?.selected_social_account;
-  if (!selectedAccountId) {
+  const selectedSocialId = profile?.selected_social_id;
+  if (!selectedSocialId) {
     throw new Error('선택된 소셜 계정이 없습니다.');
   }
   // social_accounts에서 username 가져오기
   const { data: account } = await supabase
     .from('social_accounts')
     .select('username')
-    .eq('social_id', selectedAccountId)
+    .eq('social_id', selectedSocialId)
     .eq('platform', 'threads')
     .eq('is_active', true)
     .single();
@@ -187,12 +191,12 @@ export async function postComment({ media_type, text, reply_to_id }: PostComment
     // user_profiles에서 선택된 소셜 계정 id 가져오기
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('selected_social_account')
+      .select('selected_social_id')
       .eq('user_id', userId)
       .single();
 
-    const selectedAccountId = profile?.selected_social_account;
-    if (!selectedAccountId) {
+    const selectedSocialId = profile?.selected_social_id;
+    if (!selectedSocialId) {
       throw new Error('선택된 소셜 계정이 없습니다.');
     }
 
@@ -200,15 +204,18 @@ export async function postComment({ media_type, text, reply_to_id }: PostComment
     const { data: account } = await supabase
       .from('social_accounts')
       .select('access_token')
-      .eq('social_id', selectedAccountId)
+      .eq('social_id', selectedSocialId)
       .eq('platform', 'threads')
       .eq('is_active', true)
       .single();
 
-    const token = account?.access_token;
-    if (!token) {
+    const encryptedToken = account?.access_token;
+    if (!encryptedToken) {
       throw new Error('Threads access token이 없습니다.');
     }
+
+    // 토큰 복호화
+    const token = decryptToken(encryptedToken);
 
     // 댓글 media container 생성
     const payload = new URLSearchParams({
@@ -224,7 +231,7 @@ export async function postComment({ media_type, text, reply_to_id }: PostComment
       const mediaContainerId = createResponse.data.id;
       console.log(`Created media container: ${mediaContainerId}`);
 
-      const publishUrl = `https://graph.threads.net/v1.0/${selectedAccountId}/threads_publish`;
+      const publishUrl = `https://graph.threads.net/v1.0/${selectedSocialId}/threads_publish`;
       const params = new URLSearchParams({
         creation_id: mediaContainerId,
         access_token: token,
@@ -407,16 +414,16 @@ export async function getAllCommentsWithRootPosts() {
   // user_profiles에서 선택된 소셜 계정 id 가져오기
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('selected_social_account')
+    .select('selected_social_id')
     .eq('user_id', userId)
     .single();
 
-  const selectedAccountId = profile?.selected_social_account;
-  if (!selectedAccountId) {
+  const selectedSocialId = profile?.selected_social_id;
+  if (!selectedSocialId) {
     throw new Error('선택된 소셜 계정이 없습니다.');
   }
 
-  const rootPosts: ContentItem[] = await getRootPostId(selectedAccountId);
+  const rootPosts: ContentItem[] = await getRootPostId(selectedSocialId);
   const allData = await Promise.all(
     rootPosts.map((post) => getComment(post.media_id ?? '', userId))
   );
@@ -467,19 +474,19 @@ export async function getAllMentionsWithRootPosts() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('selected_social_account')
+    .select('selected_social_id')
     .eq('user_id', userId)
     .single();
 
-  const selectedAccountId = profile?.selected_social_account;
-  if (!selectedAccountId) {
+  const selectedSocialId = profile?.selected_social_id;
+  if (!selectedSocialId) {
     throw new Error('선택된 소셜 계정이 없습니다.');
   }
 
   const { data: mentions, error: mentionError } = await supabase
     .from('mention')
     .select('*')
-    .eq('mentioned_user_id', selectedAccountId)
+    .eq('mentioned_user_id', selectedSocialId)
     .order('timestamp', { ascending: false });
 
   if (mentionError) {

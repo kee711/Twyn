@@ -28,20 +28,17 @@ export type ScheduledPost = {
 };
 
 // 전역 상태에서 선택된 계정 ID 가져오기
-async function getSelectedAccountId(userId: string) {
+async function getSelectedSocialId(userId: string) {
   const supabase = await createClient();
 
-  // social-account-store 이름으로 저장된 상태 조회
-  const { data: storeData } = await supabase
+  // user_profiles 테이블에서 selected_social_id 직접 조회
+  const { data: profileData } = await supabase
     .from("user_profiles")
-    .select("settings")
-    .eq("id", userId)
+    .select("selected_social_id")
+    .eq("user_id", userId)
     .single();
 
-  // settings 필드에서 selectedAccountId 추출
-  const selectedAccountId = storeData?.settings?.selectedAccountId || null;
-
-  return selectedAccountId;
+  return profileData?.selected_social_id || null;
 }
 
 export async function schedulePost(
@@ -59,24 +56,10 @@ export async function schedulePost(
     const supabase = await createClient();
 
     // 전역 상태에서 선택된 계정 ID 가져오기
-    const selectedAccountId = await getSelectedAccountId(session.user.id);
-
-    // 소셜 계정 정보 조회
-    let socialId = null;
-    if (selectedAccountId) {
-      const { data: account } = await supabase
-        .from("social_accounts")
-        .select("social_id")
-        .eq("id", selectedAccountId)
-        .single();
-
-      if (account) {
-        socialId = account.social_id;
-      }
-    }
+    let currentSocialId = await getSelectedSocialId(session.user.id);
 
     // 선택된 계정이 없으면 사용자의 첫 번째 소셜 계정 사용
-    if (!socialId) {
+    if (!currentSocialId) {
       const { data: accounts } = await supabase
         .from("social_accounts")
         .select("social_id")
@@ -86,7 +69,7 @@ export async function schedulePost(
         .limit(1);
 
       if (accounts && accounts.length > 0) {
-        socialId = accounts[0].social_id;
+        currentSocialId = accounts[0].social_id;
       }
     }
 
@@ -98,7 +81,7 @@ export async function schedulePost(
           scheduled_at: scheduledAt,
           publish_status: "scheduled",
           user_id: session.user.id,
-          social_id: socialId,
+          social_id: currentSocialId,
           media_type: mediaType || "TEXT",
           media_urls: media_urls || [],
         },
@@ -120,15 +103,36 @@ export async function deleteSchedule(id: string) {
   try {
     const supabase = await createClient();
 
-    const { error } = await supabase
+    // First, get the record to check if it's part of a thread chain
+    const { data: record } = await supabase
       .from("my_contents")
-      .update({
-        publish_status: "draft",
-        scheduled_at: null,
-      })
-      .eq("id", id);
+      .select("is_thread_chain, parent_media_id")
+      .eq("my_contents_id", id)
+      .single();
 
-    if (error) throw error;
+    if (record?.is_thread_chain && record?.parent_media_id) {
+      // If it's a thread chain, update all threads in the chain
+      const { error } = await supabase
+        .from("my_contents")
+        .update({
+          publish_status: "draft",
+          scheduled_at: null,
+        })
+        .eq("parent_media_id", record.parent_media_id);
+
+      if (error) throw error;
+    } else {
+      // If it's a single post, update only this record
+      const { error } = await supabase
+        .from("my_contents")
+        .update({
+          publish_status: "draft",
+          scheduled_at: null,
+        })
+        .eq("my_contents_id", id);
+
+      if (error) throw error;
+    }
 
     revalidatePath("/schedule");
     return { error: null };
@@ -150,6 +154,30 @@ export async function createThreadsContainer(
   accessToken: string,
   params: PublishPostParams
 ) {
+  console.log(`🔧 [createThreadsContainer] Starting container creation:`, {
+    threadsUserId,
+    hasAccessToken: !!accessToken,
+    tokenLength: accessToken?.length || 0,
+    tokenPrefix: accessToken ? accessToken.substring(0, 8) + '...' : 'null',
+    mediaType: params.mediaType,
+    contentLength: params.content.length,
+    mediaUrlsCount: params.media_urls?.length || 0
+  });
+
+  // Validate token exists and has reasonable length
+  if (!accessToken || accessToken.length < 10) {
+    console.error(`❌ [createThreadsContainer] Invalid access token:`, {
+      threadsUserId,
+      hasToken: !!accessToken,
+      tokenLength: accessToken?.length || 0
+    });
+    return {
+      success: false,
+      creationId: null,
+      error: 'Access token is missing or too short.'
+    };
+  }
+
   const { content, mediaType, media_urls } = params;
 
   // 케이스별 처리
@@ -162,8 +190,65 @@ export async function createThreadsContainer(
     urlParams.append("access_token", accessToken);
 
     const containerUrl = `${baseUrl}?${urlParams.toString()}`;
+
+    console.log(`📝 [createThreadsContainer:TEXT] Making API request:`, {
+      url: containerUrl.replace(accessToken, '[REDACTED]'),
+      method: 'POST',
+      params: {
+        media_type: "TEXT",
+        text: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+        access_token: '[REDACTED]'
+      }
+    });
+
+    const startTime = Date.now();
     const response = await fetch(containerUrl, { method: "POST" });
-    const data = await response.json();
+    const responseTime = Date.now() - startTime;
+
+    console.log(`📝 [createThreadsContainer:TEXT] API Response:`, {
+      status: response.status,
+      statusText: response.statusText,
+      responseTime: `${responseTime}ms`,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    let data;
+    try {
+      const responseText = await response.text();
+      if (!responseText.trim()) {
+        throw new Error('Empty response body');
+      }
+      data = JSON.parse(responseText);
+    } catch (jsonError) {
+      console.error(`❌ [createThreadsContainer:TEXT] JSON parsing error:`, {
+        error: jsonError instanceof Error ? jsonError.message : 'Unknown JSON error',
+        responseHeaders: Object.fromEntries(response.headers.entries())
+      });
+      return {
+        success: false,
+        creationId: null,
+        error: `Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`
+      };
+    }
+
+    console.log(`📝 [createThreadsContainer:TEXT] Parsed response data:`, data);
+
+    // If response is OK but still has error, it means API returned an error
+    if (response.ok && data.error) {
+      console.error(`❌ [createThreadsContainer:TEXT] API returned error in successful response:`, {
+        threadsUserId,
+        error: data.error,
+        errorCode: data.error?.code,
+        errorMessage: data.error?.message,
+        tokenLength: accessToken?.length || 0,
+        contentLength: content.length
+      });
+      return {
+        success: false,
+        creationId: null,
+        error: `컨테이너 생성 실패: ${JSON.stringify(data.error)}`
+      };
+    }
 
     return {
       success: response.ok,
@@ -221,10 +306,17 @@ export async function createThreadsContainer(
     (mediaType === "IMAGE" || mediaType === "CAROUSEL") &&
     media_urls.length > 1
   ) {
+    console.log(`🎠 [SCHEDULE-CAROUSEL] Starting carousel creation with ${media_urls.length} items`);
+    console.log(`🎠 [SCHEDULE-CAROUSEL] Media URLs:`, media_urls);
+    console.log(`🎠 [SCHEDULE-CAROUSEL] Threads User ID: ${threadsUserId}`);
+
     // 3-1. 각 이미지마다 아이템 컨테이너 생성
     const itemContainers = [];
 
-    for (const imageUrl of media_urls) {
+    for (let i = 0; i < media_urls.length; i++) {
+      const imageUrl = media_urls[i];
+      console.log(`🎠 [SCHEDULE-CAROUSEL] Creating item ${i + 1}/${media_urls.length} for URL: ${imageUrl}`);
+
       const baseUrl = `https://graph.threads.net/v1.0/${threadsUserId}/threads`;
       const urlParams = new URLSearchParams();
       urlParams.append("media_type", "IMAGE");
@@ -233,21 +325,94 @@ export async function createThreadsContainer(
       urlParams.append("access_token", accessToken);
 
       const containerUrl = `${baseUrl}?${urlParams.toString()}`;
+
+      console.log(`🎠 [SCHEDULE-CAROUSEL] API Request for item ${i + 1}:`, {
+        url: containerUrl.replace(accessToken, '[REDACTED]'),
+        params: {
+          media_type: "IMAGE",
+          image_url: imageUrl,
+          is_carousel_item: "true",
+          access_token: '[REDACTED]'
+        }
+      });
+
+      const startTime = Date.now();
       const response = await fetch(containerUrl, { method: "POST" });
+      const responseTime = Date.now() - startTime;
+
+      console.log(`🎠 [SCHEDULE-CAROUSEL] Item ${i + 1} API Response:`, {
+        status: response.status,
+        statusText: response.statusText,
+        responseTime: `${responseTime}ms`,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url.replace(accessToken, '[REDACTED]')
+      });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ [SCHEDULE-CAROUSEL] Item ${i + 1} creation failed:`, {
+          imageUrl,
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+          responseHeaders: Object.fromEntries(response.headers.entries()),
+          requestParams: {
+            media_type: "IMAGE",
+            image_url: imageUrl,
+            is_carousel_item: "true",
+            access_token: '[REDACTED]'
+          },
+          responseTime: `${responseTime}ms`,
+          threadsUserId
+        });
+
+        // 이미지 URL 유효성 검사
+        try {
+          console.log(`🔍 [SCHEDULE-CAROUSEL] Validating image URL: ${imageUrl}`);
+          const imageCheckResponse = await fetch(imageUrl, { method: 'HEAD' });
+          console.log(`🔍 [SCHEDULE-CAROUSEL] Image URL validation result:`, {
+            imageUrl,
+            status: imageCheckResponse.status,
+            headers: Object.fromEntries(imageCheckResponse.headers.entries()),
+            contentType: imageCheckResponse.headers.get('content-type'),
+            contentLength: imageCheckResponse.headers.get('content-length'),
+            isAccessible: imageCheckResponse.ok
+          });
+        } catch (imageError) {
+          console.error(`🔍 [SCHEDULE-CAROUSEL] Image URL validation failed:`, {
+            imageUrl,
+            error: imageError instanceof Error ? imageError.message : 'Unknown error'
+          });
+        }
+
         return {
           success: false,
           creationId: null,
-          error: `캐러셀 아이템 생성 실패: ${await response.text()}`,
+          error: `캐러셀 아이템 생성 실패 (아이템 ${i + 1}/${media_urls.length}, 상태: ${response.status}): ${errorText}`,
         };
       }
 
       const data = await response.json();
+      console.log(`✅ [SCHEDULE-CAROUSEL] Item ${i + 1} created successfully:`, {
+        containerId: data.id,
+        imageUrl,
+        responseTime: `${responseTime}ms`,
+        fullResponse: data
+      });
+
       itemContainers.push(data.id);
+
+      // 다음 아이템 생성 전 딜레이 (마지막 아이템 제외)
+      if (i < media_urls.length - 1) {
+        console.log(`⏳ [SCHEDULE-CAROUSEL] Waiting 1 second before creating next item...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
 
+    console.log(`🎠 [SCHEDULE-CAROUSEL] All ${media_urls.length} items created. Container IDs:`, itemContainers);
+
     // 3-2. 캐러셀 컨테이너 생성
+    console.log(`🎠 [SCHEDULE-CAROUSEL] Creating final carousel container...`);
     const baseUrl = `https://graph.threads.net/v1.0/${threadsUserId}/threads`;
     const urlParams = new URLSearchParams();
     urlParams.append("media_type", "CAROUSEL");
@@ -256,15 +421,63 @@ export async function createThreadsContainer(
     urlParams.append("access_token", accessToken);
 
     const containerUrl = `${baseUrl}?${urlParams.toString()}`;
+
+    console.log(`🎠 [SCHEDULE-CAROUSEL] Final container request:`, {
+      url: containerUrl.replace(accessToken, '[REDACTED]'),
+      params: {
+        media_type: "CAROUSEL",
+        text: content,
+        children: itemContainers.join(","),
+        access_token: '[REDACTED]'
+      },
+      childrenCount: itemContainers.length,
+      childrenIds: itemContainers
+    });
+
+    const startTime = Date.now();
     const response = await fetch(containerUrl, { method: "POST" });
+    const responseTime = Date.now() - startTime;
+
+    console.log(`🎠 [SCHEDULE-CAROUSEL] Final container API Response:`, {
+      status: response.status,
+      statusText: response.statusText,
+      responseTime: `${responseTime}ms`,
+      headers: Object.fromEntries(response.headers.entries()),
+      url: response.url.replace(accessToken, '[REDACTED]')
+    });
+
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error(`❌ [SCHEDULE-CAROUSEL] Final container creation failed:`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: data,
+        responseHeaders: Object.fromEntries(response.headers.entries()),
+        requestParams: {
+          media_type: "CAROUSEL",
+          text: content,
+          children: itemContainers.join(","),
+          access_token: '[REDACTED]'
+        },
+        responseTime: `${responseTime}ms`,
+        childrenIds: itemContainers,
+        childrenCount: itemContainers.length
+      });
+    } else {
+      console.log(`✅ [SCHEDULE-CAROUSEL] Final container created successfully:`, {
+        containerId: data.id,
+        responseTime: `${responseTime}ms`,
+        fullResponse: data
+      });
+    }
 
     return {
       success: response.ok,
       creationId: data.id,
       error: response.ok
         ? null
-        : `캐러셀 컨테이너 생성 실패: ${JSON.stringify(data)}`,
+        : `캐러셀 컨테이너 생성 실패 (상태: ${response.status}): ${JSON.stringify(data)}`,
     };
   }
 

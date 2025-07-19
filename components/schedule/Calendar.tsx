@@ -2,27 +2,21 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { format, isSameDay, startOfMonth } from 'date-fns'
-import { Clock, Plus, Edit, Check, Trash2, Image, Video, FileText, Images, Users } from 'lucide-react'
+import { Image, Video, FileText, Images, Users } from 'lucide-react'
 import useSocialAccountStore from '@/stores/useSocialAccountStore'
 import { toast } from 'sonner'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getContents, updateContent } from '@/app/actions/content' // ⭐ 서버 액션 import
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
-import { PostCard } from '@/components/PostCard'
+import { updateThreadChain } from '@/app/actions/threadChain' // ⭐ threadChain 업데이트 import
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScheduleHeader } from './ScheduleHeader'
 import { List } from './List'
 import { EditPostModal } from './EditPostModal'
 import { Event } from './types'
 import { deleteSchedule } from '@/app/actions/schedule'
+import { utcISOToLocalTime } from '@/lib/utils/time'
 
 interface CalendarProps {
   defaultView?: 'calendar' | 'list'
@@ -40,13 +34,11 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null)
   const listContainerRef = useRef<HTMLDivElement>(null)
-
-  const { selectedAccountId, getSelectedAccount } = useSocialAccountStore()
+  const { currentSocialId } = useSocialAccountStore()
 
   // Check if social account is connected
   const checkSocialAccountConnection = () => {
-    const selectedAccount = getSelectedAccount();
-    if (!selectedAccount || !selectedAccountId) {
+    if (!currentSocialId) {
       toast.error("계정 추가가 필요해요", {
         description: "스케줄 관리를 위해 먼저 Threads 계정을 연결해주세요.",
         action: {
@@ -62,20 +54,38 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   useEffect(() => {
     async function fetchEvents() {
       try {
-        const { data, error } = await getContents({});
+        checkSocialAccountConnection()
+        const { currentSocialId } = useSocialAccountStore.getState()
+        const { data, error } = await getContents({
+          currentSocialId: currentSocialId
+        });
         if (error) throw error;
 
         if (data) {
-          const formattedEvents = data.map((content: any) => ({
-            id: content.my_contents_id,
-            title: content.content,
-            date: new Date(content.scheduled_at),
-            time: format(new Date(content.scheduled_at), 'HH:mm'),
-            status: content.publish_status,
-            media_type: content.media_type || 'TEXT',
-            media_urls: content.media_urls || [],
-            is_carousel: content.is_carousel || false
-          }));
+          const formattedEvents = data
+            .filter((content: any) => {
+              // Only show threads with thread_sequence === 0 (first thread in chain) or non-thread posts
+              return !content.is_thread_chain || content.thread_sequence === 0;
+            })
+            .map((content: any) => {
+              // scheduled 상태면 scheduled_at, posted 상태면 created_at 사용
+              const dateField = content.publish_status === 'scheduled' ? content.scheduled_at : content.created_at;
+              const eventDate = new Date(dateField);
+
+              return {
+                id: content.my_contents_id,
+                title: content.content,
+                date: eventDate,
+                time: utcISOToLocalTime(dateField), // UTC ISO 문자열을 로컬 시간으로 변환
+                status: content.publish_status,
+                media_type: content.media_type || 'TEXT',
+                media_urls: content.media_urls || [],
+                is_carousel: content.is_carousel || false,
+                is_thread_chain: content.is_thread_chain || false,
+                parent_media_id: content.parent_media_id,
+                thread_sequence: content.thread_sequence || 0
+              };
+            });
           setEvents(formattedEvents);
         } else {
           setEvents([]); // 데이터가 null이면 빈 배열로 설정
@@ -87,7 +97,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
     }
 
     fetchEvents()
-  }, [])
+  }, [currentSocialId, isEditModalOpen])
 
   const scrollToListDate = (date: Date) => {
     if (view === 'list' && listContainerRef.current) {
@@ -129,7 +139,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   }, [selectedDate, view])
 
   const handleEventClick = (event: Event) => {
-    if (event.status === 'scheduled') {
+    if (event.status === 'scheduled' || event.status === 'failed') {
       setSelectedEvent(event)
       setIsEditModalOpen(true)
     }
@@ -137,18 +147,44 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
 
   const handleEventUpdate = async (updatedEvent: Event) => {
     try {
-      const { data } = await updateContent(updatedEvent.id, {
-        content: updatedEvent.title,
-        scheduled_at: updatedEvent.date.toISOString(),
-      }) // ⭐ 서버 액션으로 업데이트
-
-      if (data) {
-        setEvents(events.map(event =>
-          event.id === updatedEvent.id ? updatedEvent : event
-        ))
+      // 과거 시간 확인 (현재 시간보다 이전인지 체크)
+      const currentTime = new Date()
+      if (updatedEvent.date <= currentTime) {
+        toast.error('The scheduled time must be in the future.')
+        return
       }
+
+      if (updatedEvent.is_thread_chain && updatedEvent.threads) {
+        // ⭐ threadChain인 경우 updateThreadChain 사용
+        const parentId = updatedEvent.parent_media_id || updatedEvent.id
+        const { success, error } = await updateThreadChain(
+          parentId,
+          updatedEvent.threads,
+          updatedEvent.date.toISOString()
+        )
+
+        if (!success) {
+          throw new Error(error || 'Failed to update thread chain')
+        }
+      } else {
+        // ⭐ 단일 포스트인 경우 updateContent 사용
+        const { data } = await updateContent(updatedEvent.id, {
+          content: updatedEvent.title,
+          scheduled_at: updatedEvent.date.toISOString(),
+        })
+
+        if (!data) {
+          throw new Error('Failed to update content')
+        }
+      }
+
+      // UI 상태 업데이트
+      setEvents(events.map(event =>
+        event.id === updatedEvent.id ? updatedEvent : event
+      ))
     } catch (error) {
       console.error('Error updating event:', error)
+      toast.error('Update failed.')
     }
   }
 
@@ -173,6 +209,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
       setEvents(events.filter(event => event.id !== eventToDelete.id))
       setIsDeleteDialogOpen(false)
       setEventToDelete(null)
+      setIsEditModalOpen(false)
     } catch (error) {
       console.error('Error deleting event:', error)
       // 필요시 toast 알림 추가
@@ -220,6 +257,13 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
       const [hours, minutes] = timeParts.map(Number);
       newDateTime.setHours(hours, minutes, 0, 0); // 시간, 분 설정
 
+      // 과거 시간 확인 (현재 시간보다 이전인지 체크)
+      const currentTime = new Date()
+      if (newDateTime <= currentTime) {
+        toast.error('The scheduled time must be in the future.')
+        return
+      }
+
       const updatedEvent: Event = {
         ...eventData,
         date: newDateTime,
@@ -258,7 +302,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
     }
   }
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = () => {
     setDropTargetDate(null)
   }
 
@@ -273,40 +317,12 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   const totalDays = Math.ceil((lastDayOfMonth.getDate() + (firstDayOfMonth.getDay() === 0 ? 6 : firstDayOfMonth.getDay() - 1)) / 7) * 7
   const weeksCount = totalDays / 7
 
-  // 소셜 계정이 연결되지 않은 경우
-  const selectedAccount = getSelectedAccount();
-  if (!selectedAccount || !selectedAccountId) {
-    return (
-      <div className="w-full space-y-4">
-        <ScheduleHeader
-          view={view}
-          setView={setView}
-          scheduledCount={0}
-          postedCount={0}
-          month={month}
-          selectedDate={selectedDate}
-          onMonthChange={handleMonthChange}
-          onDateChange={handleSelectedDateChange}
-        />
-
-        <div className="flex flex-col items-center justify-center py-12 text-center bg-card rounded-lg">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Users className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2">계정 연결이 필요해요</h2>
-          <p className="text-muted-foreground mb-4">
-            게시물 스케줄링을 위해 먼저 Threads 계정을 연결해주세요.
-          </p>
-          <Button onClick={() => window.location.href = "/api/threads/oauth"}>
-            Threads 계정 연결하기
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="w-full space-y-4">
+    <div
+      ref={view === 'list' ? listContainerRef : null}
+      className="h-full w-full overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+    >
       <ScheduleHeader
         view={view}
         setView={setView}
@@ -319,8 +335,8 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
       />
 
       {view === 'calendar' ? (
-        <div className="bg-card h-[calc(100vh-9rem)] overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-          <div className="rounded-lg py-1 px-3 grid grid-cols-7 gap-px mb-2 bg-muted text-muted-foreground">
+        <div className="bg-card pb-4">
+          <div className="rounded-xl py-1 px-3 grid grid-cols-7 gap-px mb-2 bg-muted text-muted-foreground">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
               <div key={day} className="p-2 text-md font-medium">
                 {day}
@@ -328,15 +344,13 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
             ))}
           </div>
 
-          <div className="rounded-lg">
+          <div className="rounded-xl">
             {Array.from({ length: weeksCount }).map((_, rowIndex) => (
-              <div key={rowIndex} className="rounded-lg grid grid-cols-7 gap-px bg-muted mb-2 py-1 px-3">
+              <div key={rowIndex} className="rounded-xl grid grid-cols-7 gap-px bg-muted mb-2 py-1 px-3">
                 {Array.from({ length: 7 }).map((_, colIndex) => {
                   const dayOffset = rowIndex * 7 + colIndex
                   const currentDate = new Date(startDate)
                   currentDate.setDate(startDate.getDate() + dayOffset)
-
-                  const isCurrentMonth = currentDate.getMonth() === month.getMonth()
 
                   const dayEvents = events
                     .filter(event => format(event.date, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd'))
@@ -348,7 +362,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
                     <div
                       key={dayOffset}
                       className={cn(
-                        "min-h-[100px] md:min-h-[180px] md:p-3 border border-transparent rounded transition-colors duration-150 ease-in-out",
+                        "min-h-[100px] md:min-h-[180px] md:p-3 border border-transparent rounded-2xl transition-colors duration-150 ease-in-out",
                         isDropTarget && "border-primary bg-primary/10"
                       )}
                       onDragOver={(e) => handleDragOver(e, currentDate)}
@@ -363,14 +377,16 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
                           <div
                             key={event.id}
                             className={cn(
-                              'relative rounded-md px-1 py-2 md:p-3 text-sm hover:opacity-75 transition-colors cursor-pointer border',
+                              'relative rounded-xl px-1 py-2 md:p-3 text-sm transition-colors',
                               event.status === 'scheduled'
-                                ? 'bg-blue-50 border-blue-200 text-foreground cursor-grab hover:bg-blue-100'
-                                : 'bg-gray-50 border-gray-200 text-foreground hover:bg-gray-100',
+                                ? 'bg-white border-gray-200 text-foreground cursor-grab hover:bg-gray-50'
+                                : event.status === 'failed'
+                                  ? 'bg-red-50 border-red-200 text-red-700 cursor-grab hover:bg-red-100'
+                                  : 'bg-muted-foreground/5 border-gray-200 text-gray-500',
                               draggedEvent?.id === event.id && "opacity-50 ring-2 ring-primary ring-offset-2"
                             )}
                             onClick={() => handleEventClick(event)}
-                            draggable={event.status === 'scheduled'}
+                            draggable={event.status === 'scheduled' || event.status === 'failed'}
                             onDragStart={(e) => handleDragStart(e, event)}
                             onDragEnd={() => {
                               setDraggedEvent(null)
@@ -381,12 +397,14 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
                               className={cn(
                                 "absolute bottom-2 md:top-2 right-1 md:right-2 h-1.5 w-1.5 md:h-2 md:w-2 rounded-full",
                                 event.status === 'scheduled'
-                                  ? "bg-red-500 animate-pulse"
-                                  : "bg-green-500"
+                                  ? "bg-green-400 animate-pulse"
+                                  : event.status === 'failed'
+                                    ? "bg-red-500 animate-pulse"
+                                    : ""
                               )}
                             />
                             <div className="font-semibold text-xs mb-1">{event.time}</div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               <div className="flex-shrink-0 mt-0.5 hidden md:block">
                                 {event.media_type === 'IMAGE' && <Image className="w-3 h-3" />}
                                 {event.media_type === 'VIDEO' && <Video className="w-3 h-3" />}
@@ -420,7 +438,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
           </div>
         </div>
       ) : (
-        <div ref={listContainerRef} className="h-[calc(100vh-9rem)] overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        <div className="mt-4 pb-8">
           <List
             events={events}
             month={month}
@@ -444,23 +462,25 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
         onEventDelete={handleEventDelete}
       />
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>일정을 취소하시겠습니까?</AlertDialogTitle>
-            <AlertDialogDescription>
-              예약된 게시물 일정이 취소되며, 게시물은 초안으로 저장됩니다.
-              이 작업은 되돌릴 수 없습니다.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
-              확인
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete schedule?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the scheduled post?
+              The post will be saved as a draft.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={confirmDelete}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -6,12 +6,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from '@/lib/auth/authOptions';
 import puppeteer from "puppeteer";
 import { ContentItem } from '@/components/contents-helper/types';
+import { decryptToken } from '@/lib/utils/crypto';
 
 interface OembedContent {
   id: string;
   url: string;
   created_at: string;
   user_id: string;
+  social_id: string;
   html: string;
 }
 
@@ -27,27 +29,30 @@ export async function fetchOembedContents(content_url: string) {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('selected_social_account')
+    .select('selected_social_id')
     .eq('user_id', userId)
     .single();
 
-  const selectedAccountId = profile?.selected_social_account;
-  if (!selectedAccountId) {
+  const selectedSocialId = profile?.selected_social_id;
+  if (!selectedSocialId) {
     throw new Error('선택된 소셜 계정이 없습니다.');
   }
 
   const { data: account } = await supabase
     .from('social_accounts')
     .select('access_token')
-    .eq('social_id', selectedAccountId)
+    .eq('social_id', selectedSocialId)
     .eq('platform', 'threads')
     .eq('is_active', true)
     .single();
 
-  const accessToken = account?.access_token;
-  if (!accessToken) {
+  const encryptedToken = account?.access_token;
+  if (!encryptedToken) {
     throw new Error('Threads access token이 없습니다.');
   }
+
+  // 토큰 복호화
+  const accessToken = decryptToken(encryptedToken);
 
   // oembed API 요청
   const url = `https://graph.threads.net/oembed?url=${content_url}&access_token=${accessToken}`;
@@ -65,7 +70,7 @@ export async function fetchOembedContents(content_url: string) {
   }
 }
 
-export async function getOembedContents() {
+export async function getOembedContents(currentSocialId: string) {
   console.log('Creating Supabase client...');
 
   const session = await getServerSession(authOptions);
@@ -82,6 +87,7 @@ export async function getOembedContents() {
       .from('oembed_contents')
       .select('*')
       .eq('user_id', userId)
+      .eq('social_id', currentSocialId)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -109,15 +115,15 @@ export async function postOembedContents(data: OembedContent[]) {
   }
 }
 
-export async function saveOembedContentFromUrl(contentUrl: string) {
+export async function saveOembedContentFromUrl(contentUrl: string, currentSocialId: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     throw new Error("로그인이 필요합니다.");
   }
   const userId = session.user.id;
 
-  if (!contentUrl || !userId) {
-    throw new Error('Missing url or user ID');
+  if (!contentUrl || !userId || !currentSocialId) {
+    throw new Error('Missing url, user ID, or social ID');
   }
 
   const fetched = await fetchOembedContents(contentUrl);
@@ -125,10 +131,11 @@ export async function saveOembedContentFromUrl(contentUrl: string) {
   const shortcode = match ? match[1] : null;
 
   const postData = [{
-    id: userId + shortcode,
+    id: currentSocialId + shortcode,
     url: contentUrl,
     created_at: new Date().toISOString(),
     user_id: userId,
+    social_id: currentSocialId,
     html: fetched?.html,
   }];
 
@@ -175,7 +182,7 @@ export async function changeOembedContentToPost(contentUrl: string) {
 
 
     const content: ContentItem = {
-      id: postData.shortcode,
+      my_contents_id: postData.shortcode,
       content: postData.text,
     };
 

@@ -1,17 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getMonth, getYear, setMonth as setDateMonth, setYear as setDateYear, parseISO } from 'date-fns'
+import { useState, useRef } from 'react'
+import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { Edit2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { PostCard } from '@/components/PostCard'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { EditPostModal } from './EditPostModal'
 import { Event } from './types' // Event 타입을 별도 파일로 분리했다고 가정
+import { localTimeToUTCISO } from '@/lib/utils/time'
 
 interface ListProps {
   events: Event[]
@@ -39,7 +34,7 @@ export function List({
   const allDates = eachDayOfInterval({ start: startDate, end: endDate })
 
   const handleEventClick = (event: Event) => {
-    if (event.status === 'scheduled') {
+    if (event.status === 'scheduled' || event.status === 'failed') {
       setSelectedEvent(event)
       setIsEditModalOpen(true)
     }
@@ -91,9 +86,9 @@ export function List({
         return
       }
 
-      const [hours, minutes] = timeParts.map(Number)
-      const newDate = new Date(dropDate)
-      newDate.setHours(hours, minutes, 0, 0)
+      // 로컬 시간을 UTC ISO 문자열로 변환하여 저장
+      const utcDateTime = localTimeToUTCISO(eventData.time, dropDate)
+      const newDate = new Date(utcDateTime)
 
       const updatedEvent = {
         ...eventData,
@@ -137,10 +132,12 @@ export function List({
                       'relative flex items-center justify-between p-3 rounded-lg',
                       event.status === 'scheduled'
                         ? 'bg-blue-100 hover:bg-blue-200 text-foreground cursor-grab'
-                        : 'bg-[#D9D9D9] hover:bg-[#CCCCCC] text-foreground',
+                        : event.status === 'failed'
+                          ? 'bg-red-100 hover:bg-red-200 text-foreground cursor-grab'
+                          : 'bg-[#D9D9D9] hover:bg-[#CCCCCC] text-foreground',
                       draggedEvent?.id === event.id && "opacity-50"
                     )}
-                    draggable={event.status === 'scheduled'}
+                    draggable={event.status === 'scheduled' || event.status === 'failed'}
                     onDragStart={(e) => handleDragStart(e, event)}
                     onClick={() => handleEventClick(event)}
                   >
@@ -148,8 +145,10 @@ export function List({
                       className={cn(
                         "absolute top-3 right-3 h-2 w-2 rounded-full",
                         event.status === 'scheduled'
-                          ? "bg-red-500 animate-pulse"
-                          : "bg-green-500"
+                          ? "bg-yellow-500 animate-pulse"
+                          : event.status === 'failed'
+                            ? "bg-red-500 animate-pulse"
+                            : "bg-green-500"
                       )}
                     />
 
@@ -162,7 +161,7 @@ export function List({
               </div>
             ) : (
               <div className="text-sm text-muted-foreground h-10 flex items-center justify-center">
-                예약된 일정이 없습니다.
+                No scheduled posts.
               </div>
             )}
           </div>

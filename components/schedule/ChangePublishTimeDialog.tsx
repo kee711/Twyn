@@ -3,7 +3,8 @@ import { updatePublishTimes } from '@/app/actions/user'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Clock, Edit, Plus, Check } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownTime } from "@/components/ui/dropdown-time"
+import { utcTimeToLocalTime, localTimeToUTCTime, isUTCISOString } from "@/lib/utils/time"
 
 interface ChangePublishTimeDialogProps {
   variant?: 'default' | 'icon'
@@ -36,23 +37,20 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
     }
 
     const localTimes = dbTimes.map(time => {
-      if (typeof time === 'string' && time.includes('T')) {
-        const date = new Date(time)
-        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-      } else if (typeof time === 'string' && time.includes(':')) {
-        const timeParts = time.split(':');
-        if (timeParts.length !== 2) {
-          console.error("Invalid time format:", time);
-          return '00:00';
+      try {
+        if (typeof time === 'string' && isUTCISOString(time)) {
+          // UTC ISO 문자열인 경우 (예: "2024-01-01T14:30:00.000Z")
+          const date = new Date(time)
+          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+        } else if (typeof time === 'string' && time.includes(':')) {
+          // UTC HH:MM 형태인 경우 (예: "14:30")
+          return utcTimeToLocalTime(time)
         }
-        const [hours, minutes] = timeParts.map(Number)
-
-        const date = new Date()
-        date.setUTCHours(hours, minutes, 0, 0)
-
-        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+        return time
+      } catch (error) {
+        console.error("Time conversion error:", error, "for time:", time);
+        return '00:00';
       }
-      return time
     })
 
     setPublishTimes(localTimes)
@@ -85,26 +83,12 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
   const saveToDatabase = async () => {
     try {
       const utcTimes = publishTimes.map(localTime => {
-        if (!localTime || typeof localTime !== 'string') {
-          console.error("Invalid local time format:", localTime);
+        try {
+          return localTimeToUTCTime(localTime)
+        } catch (error) {
+          console.error("Time conversion error:", error, "for time:", localTime);
           return '00:00';
         }
-        
-        const timeParts = localTime.split(':');
-        if (timeParts.length !== 2) {
-          console.error("Invalid local time format:", localTime);
-          return '00:00';
-        }
-        
-        const [hours, minutes] = timeParts.map(Number)
-
-        const date = new Date()
-        date.setHours(hours, minutes, 0, 0)
-
-        const utcHours = date.getUTCHours()
-        const utcMinutes = date.getUTCMinutes()
-
-        return `${utcHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}`
       })
 
       const response = await updatePublishTimes(utcTimes)
@@ -123,7 +107,7 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={variant === 'icon' ? 'default' : 'outline'} disabled={ondisabled} className={`flex items-center gap-2 ${variant === 'icon' ? 'h-full w-8 p-0 rounded-l-sm rounded-r-lg bg-black text-white hover:bg-black/90' : ''}`}>
+        <Button variant={variant === 'icon' ? 'default' : 'outline'} disabled={ondisabled} className={`flex items-center gap-2 ${variant === 'icon' ? 'h-full w-8 p-0 rounded-l-sm rounded-r-lg bg-black text-white hover:bg-black/90' : 'text-muted-foreground rounded-xl'}`}>
           {variant === 'icon' ? (
             <Clock className="h-full w-4" />
           ) : (
@@ -152,24 +136,11 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
                   {editingIndex === index ? (
                     <div className="flex items-center gap-2 w-full">
                       <div className="flex-1">
-                        <Select value={newTime} onValueChange={setNewTime}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="시간 선택" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[200px] overflow-y-auto">
-                            {Array.from({ length: 24 }).flatMap((_, hour: number) =>
-                              Array.from({ length: 4 }).map((_, minuteIndex: number) => {
-                                const minute = minuteIndex * 15
-                                const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-                                return (
-                                  <SelectItem key={timeString} value={timeString}>
-                                    {timeString}
-                                  </SelectItem>
-                                )
-                              })
-                            )}
-                          </SelectContent>
-                        </Select>
+                        <DropdownTime 
+                          value={newTime} 
+                          onValueChange={setNewTime}
+                          className="w-full"
+                        />
                       </div>
                       <Button variant='outline' size='icon' onClick={() => saveTime(index)}>
                         <Check className="h-4 w-4" />
@@ -206,24 +177,11 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
 
           <div className="flex items-center gap-2 w-full mt-4">
             <div className="flex-1">
-              <Select value={newTime} onValueChange={setNewTime}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="시간 선택" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
-                  {Array.from({ length: 24 }).flatMap((_, hour: number) =>
-                    Array.from({ length: 4 }).map((_, minuteIndex: number) => {
-                      const minute = minuteIndex * 15
-                      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-                      return (
-                        <SelectItem key={timeString} value={timeString}>
-                          {timeString}
-                        </SelectItem>
-                      )
-                    })
-                  )}
-                </SelectContent>
-              </Select>
+              <DropdownTime 
+                value={newTime} 
+                onValueChange={setNewTime}
+                className="w-full"
+              />
             </div>
             <Button variant="outline" onClick={addTime} disabled={!newTime}>
               <Plus className="h-4 w-4 mr-2" />

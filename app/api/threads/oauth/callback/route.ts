@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/authOptions";
 import { createClient } from "@/lib/supabase/server";
+import { encryptToken } from "@/lib/utils/crypto";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -107,10 +108,11 @@ export async function GET(req: NextRequest) {
     if (existingAccount) {
       // 기존 계정 업데이트
       accountId = existingAccount.id;
+      const encryptedToken = encryptToken(accessToken);
       const { error: dbError } = await supabase
         .from("social_accounts")
         .update({
-          access_token: accessToken,
+          access_token: encryptedToken,
           expires_at: expiresAt,
           updated_at: new Date().toISOString(),
           is_active: true,
@@ -126,12 +128,13 @@ export async function GET(req: NextRequest) {
     } else {
       // 새 계정 생성
       isNewAccount = true;
+      const encryptedToken = encryptToken(accessToken);
       const { data: newAccount, error: dbError } = await supabase
         .from("social_accounts")
         .insert({
           owner: session.user.id,
           platform: "threads",
-          access_token: accessToken,
+          access_token: encryptedToken,
           social_id: threadsUserId,
           username: username,
           threads_profile_picture_url: profilePictureUrl,
@@ -151,17 +154,17 @@ export async function GET(req: NextRequest) {
       accountId = newAccount.id;
     }
 
-    // user_profiles 테이블의 selected_social_account 필드 업데이트
+    // user_profiles 테이블의 selected_social_id 필드 업데이트
     const { error: updateError } = await supabase
       .from("user_profiles")
-      .update({ selected_social_account: threadsUserId })
+      .update({ selected_social_id: threadsUserId })
       .eq("user_id", session.user.id);
 
     if (updateError) {
       console.error("사용자 프로필 업데이트 실패:", updateError);
       // 중요한 오류가 아니므로 리다이렉트는 하지 않고 로그만 남김
     } else {
-      console.log("사용자 프로필 selected_social_account 업데이트 완료");
+      console.log("사용자 프로필 selected_social_id 업데이트 완료");
     }
 
     console.log("Threads 계정 연동 완료");
@@ -170,10 +173,10 @@ export async function GET(req: NextRequest) {
     if (isNewAccount) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/onboarding?type=social&account_id=${accountId}`);
     } else {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/contents-cooker/topic-finder`);
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/contents/topic-finder`);
     }
   } catch (error) {
     console.error("Threads OAuth 콜백 처리 중 오류:", error);
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/contents-cooker/topic-finder`);
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/contents/topic-finder`);
   }
 }

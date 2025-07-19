@@ -9,8 +9,8 @@ import { authOptions } from '@/lib/auth/authOptions'
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ViralChef",
-  description: "ViralChef",
+  title: "twyn",
+  description: "twyn",
 };
 
 export default async function RootLayout({
@@ -21,11 +21,13 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions)
 
   return (
-    <html lang="ko" suppressHydrationWarning>
-      <body className={`h-full ${inter.className}`}>
-        <Providers session={session}>
-          {children}
-        </Providers>
+    <html lang="ko" suppressHydrationWarning className="h-full">
+      <body className={`h-full bg-muted ${inter.className}`}>
+        <div className="h-full">
+          <Providers session={session}>
+            {children}
+          </Providers>
+        </div>
         <Toaster
           position="bottom-center"
           richColors
