@@ -20,7 +20,7 @@ export const AdditionalFeaturesSection = () => {
         <div className="grid lg:grid-cols-2 gap-8 sm:gap-16">
           {/* Left side - Main content */}
           <div className="space-y-0 sm:space-y-4">
-            <div className="inline-flex items-center justify-center w-16s h-16 bg-none rounded-xl">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-none rounded-xl">
               <Rocket className="w-12 h-12 text-landing-text-reverse" />
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-landing-text-reverse leading-tight">
