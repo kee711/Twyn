@@ -1,66 +1,68 @@
 'use client';
 
 import { Card } from "@/components/ui/card";
-import { Save, BarChart3, Users, Shield } from "lucide-react";
+import { BarChart3, Calendar, Rocket } from "lucide-react";
 
 export const AdditionalFeaturesSection = () => {
   return (
-    <section id="benefits" className="py-20 sm:py-32 bg-white">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-16 max-w-4xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-landing-text-primary mb-4">
-            More reasons you'll love it
-          </h2>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          <Card className="p-8 bg-gray-50 border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-landing-primary-100 rounded-lg">
-                <Save className="w-6 h-6 text-landing-primary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-landing-text-primary">Save with URL</h3>
+    <section
+      id="benefits"
+      className="pb-20 px-4 sm:pb-32 bg-landing-background-primary relative mx-auto"
+    >
+      <div
+        className="container mx-auto pt-12 p-6 sm:py-16 px-4 md:px-12 max-w-6xl rounded-2xl"
+        style={{
+          backgroundImage: "url('/landing-page/grain-bg.png')",
+          backgroundSize: "100% 100%",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}>
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-16">
+          {/* Left side - Main content */}
+          <div className="space-y-0 sm:space-y-4">
+            <div className="inline-flex items-center justify-center w-16s h-16 bg-none rounded-xl">
+              <Rocket className="w-12 h-12 text-landing-text-reverse" />
             </div>
-            <p className="text-landing-text-secondary">
-              Save posts or thoughts seamlessly and reuse later.
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-landing-text-reverse leading-tight">
+              Effortless content to
+              <br />
+              maximize reach
+            </h2>
+            <p className="text-lg text-landing-text-reverse opacity-70 leading-relaxed max-w-md">
+              Powerful, AI-driven social media tools to help you create engaging content, grow your audience, and boost your Threads presence.
             </p>
-          </Card>
+          </div>
 
-          <Card className="p-8 bg-gray-50 border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-landing-primary-100 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-landing-primary-600" />
+          {/* Right side - Feature cards grid */}
+          <div className="grid grid-cols-1 gap-6">
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border-white/20 hover:bg-white/90 transition-all duration-300 shadow-lg">
+              <div className="space-y-2 sm:space-y-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-landing-primary-500 rounded-xl">
+                  <Calendar className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-landing-text-primary">
+                  Save with URL
+                </h3>
+                <p className="text-sm text-landing-text-secondary">
+                  Save your thought for later, use it again seemlessly. <br /> No more manual copy-pasting.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-landing-text-primary">Analyze Your Growth</h3>
-            </div>
-            <p className="text-landing-text-secondary">
-              Track best-performing posts with simple analytics.
-            </p>
-          </Card>
+            </Card>
 
-          <Card className="p-8 bg-gray-50 border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-landing-primary-100 rounded-lg">
-                <Users className="w-6 h-6 text-landing-primary-600" />
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border-white/20 hover:bg-white/90 transition-all duration-300 shadow-lg">
+              <div className="space-y-2 sm:space-y-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-landing-primary-500 rounded-xl">
+                  <BarChart3 className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-landing-text-primary">
+                  Analyze your progress
+                </h3>
+                <p className="text-sm text-landing-text-secondary">
+                  Monitor your growth with detailed analytics. Track engagement, reach, and follower growth with actionable insights.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-landing-text-primary">Beta Privilege</h3>
-            </div>
-            <p className="text-landing-text-secondary">
-              Free for beta users + Private Discord for creators.
-            </p>
-          </Card>
-
-          <Card className="p-8 bg-gray-50 border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-landing-primary-100 rounded-lg">
-                <Shield className="w-6 h-6 text-landing-primary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-landing-text-primary">Secure & Safe</h3>
-            </div>
-            <p className="text-landing-text-secondary">
-              Your data stays private and secure.
-            </p>
-          </Card>
+            </Card>
+          </div>
         </div>
       </div>
     </section>

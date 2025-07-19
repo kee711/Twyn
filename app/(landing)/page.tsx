@@ -47,7 +47,7 @@ export default function Home() {
 
       <Footer
         brand={{
-          name: "Threads AI",
+          name: "Twyn",
           description: "Minimize your time & energy to post, engage, and grow on Threads.",
         }}
         socialLinks={[

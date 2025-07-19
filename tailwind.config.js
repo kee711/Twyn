@@ -56,6 +56,7 @@ module.exports = {
 						secondary: 'rgb(75, 85, 99)', // gray-600  
 						tertiary: 'rgb(55, 65, 81)', // gray-700
 						muted: 'rgb(156, 163, 175)', // gray-400
+						reverse: 'rgb(255, 255, 255)', // white
 					},
 					// Layout
 					container: {

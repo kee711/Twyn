@@ -11,7 +11,7 @@ export const PricingCTASection = () => {
       price: "$0",
       period: "/mo. per user",
       badge: "LIMITED BETA ACCESS",
-      badgeColor: "bg-green-100 text-green-700 border-green-200",
+      badgeColor: "bg-landing-primary-100 text-landing-primary-700 border-landing-primary-200",
       features: [
         "AI-assisted content generation (limit: 50 posts or comment interactions per month)",
         "Basic topic suggestions based on your profile",
@@ -24,7 +24,7 @@ export const PricingCTASection = () => {
       price: "$19",
       period: "/mo. per user",
       badge: "COMING SOON",
-      badgeColor: "bg-blue-100 text-blue-700 border-blue-200",
+      badgeColor: "bg-landing-bg-primary text-landing-primary-600 border-landing-primary-200",
       features: [
         "Everything in Twyn Free, plus:",
         "Increased AI interaction limits (1,000 posts or comment interactions per month)",
@@ -37,7 +37,7 @@ export const PricingCTASection = () => {
       price: "$39",
       period: "/mo. per user",
       badge: "COMING SOON",
-      badgeColor: "bg-blue-100 text-blue-700 border-blue-200",
+      badgeColor: "bg-landing-bg-primary text-landing-primary-600 border-landing-primary-200",
       features: [
         "Everything in Twyn Pro, plus:",
         "Increased AI interaction limits (3,000 posts or comment interactions per month)",
@@ -48,10 +48,10 @@ export const PricingCTASection = () => {
   ];
 
   return (
-    <section id="pricing" className="py-20 sm:py-32 bg-gradient-to-br from-gray-50 to-white">
+    <section id="pricing" className="pb-20 sm:pb-32 bg-landing-background-primary">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16 max-w-4xl mx-auto">
-          <h2 className="text-4xl sm:text-5xl font-bold text-landing-text-primary mb-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-landing-text-primary mb-4">
             Unlock the full potential of Twyn <span className="text-landing-primary-600">for free</span>
           </h2>
           <p className="text-lg text-landing-text-secondary max-w-2xl mx-auto">
