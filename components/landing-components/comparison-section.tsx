@@ -1,9 +1,11 @@
-import { useState } from "react";
+// 좌우로 비교할 수 있도록 하는 UI
+
 import Image from "next/image";
 import { Badge } from "@/components/landing-components/comp-badge";
 import { GripVertical } from "lucide-react";
+import { useState } from "react";
 
-function Feature() {
+function ComparisonSection() {
   const [inset, setInset] = useState<number>(50);
   const [onMouseDown, setOnMouseDown] = useState<boolean>(false);
 
@@ -58,7 +60,7 @@ function Feature() {
                 </button>
               </div>
               <Image
-                src="/dashboard-bg-img.png"
+                src="/conflow-logo.svg"
                 alt="feature8"
                 width={1920}
                 height={1080}
@@ -84,4 +86,4 @@ function Feature() {
   );
 }
 
-export { Feature };
+export { ComparisonSection };
