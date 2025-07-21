@@ -3,9 +3,8 @@
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { signIn, useSession } from 'next-auth/react'
-import { checkOnboardingStatus } from '@/lib/utils/onboarding'
+import { checkOnboardingStatus } from '@/lib/utils/check-onboarding'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -19,7 +18,7 @@ export default function SignInPage() {
       const handleRedirect = async () => {
         try {
           const onboardingStatus = await checkOnboardingStatus(session.user.id)
-          
+
           if (onboardingStatus.needsUserOnboarding) {
             router.push('/onboarding?type=user')
           } else if (onboardingStatus.needsSocialOnboarding && onboardingStatus.socialAccountId) {

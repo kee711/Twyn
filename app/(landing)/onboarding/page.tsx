@@ -77,17 +77,15 @@ export default function OnboardingPage() {
 
       if (error) throw error;
 
-      // Redirect to Threads connection step
-      router.push('/onboarding?type=user&step=connect');
     } catch (error) {
       console.error('Error saving user onboarding:', error);
-      toast.error('온보딩 정보 저장 중 오류가 발생했습니다.');
+      toast.error('Error saving user onboarding');
     }
   };
 
   const handleSocialOnboardingComplete = async (profileDescription: string) => {
     if (!socialAccountId) {
-      toast.error('계정 정보를 찾을 수 없습니다.');
+      toast.error('Account information not found');
       return;
     }
 
@@ -105,15 +103,15 @@ export default function OnboardingPage() {
 
       if (error) throw error;
 
-      toast.success('프로필 설정이 완료되었습니다.');
-      
+      toast.success('Profile setup completed');
+
       // Add pricing modal to current URL
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.set('modal', 'pricing');
       router.push(`${pathname}?${newSearchParams.toString()}`);
     } catch (error) {
       console.error('Error saving social onboarding:', error);
-      toast.error('프로필 정보 저장 중 오류가 발생했습니다.');
+      toast.error('Error saving social onboarding');
     }
   };
 
@@ -134,23 +132,23 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
       {onboardingType === 'user' && (
         <UserOnboarding onComplete={handleUserOnboardingComplete} />
       )}
-      
+
       {onboardingType === 'social' && socialAccountId && (
-        <SocialOnboarding 
+        <SocialOnboarding
           socialAccountId={socialAccountId}
           onComplete={handleSocialOnboardingComplete}
         />
       )}
 
       {/* Pricing Modal */}
-      <PricingModal 
-        open={pricingModalOpen} 
-        onClose={handleClosePricingModal} 
+      <PricingModal
+        open={pricingModalOpen}
+        onClose={handleClosePricingModal}
       />
-    </div>
+    </>
   );
 }
