@@ -47,7 +47,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
         }
       } catch (error) {
         console.error('Error loading account info:', error);
-        toast.error('계정 정보를 불러오는 중 오류가 발생했습니다.');
+        toast.error('Error loading account info');
       } finally {
         setLoading(false);
       }
@@ -75,9 +75,9 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="flex flex-col min-h-screen max-w-2xl mx-auto p-6">
       {/* Progress indicator */}
-      <div className="mb-8">
+      {/* <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-muted-foreground">Step 5 of 5</span>
           <span className="text-sm text-muted-foreground">100%</span>
@@ -85,10 +85,10 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
         <div className="w-full bg-muted rounded-full h-2">
           <div className="bg-primary h-2 rounded-full w-full" />
         </div>
-      </div>
+      </div> */}
 
       {/* Content */}
-      <div className="space-y-6">
+      <div className="space-y-6 flex-1 flex flex-col justify-center">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Tell us about your profile</h1>
           <p className="text-muted-foreground">
@@ -102,7 +102,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
           )}
         </div>
 
-        <Card>
+        <Card className="border-none">
           <CardHeader>
             <CardTitle>Profile Description</CardTitle>
           </CardHeader>
@@ -122,10 +122,11 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
                 </ul>
                 <Textarea
                   id="profile-description"
-                  placeholder="Example: I'm a UI/UX designer with 5 years of experience helping startups create beautiful, user-friendly products. I share design tips, case studies, and insights about the design process. My target audience includes aspiring designers, product managers, and startup founders who want to improve their design thinking. My unique point is breaking down complex design concepts into simple, actionable advice."
+                  placeholder="I'm a ..."
                   value={profileDescription}
                   onChange={(e) => setProfileDescription(e.target.value)}
-                  className="min-h-[120px]"
+                  className="h-fit focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
+                  maxLength={150}
                 />
               </div>
             </div>
@@ -137,28 +138,31 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
           <CardContent className="p-4">
             <h4 className="font-medium mb-2">💡 Example Description</h4>
             <p className="text-sm text-muted-foreground">
-              "I'm a digital marketing specialist focused on helping small businesses grow their online presence. 
-              I share practical tips about social media marketing, content creation, and customer engagement. 
-              My audience includes small business owners, marketers, and entrepreneurs looking to build their brand online. 
+              "I'm a digital marketing specialist focused on helping small businesses grow their online presence.
+              I share practical tips about social media marketing, content creation, and customer engagement.
+              My audience includes small business owners, marketers, and entrepreneurs looking to build their brand online.
               What makes me unique is my focus on budget-friendly strategies that deliver real results."
             </p>
           </CardContent>
         </Card>
 
-        {/* Navigation */}
-        <div className="flex justify-between pt-6">
-          <Button variant="ghost" onClick={handleSkip}>
-            Skip for now
-          </Button>
-
-          <Button 
+        {/* Actions */}
+        <div className="text-center space-y-4">
+          <Button
+            size="lg"
+            className="w-full py-4 text-lg font-medium"
             onClick={handleSubmit}
             disabled={!profileDescription.trim()}
-            className="flex items-center gap-2"
           >
             Complete Setup
-            <ArrowRight className="w-4 h-4" />
           </Button>
+
+          <button
+            onClick={handleSkip}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Skip for now
+          </button>
         </div>
       </div>
     </div>
