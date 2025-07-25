@@ -127,6 +127,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
                   onChange={(e) => setProfileDescription(e.target.value)}
                   className="h-fit focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
                   maxLength={150}
+                  minLength={10}
                 />
               </div>
             </div>
@@ -157,12 +158,12 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
             Complete Setup
           </Button>
 
-          <button
+          {/* <button
             onClick={handleSkip}
             className="text-sm text-gray-500 hover:text-gray-700"
           >
             Skip for now
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
