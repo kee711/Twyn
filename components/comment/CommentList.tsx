@@ -37,11 +37,24 @@ export function CommentList() {
     }>({
         queryKey: ['comments', currentSocialId],
         queryFn: async () => {
+            if (!currentSocialId) {
+                throw new Error('currentSocialId is not available');
+            }
+            
             await fetchAndSaveComments();
             const result = await getAllCommentsWithRootPosts();
+            
             return result;
         },
+        enabled: !!currentSocialId && currentSocialId.trim() !== '', // currentSocialId가 있을 때만 실행
         staleTime: 1000 * 60 * 5,
+        retry: (failureCount, error) => {
+            // currentSocialId 관련 에러는 재시도하지 않음
+            if (error.message.includes('currentSocialId is not available')) {
+                return false;
+            }
+            return failureCount < 3;
+        },
     });
 
     const comments = data?.comments ?? [];
@@ -138,17 +151,30 @@ export function CommentList() {
             return { commentId, reply };
         },
         onMutate: async ({ commentId, reply }) => {
+            // currentSocialId 재검증
+            if (!currentSocialId || currentSocialId.trim() === '') {
+                throw new Error('소셜 계정 정보가 없습니다. 페이지를 새로고침해주세요.');
+            }
+            
             await queryClient.cancelQueries({ queryKey: ['comments', currentSocialId] });
             const previousComments = queryClient.getQueryData(['comments', currentSocialId]);
 
-            queryClient.setQueryData(['comments', currentSocialId], (old: { comments: Comment[]; }) => ({
-                ...old,
-                comments: old.comments.map((comment: Comment) =>
-                    comment.id === commentId
-                        ? { ...comment, replies: [...comment.replies, reply], is_replied: true }
-                        : comment
-                )
-            }));
+            // Safely update query data with null checks
+            queryClient.setQueryData(['comments', currentSocialId], (old: { comments: Comment[]; } | undefined) => {
+                if (!old || !old.comments) {
+                    // Don't update if we don't have proper data - let the success handler do the work
+                    return old;
+                }
+
+                return {
+                    ...old,
+                    comments: old.comments.map((comment: Comment) =>
+                        comment.id === commentId
+                            ? { ...comment, replies: [...comment.replies, reply], is_replied: true }
+                            : comment
+                    )
+                };
+            });
 
             return { previousComments };
         },
@@ -200,8 +226,17 @@ export function CommentList() {
 
     // Handle sending reply
     const sendReply = async (commentId: string) => {
+        // currentSocialId 검증
+        if (!currentSocialId || currentSocialId.trim() === '') {
+            toast.error('소셜 계정 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+            return;
+        }
+        
         const replyText = replyTexts[commentId]?.trim();
-        if (!replyText) return;
+        
+        if (!replyText) {
+            return;
+        }
 
         setSending(prev => ({ ...prev, [commentId]: true }));
 
@@ -211,8 +246,9 @@ export function CommentList() {
                 text: replyText,
                 reply_to_id: commentId,
             };
-
+            
             await replyMutation.mutateAsync({ commentId, reply: newReply });
+            
             // Don't clear the reply text - it will be hidden by conditional rendering
         } catch (error) {
             // Error handled by mutation
@@ -254,6 +290,19 @@ export function CommentList() {
             });
         }
     };
+
+    // currentSocialId가 없으면 로딩 상태로 처리
+    if (!currentSocialId || currentSocialId.trim() === '') {
+        return (
+            <div className="h-full w-full overflow-hidden p-6 flex flex-col">
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Comments</h1>
+                <div className="flex-1 flex flex-col gap-3 items-center justify-center bg-muted rounded-[20px] min-h-0">
+                    <Loader className="w-10 h-10 text-muted-foreground/30 animate-spin speed-50" />
+                    <div className="text-muted-foreground">소셜 계정 정보를 불러오는 중...</div>
+                </div>
+            </div>
+        );
+    }
 
     if (!isLoading && postsWithUnrepliedComments.length === 0) {
         return (
