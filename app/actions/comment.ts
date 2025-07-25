@@ -66,11 +66,9 @@ export async function getThreadsAccessToken() {
 
 // 사용자 포스트 ID 불러오기
 export async function getRootPostId(id: string) { // 사용자 id
-  console.log('Creating Supabase client...');
   const supabase = await createClient();
 
   try {
-    console.log('Fetching my posts...');
     const { data, error } = await supabase
       .from('my_contents')
       .select('*')
@@ -78,20 +76,17 @@ export async function getRootPostId(id: string) { // 사용자 id
       .eq('publish_status', 'posted');
 
     if (error) {
-      console.error('내 게시물 조회 실패:', error);
       throw new Error(`내 게시물 조회 중 오류 발생: ${error.message}`);
     }
 
     return data || [];
   } catch (error) {
-    console.error('Unexpected error:', error);
     throw error;
   }
 }
 
 // 댓글 불러오기
 export async function getComment(id: string, userId: string) { // root post id & user id
-  console.log('Creating Supabase client...');
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -119,7 +114,6 @@ export async function getComment(id: string, userId: string) { // root post id &
   }
 
   try {
-    console.log('Fetching comments...');
     const { data, error } = await supabase
       .from('comment')
       .select('*')
@@ -129,7 +123,6 @@ export async function getComment(id: string, userId: string) { // root post id &
     //.limit(10);
 
     if (error) {
-      console.error('댓글 조회 실패:', error);
       throw new Error(`댓글 조회 중 오류 발생: ${error.message}`);
     }
 
@@ -138,7 +131,6 @@ export async function getComment(id: string, userId: string) { // root post id &
 
     return filtered_data || [];
   } catch (error) {
-    console.error('Unexpected error:', error);
     throw error;
   }
 }
@@ -155,7 +147,6 @@ export async function markCommentAsReplied(commentId: string, reply: PostComment
     .single();
 
   if (fetchError) {
-    console.error('기존 댓글 불러오기 실패:', fetchError);
     throw new Error('댓글 데이터를 가져오는 중 오류가 발생했습니다.');
   }
 
@@ -171,7 +162,6 @@ export async function markCommentAsReplied(commentId: string, reply: PostComment
     .eq("id", commentId);
 
   if (updateError) {
-    console.error('답글 저장 실패:', updateError);
     throw new Error('답글을 저장하는 중 오류가 발생했습니다.');
   }
 }
@@ -182,6 +172,7 @@ export async function postComment({ media_type, text, reply_to_id }: PostComment
 
   try {
     const session = await getServerSession(authOptions);
+    
     if (!session || !session.user?.id) {
       throw new Error("로그인이 필요합니다.");
     }
@@ -224,12 +215,11 @@ export async function postComment({ media_type, text, reply_to_id }: PostComment
       reply_to_id: reply_to_id,
       access_token: token,
     });
-
+    
     const createResponse = await axios.post(apiUrl, payload);
 
     if (createResponse.status === 200) {
       const mediaContainerId = createResponse.data.id;
-      console.log(`Created media container: ${mediaContainerId}`);
 
       const publishUrl = `https://graph.threads.net/v1.0/${selectedSocialId}/threads_publish`;
       const params = new URLSearchParams({
@@ -242,19 +232,14 @@ export async function postComment({ media_type, text, reply_to_id }: PostComment
       let attempt = 0;
 
       while (attempt < maxAttempts) {
-        console.log(`Attempt ${attempt + 1}: Checking if ready to publish...`);
         try {
           const publishResponse = await axios.post(publishUrl, params);
 
           if (publishResponse.status === 200) {
-            console.log('Post published successfully!');
             return publishResponse.data; // 성공 결과 반환
-          } else {
-            console.log(`Still processing... (Status: ${publishResponse.status})`);
-            console.log(publishResponse.data);
           }
         } catch (error) {
-          console.error('Error during publish attempt:', error);
+          // Error during publish attempt
         }
 
         await new Promise((resolve) => setTimeout(resolve, 15000)); // 15초 대기
@@ -263,11 +248,9 @@ export async function postComment({ media_type, text, reply_to_id }: PostComment
 
       throw new Error('Failed to publish post after multiple attempts.');
     } else {
-      console.error('Create Error:', createResponse.status, createResponse.data);
       throw new Error('Failed to create thread.');
     }
   } catch (error) {
-    console.error('Unexpected error:', error);
     throw error; // 호출한 쪽에서 핸들링
   }
 }
@@ -293,25 +276,20 @@ export async function hideComment(commentId: string) {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
-    console.log('Comment hid successfully');
-
     const supabase = await createClient();
     const { error: updateError } = await supabase
       .from('comment')
       .update({ hide_status: true })
       .eq('id', commentId);
     if (updateError) {
-      console.error('댓글 hide_status 업데이트 실패:', updateError);
       throw new Error('댓글 hide_status 업데이트 중 오류가 발생했습니다.');
     }
 
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error(`Axios error: ${error.response?.status} - ${error.response?.data}`);
       throw new Error(`Failed to hide reply: ${error.response?.status}`);
     } else {
-      console.error('Unexpected error:', error);
       throw error;
     }
   }
@@ -319,11 +297,9 @@ export async function hideComment(commentId: string) {
 
 // 멘션 불러오기
 export async function getMention(userId: string) { // root post id & user id
-  console.log('Creating Supabase client...');
   const supabase = await createClient()
 
   try {
-    console.log('Fetching comments...');
     const { data, error } = await supabase
       .from('mention')
       .select('*')
@@ -331,44 +307,37 @@ export async function getMention(userId: string) { // root post id & user id
       .limit(10);
 
     if (error) {
-      console.error('댓글 조회 실패:', error);
       throw new Error(`댓글 조회 중 오류 발생: ${error.message}`);
     }
 
     const filtered_data = (data ?? []).filter((c) => c.user_id !== userId);
     return filtered_data || [];
   } catch (error) {
-    console.error('Unexpected error:', error);
     throw error;
   }
 }
 
 // 멘션 달린 포스트 불러오기
 export async function getMentionRootPost(Id: string) { // root post id & user id
-  console.log('Creating Supabase client...');
   const supabase = await createClient();
 
   try {
-    console.log('Fetching Root Post...');
     const { data, error } = await supabase
       .from('my_contents')
       .select('*')
       .eq('media_id', Id);
 
     if (error) {
-      console.error('포스트 조회 실패:', error);
       throw new Error(`포스트 조회 중 오류 발생: ${error.message}`);
     }
     return data || [];
   } catch (error) {
-    console.error('Unexpected error:', error);
     throw error;
   }
 }
 
 // 멘션에 답글 단 경우, is_replied = true로 업데이트 및 replies에 사용자 답글 추가
 export async function markMentionAsReplied(commentId: string, reply: PostComment) {
-  console.log('Creating Supabase client...');
   const supabase = await createClient();
 
   // 기존 댓글 불러오기
@@ -379,7 +348,6 @@ export async function markMentionAsReplied(commentId: string, reply: PostComment
     .single();
 
   if (fetchError) {
-    console.error('기존 멘션 불러오기 실패:', fetchError);
     throw new Error('멘션 데이터를 가져오는 중 오류가 발생했습니다.');
   }
 
@@ -395,14 +363,12 @@ export async function markMentionAsReplied(commentId: string, reply: PostComment
     .eq("id", commentId);
 
   if (updateError) {
-    console.error('답글 저장 실패:', updateError);
     throw new Error('답글을 저장하는 중 오류가 발생했습니다.');
   }
 }
 
 // 댓글 반환 전체 로직
 export async function getAllCommentsWithRootPosts() {
-  console.log('Creating Supabase client...');
   const supabase = await createClient();
 
   const session = await getServerSession(authOptions);
