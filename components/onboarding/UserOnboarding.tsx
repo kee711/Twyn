@@ -104,7 +104,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
           <div className="bg-blue-500 h-1 w-full" />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-8 gap-12">
+        <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-8 gap-10">
           <div className="flex flex-col items-center">
             <img src="/logo.svg" alt="Threads" className="w-52 h-fit mb-4" />
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -123,12 +123,12 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
               <img src="/threads.svg" alt="Threads" className="w-6 h-6 mr-2" />
               Connect Threads Account
             </Button>
-            <button
+            {/* <button
               onClick={handleConnectLater}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               Connect later
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
@@ -206,13 +206,14 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
           >
             Continue
           </Button>
-
-          <button
-            onClick={handleSkip}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            skip
-          </button>
+          {currentStep !== 3 && (
+            <button
+              onClick={handleSkip}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              skip
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -19,15 +19,20 @@ export default function SignInPage() {
         try {
           const onboardingStatus = await checkOnboardingStatus(session.user.id)
 
-          if (onboardingStatus.needsUserOnboarding) {
+          // 온보딩이 완료된 사용자는 바로 callbackUrl로 이동
+          if (!onboardingStatus) {
+            console.log('✅ User onboarding complete, redirecting to:', callbackUrl);
+            router.push(callbackUrl)
+          } else if (onboardingStatus) {
+            console.log('👤 User onboarding needed, redirecting to user onboarding');
             router.push('/onboarding?type=user')
-          } else if (onboardingStatus.needsSocialOnboarding && onboardingStatus.socialAccountId) {
-            router.push(`/onboarding?type=social&account_id=${onboardingStatus.socialAccountId}`)
           } else {
+            console.log('🔄 Fallback case, redirecting to:', callbackUrl);
+            // Fallback - 온보딩 상태가 명확하지 않은 경우 기본 페이지로
             router.push(callbackUrl)
           }
         } catch (error) {
-          console.error('Error checking onboarding status:', error)
+          console.error('❌ Error checking onboarding status:', error)
           // Fallback to default redirect
           router.push(callbackUrl)
         }
