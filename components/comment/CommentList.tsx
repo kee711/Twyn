@@ -40,10 +40,10 @@ export function CommentList() {
             if (!currentSocialId) {
                 throw new Error('currentSocialId is not available');
             }
-            
+
             await fetchAndSaveComments();
             const result = await getAllCommentsWithRootPosts();
-            
+
             return result;
         },
         enabled: !!currentSocialId && currentSocialId.trim() !== '', // currentSocialId가 있을 때만 실행
@@ -155,7 +155,7 @@ export function CommentList() {
             if (!currentSocialId || currentSocialId.trim() === '') {
                 throw new Error('소셜 계정 정보가 없습니다. 페이지를 새로고침해주세요.');
             }
-            
+
             await queryClient.cancelQueries({ queryKey: ['comments', currentSocialId] });
             const previousComments = queryClient.getQueryData(['comments', currentSocialId]);
 
@@ -231,9 +231,9 @@ export function CommentList() {
             toast.error('소셜 계정 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
             return;
         }
-        
+
         const replyText = replyTexts[commentId]?.trim();
-        
+
         if (!replyText) {
             return;
         }
@@ -246,9 +246,9 @@ export function CommentList() {
                 text: replyText,
                 reply_to_id: commentId,
             };
-            
+
             await replyMutation.mutateAsync({ commentId, reply: newReply });
-            
+
             // Don't clear the reply text - it will be hidden by conditional rendering
         } catch (error) {
             // Error handled by mutation
