@@ -64,157 +64,6 @@ export default function TopicFinderPage() {
         clearTopicResults
     } = useTopicResultsStore();
 
-
-    // 백그라운드 my_contents 동기화 (페이지 로드 시 한 번만 실행)
-    useEffect(() => {
-        const syncMyContents = async () => {
-            try {
-                console.log('🔄 백그라운드에서 my_contents 동기화 시작...');
-                const response = await fetch('/api/my-contents/sync', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ limit: 30 }),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ my_contents 동기화 완료:', data);
-                    // 선택적으로 성공 메시지 표시 (사용자에게 방해가 되지 않도록 주석 처리)
-                    // toast.success(`${data.synchronized}개 게시물이 동기화되었습니다.`);
-                } else {
-                    console.warn('⚠️ my_contents 동기화 실패:', response.status);
-                }
-            } catch (error) {
-                // 백그라운드 작업이므로 에러가 발생해도 사용자 경험에 영향을 주지 않음
-                console.error('❌ my_contents 백그라운드 동기화 오류:', error);
-            }
-        };
-
-        // 페이지 로드 시 한 번만 실행
-        syncMyContents();
-    }, []); // 빈 의존성 배열로 마운트 시에만 실행
-
-    // 계정 정보 로드
-    useEffect(() => {
-        if (!currentSocialId) return
-
-        const fetchAccountDetails = async () => {
-            setIsLoading(true)
-            try {
-                const { data: accountData, error: accountError } = await supabase
-                    .from('social_accounts')
-                    .select('account_type, account_info, account_tags')
-                    .eq('social_id', currentSocialId)
-                    .single()
-
-                if (!accountError && accountData) {
-                    setAccountInfo(accountData.account_info || '')
-                    setAccountTags(accountData.account_tags || [])
-                } else {
-                    setAccountInfo('')
-                    setAccountTags([])
-                }
-            } catch (error) {
-                console.error('계정 정보 로드 오류:', error)
-                toast.error('계정 정보를 불러오는 중 오류가 발생했습니다.')
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchAccountDetails()
-    }, [currentSocialId, supabase])
-
-    // Combined prefetch for comments, mentions, and statistics
-    useEffect(() => {
-        if (currentSocialId) {
-            const accountId = currentSocialId;
-            const dateRange = 7; // topic-finder에서는 7일 데이터만 prefetch
-
-            startTransition(() => {
-                // Prefetch comments and mentions
-                queryClient.prefetchQuery({
-                    queryKey: ['comments'],
-                    queryFn: async () => {
-                        await fetchAndSaveComments();
-                        return getAllCommentsWithRootPosts();
-                    },
-                    staleTime: 1000 * 60 * 5,
-                });
-
-                queryClient.prefetchQuery({
-                    queryKey: ['mentions'],
-                    queryFn: async () => {
-                        await fetchAndSaveMentions();
-                        return getAllMentionsWithRootPosts();
-                    },
-                    staleTime: 1000 * 60 * 5,
-                });
-
-                // Prefetch statistics data
-                queryClient.prefetchQuery({
-                    queryKey: statisticsKeys.userInsights(accountId, dateRange),
-                    queryFn: () => fetchUserInsights(accountId, dateRange),
-                    staleTime: 5 * 60 * 1000,
-                });
-
-                queryClient.prefetchQuery({
-                    queryKey: statisticsKeys.topPosts(accountId),
-                    queryFn: () => fetchTopPosts(accountId),
-                    staleTime: 10 * 60 * 1000,
-                });
-
-                console.log('✅ Comments 데이터 prefetch 완료');
-                console.log('✅ Mentions 데이터 prefetch 완료');
-                console.log('✅ Statistics 데이터 prefetch 완료 (7일)');
-            });
-        }
-    }, [currentSocialId, queryClient]);
-
-    // 토픽 생성 함수
-    const generateTopics = async () => {
-        if (!accountInfo) {
-            toast.error('No account info.');
-            return;
-        }
-        setIsGeneratingTopics(true);
-        setIsLoading(true);
-        try {
-            const res = await fetch('/api/generate-topics', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountInfo })
-            });
-            if (!res.ok) throw new Error('API error');
-            const data = await res.json();
-            const newTopics = Array.isArray(data) ? data : data.topics;
-
-            if (!Array.isArray(newTopics)) {
-                toast.error('Invalid topic result format');
-                return;
-            }
-
-            // 데이터 구조 단순화
-            addTopicResults(
-                newTopics.map((topic: any) => ({
-                    topic: typeof topic === 'string' ? topic : topic.topic || '',
-                    detail: undefined,
-                    loading: false,
-                    dialogOpen: false
-                }))
-            );
-        } catch (e) {
-            console.error('Topic generation error:', e);
-            toast.error('Failed to generate topics');
-        } finally {
-            setIsGeneratingTopics(false);
-            setIsLoading(false);
-        }
-    };
-
-
     // 토픽 변경 핸들러
     const handleTopicChange = (idx: number, newVal: string) => {
         updateTopicResult(idx, newVal);
@@ -224,10 +73,21 @@ export default function TopicFinderPage() {
         setGivenInstruction(v);
     };
 
-    // 다이얼로그 오픈 핸들러
-    const handleOpenDialog = (idx: number, open: boolean) => {
-        setDialogOpenStore(idx, open);
-    };
+    // Intelligent prefetch on user interaction (hover/focus)
+    const handleUserEngagement = useCallback(() => {
+        // 사용자가 페이지와 상호작용할 때 추가 prefetch
+        if (!currentSocialId) return;
+
+
+        startTransition(() => {
+            // 사용자가 활동할 때만 나머지 데이터 prefetch
+            queryClient.prefetchQuery({
+                queryKey: statisticsKeys.userInsights(currentSocialId, 30), // 30일 데이터
+                queryFn: () => fetchUserInsights(currentSocialId, 30),
+                staleTime: 10 * 60 * 1000,
+            });
+        });
+    }, [currentSocialId, queryClient]);
 
     // 디테일 생성 핸들러 - Generate thread chain instead of single post
     const handleGenerateDetail = async () => {
@@ -269,9 +129,201 @@ export default function TopicFinderPage() {
     };
 
 
+    // 백그라운드 my_contents 동기화 (페이지 로드 시 한 번만 실행)
+    useEffect(() => {
+        const syncMyContents = async () => {
+            try {
+                const response = await fetch('/api/my-contents/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ limit: 30 }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // 선택적으로 성공 메시지 표시 (사용자에게 방해가 되지 않도록 주석 처리)
+                    // toast.success(`${data.synchronized}개 게시물이 동기화되었습니다.`);
+                }
+            } catch (error) {
+                // 백그라운드 작업이므로 에러가 발생해도 사용자 경험에 영향을 주지 않음
+            }
+        };
+
+        // 페이지 로드 시 한 번만 실행
+        syncMyContents();
+    }, []); // 빈 의존성 배열로 마운트 시에만 실행
+
+    // 계정 정보 로드
+    useEffect(() => {
+        if (!currentSocialId) return
+
+        const fetchAccountDetails = async () => {
+            setIsLoading(true)
+            try {
+                const { data: accountData, error: accountError } = await supabase
+                    .from('social_accounts')
+                    .select('account_type, account_info, account_tags')
+                    .eq('social_id', currentSocialId)
+                    .single()
+
+                if (!accountError && accountData) {
+                    setAccountInfo(accountData.account_info || '')
+                    setAccountTags(accountData.account_tags || [])
+                } else {
+                    setAccountInfo('')
+                    setAccountTags([])
+                }
+            } catch (error) {
+                toast.error('계정 정보를 불러오는 중 오류가 발생했습니다.')
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchAccountDetails()
+    }, [currentSocialId, supabase])
+
+    // Optimized background prefetch with priority control
+    useEffect(() => {
+        if (!currentSocialId) return;
+
+        const accountId = currentSocialId;
+        const dateRange = 7;
+
+        // 지연된 백그라운드 prefetch - UI 블로킹 방지
+        const delayedPrefetch = async () => {
+            try {
+                // 1단계: 가장 중요한 데이터만 먼저 prefetch (우선도 높음)
+                await Promise.allSettled([
+                    queryClient.prefetchQuery({
+                        queryKey: ['comments', currentSocialId],
+                        queryFn: async () => {
+                            await fetchAndSaveComments();
+                            const result = await getAllCommentsWithRootPosts();
+                            return result;
+                        },
+                        staleTime: 1000 * 60 * 5,
+                    })
+                ]);
+
+                // 2단계: 중요도 중간 데이터 (1초 지연)
+                setTimeout(async () => {
+                    await Promise.allSettled([
+                        queryClient.prefetchQuery({
+                            queryKey: ['mentions', currentSocialId],
+                            queryFn: async () => {
+                                await fetchAndSaveMentions();
+                                const result = await getAllMentionsWithRootPosts();
+                                return result;
+                            },
+                            staleTime: 1000 * 60 * 5,
+                        })
+                    ]);
+                }, 1000);
+
+                // 3단계: 통계 데이터 (2초 지연 - 백그라운드에서 조용히)
+                setTimeout(async () => {
+                    await Promise.allSettled([
+                        queryClient.prefetchQuery({
+                            queryKey: statisticsKeys.userInsights(accountId, dateRange),
+                            queryFn: () => fetchUserInsights(accountId, dateRange),
+                            staleTime: 5 * 60 * 1000,
+                        }),
+                        queryClient.prefetchQuery({
+                            queryKey: statisticsKeys.topPosts(accountId),
+                            queryFn: () => fetchTopPosts(accountId),
+                            staleTime: 10 * 60 * 1000,
+                        })
+                    ]);
+                }, 2000);
+
+            } catch (error) {
+                // prefetch 실패는 사용자 경험에 영향주지 않음
+            }
+        };
+
+        // startTransition으로 래핑하여 더 낮은 우선도로 실행
+        startTransition(() => {
+            // 추가로 50ms 지연으로 초기 렌더링 완전히 완료 후 실행
+            setTimeout(delayedPrefetch, 50);
+        });
+
+    }, [currentSocialId, queryClient]);
+
+    // 사용자 상호작용 감지로 추가 prefetch 트리거
+    useEffect(() => {
+        let interactionTimer: NodeJS.Timeout;
+        let hasTriggered = false;
+
+        const handleInteraction = () => {
+            if (hasTriggered) return;
+
+            // 디바운스: 1초 후에 실행
+            clearTimeout(interactionTimer);
+            interactionTimer = setTimeout(() => {
+                handleUserEngagement();
+                hasTriggered = true;
+            }, 1000);
+        };
+
+        // 다양한 사용자 상호작용 이벤트 리스닝
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+        events.forEach(event => {
+            document.addEventListener(event, handleInteraction, { passive: true, once: true });
+        });
+
+        return () => {
+            clearTimeout(interactionTimer);
+            events.forEach(event => {
+                document.removeEventListener(event, handleInteraction);
+            });
+        };
+    }, [handleUserEngagement]);
+
+    // 토픽 생성 함수
+    const generateTopics = async () => {
+        if (!accountInfo) {
+            toast.error('No account info.');
+            return;
+        }
+        setIsGeneratingTopics(true);
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/generate-topics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accountInfo })
+            });
+            if (!res.ok) throw new Error('API error');
+            const data = await res.json();
+            const newTopics = Array.isArray(data) ? data : data.topics;
+
+            if (!Array.isArray(newTopics)) {
+                toast.error('Invalid topic result format');
+                return;
+            }
+
+            // 데이터 구조 단순화
+            addTopicResults(
+                newTopics.map((topic: any) => ({
+                    topic: typeof topic === 'string' ? topic : topic.topic || '',
+                    detail: undefined,
+                    loading: false,
+                    dialogOpen: false
+                }))
+            );
+        } catch (e) {
+            toast.error('Failed to generate topics');
+        } finally {
+            setIsGeneratingTopics(false);
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         // 필요시 topicResults 변경 추적
-        // console.log('Current topicResults:', topicResults);
     }, [topicResults]);
 
     return (
