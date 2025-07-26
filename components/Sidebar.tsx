@@ -142,7 +142,7 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   // 테마에 따라 적절한 로고 이미지 선택
-  const logoSrc = theme === 'dark' ? '/conflow-logo-dark.svg' : '/conflow-logo.svg';
+  const logoSrc = theme === 'dark' ? '/twyn-logo-wh.svg' : '/twyn-logo-blk.svg';
 
   // 모바일에서 오버레이 클릭 시 사이드바 닫기
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -241,18 +241,18 @@ function SidebarContent({
       {/* Top section: Logo and Navigation */}
       <div className="px-3 flex-1">
         {/* Logo - 모바일에서는 더 작게 */}
-        <Link className={cn(
-          "mb-4 px-3 py-2",
-          isMobile ? "mt-1" : "mt-2"
-        )} href="/contents/topic-finder" onClick={onLinkClick}>
-          <Image
-            src={logoSrc}
-            alt="Logo"
-            width={isMobile ? 100 : 120}
-            height={isMobile ? 80 : 100}
-          />
-        </Link>
-
+        <div className="py-5 px-2">
+          <Link className={cn(
+            isMobile ? "mt-1" : "mt-2"
+          )} href="/contents/topic-finder" onClick={onLinkClick}>
+            <Image
+              src={logoSrc}
+              alt="Logo"
+              width={isMobile ? 100 : 92}
+              height={isMobile ? 80 : 80}
+            />
+          </Link>
+        </div>
         {/* 소셜 계정 전환 dropdown */}
         <div className="mb-4">
           <SocialAccountSelector />
