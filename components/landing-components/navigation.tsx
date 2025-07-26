@@ -44,7 +44,7 @@ export const Navigation = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => scrollToSection('hero')}>
-            <img src="/logo.svg" alt="Twyn" className="w-32 h-20" />
+            <img src="/twyn-logo-blk.svg" alt="Twyn" className="w-20 h-8" />
           </div>
 
           {/* Navigation Menu */}
