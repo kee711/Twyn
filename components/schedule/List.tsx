@@ -113,7 +113,7 @@ export function List({
             ref={(el) => { dateRefs.current[dateStr] = el }}
             id={dateStr}
             className={cn(
-              "p-4 rounded-lg border border-transparent",
+              "p-4 rounded-xl border border-transparent",
               dropTargetDate && isSameDay(date, dropTargetDate) && "border-primary bg-primary/10"
             )}
             onDragOver={(e) => handleDragOver(e, date)}
@@ -129,7 +129,7 @@ export function List({
                   <div
                     key={event.id}
                     className={cn(
-                      'relative flex items-center justify-between p-3 rounded-lg',
+                      'relative flex items-center justify-between p-3 rounded-xl',
                       event.status === 'scheduled'
                         ? 'bg-blue-100 hover:bg-blue-200 text-foreground cursor-grab'
                         : event.status === 'failed'

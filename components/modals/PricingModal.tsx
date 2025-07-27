@@ -118,8 +118,8 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
     plan_first_started: string;
   }) => {
     if (!session?.user?.id) {
-      toast.error('사용자 정보를 찾을 수 없습니다.');
-      return;
+      toast.error('Cant find user information');
+      return false;
     }
 
     try {
@@ -133,8 +133,8 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
         .single();
 
       if (userError || !userProfile) {
-        toast.error('사용자 프로필을 찾을 수 없습니다.');
-        return;
+        toast.error('Cant find user profile');
+        return false;
       }
 
       // Check if user_plan already exists
@@ -159,21 +159,21 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
 
       if (insertError) {
         console.error('Error creating user plan:', insertError);
-        toast.error('플랜 설정 중 오류가 발생했습니다.');
+        toast.error('Error creating user plan');
         return false;
       }
 
       return true;
     } catch (error) {
       console.error('Error creating user plan:', error);
-      toast.error('플랜 설정 중 오류가 발생했습니다.');
+      toast.error('Error creating user plan');
       return false;
     }
   };
 
   const updateUserPlanForFreeTrial = async () => {
     if (!session?.user?.id) {
-      toast.error('사용자 정보를 찾을 수 없습니다.');
+      toast.error('Cant find user information');
       return false;
     }
 
@@ -188,7 +188,7 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
         .single();
 
       if (userError || !userProfile) {
-        toast.error('사용자 프로필을 찾을 수 없습니다.');
+        toast.error('Cant find user profile');
         return false;
       }
 
@@ -339,7 +339,7 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
         .single();
 
       if (userError || !userProfile) {
-        toast.error('사용자 프로필을 찾을 수 없습니다.');
+        toast.error('Cant find user profile');
         return;
       }
 
@@ -491,6 +491,7 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
   if (loading) {
     return (
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+        <DialogTitle>Choose Your Plan</DialogTitle>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-center py-8">
             <div className="text-center">Loading plans...</div>
@@ -513,6 +514,7 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
         }
       `}</style>
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+        <DialogTitle>Choose Your Plan</DialogTitle>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">

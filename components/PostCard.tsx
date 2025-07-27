@@ -459,7 +459,7 @@ export function PostCard({
                   return (
                     <div
                       key={index}
-                      className="relative rounded-md overflow-hidden aspect-square flex items-center justify-center bg-muted"
+                      className="relative rounded-xl overflow-hidden aspect-square flex items-center justify-center bg-muted"
                     >
                       {isVideo ? (
                         <video
@@ -633,7 +633,7 @@ export function PostCard({
       {/* Subsequent thread */}
       {isWriting && isLastInChain && showAddThread && (
         <div
-          className={`flex items-center justify-start gap-3 rounded-lg px-1 transition-colors ${content.trim() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+          className={`flex items-center justify-start gap-3 rounded-xl px-1 transition-colors ${content.trim() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
             }`}
           onClick={content.trim() ? onAddThread : undefined}
         >

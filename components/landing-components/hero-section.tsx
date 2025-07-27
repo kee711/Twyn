@@ -99,7 +99,7 @@ function HeroSection({
                                             <Circle className="w-4 h-4 text-landing-text-muted" />
                                             <span>Demo</span>
                                         </Button> */}
-                                        <Button className="flex flex-col px-12 py-6 text-md rounded-2xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
+                                        <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
                                             Get 2 months free
                                             <div className="flex items-center gap-2 opacity-80 text-landing-text-reverse">
                                                 <PartyPopper className="w-4 h-4" />

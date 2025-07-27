@@ -132,12 +132,12 @@ export function DropdownTime({
       </div>
       
       {isOpen && (
-        <div className="absolute top-full left-0 z-[60] w-full mt-1 bg-popover border border-border rounded-md shadow-md">
+        <div className="absolute top-full left-0 z-[60] w-full mt-1 bg-popover border border-border rounded-xl shadow-md">
           <div className="max-h-[200px] overflow-y-auto">
             {timeOptions.map((timeString) => (
               <button
                 key={timeString}
-                className="w-full px-3 py-2 text-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors first:rounded-t-md last:rounded-b-md"
+                className="w-full px-3 py-2 text-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors first:rounded-t-xl last:rounded-b-xl"
                 onClick={() => handleTimeSelect(timeString)}
                 type="button"
               >

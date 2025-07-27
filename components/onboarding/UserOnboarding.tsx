@@ -117,7 +117,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
           <div className="text-center space-y-4 flex flex-col items-center">
             <Button
               size="lg"
-              className="py-6 text-md font-medium rounded-2xl"
+              className="py-6 text-md font-medium rounded-xl"
               onClick={handleConnectThreads}
             >
               <img src="/threads.svg" alt="Threads" className="w-6 h-6 mr-2" />
@@ -177,7 +177,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
               >
                 <CardContent className="p-1">
                   <div className="flex gap-4 items-center">
-                    <div className={`p-3 rounded-lg ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                    <div className={`p-3 rounded-xl ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
                       }`}>
                       <IconComponent className="w-6 h-6" />
                     </div>

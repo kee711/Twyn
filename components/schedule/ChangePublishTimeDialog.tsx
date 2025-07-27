@@ -107,7 +107,7 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={variant === 'icon' ? 'default' : 'outline'} disabled={ondisabled} className={`flex items-center gap-2 ${variant === 'icon' ? 'h-full w-8 p-0 rounded-l-sm rounded-r-lg bg-black text-white hover:bg-black/90' : 'text-muted-foreground rounded-xl'}`}>
+        <Button variant={variant === 'icon' ? 'default' : 'outline'} disabled={ondisabled} className={`flex items-center gap-2 ${variant === 'icon' ? 'h-full w-8 p-0 rounded-l-xl rounded-r-xl bg-black text-white hover:bg-black/90' : 'text-muted-foreground rounded-xl'}`}>
           {variant === 'icon' ? (
             <Clock className="h-full w-4" />
           ) : (
@@ -132,7 +132,7 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
           {publishTimes.length > 0 ? (
             <div className="space-y-2">
               {publishTimes.map((time: string, index: number) => (
-                <div key={index} className="rounded-lg flex items-center justify-between px-4 py-2 bg-muted">
+                <div key={index} className="rounded-xl flex items-center justify-between px-4 py-2 bg-muted">
                   {editingIndex === index ? (
                     <div className="flex items-center gap-2 w-full">
                       <div className="flex-1">
