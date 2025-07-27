@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { checkOnboardingStatus } from '@/lib/utils/check-onboarding'
+import { SocialButton } from '@/components/signin/buttons/social-button'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -88,7 +89,7 @@ export default function SignInPage() {
       {/* 블러 처리 오버레이 */}
       <div className="fixed inset-0 w-full h-full backdrop-blur-sm bg-black/30 flex items-center justify-center">
         {/* 로그인 모달 */}
-        <div className="w-full max-w-md space-y-8 rounded-xl border border-gray-200 dark:border-gray-800 bg-background/95 shadow-2xl p-8">
+        <div className="w-full max-w-md space-y-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-background/95 shadow-2xl p-8">
           <button
             onClick={handleGoBack}
             className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-white"
@@ -101,42 +102,24 @@ export default function SignInPage() {
           </button>
 
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">계정 생성</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome to Twyn!</h1>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              계정으로 로그인하여 시작하세요
+              Sign in to your account to continue
             </p>
           </div>
 
           <div className="space-y-4">
-            <Button
+            <SocialButton
+              social="google"
+              theme="brand"
               className="w-full"
-              variant="outline"
               onClick={() => signIn('google', { callbackUrl })}
             >
-              <GoogleIcon className="mr-2 h-4 w-4" />
-              Google로 계속하기
-            </Button>
-
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => signIn('email', { callbackUrl })}
-            >
-              <EmailIcon className="mr-2 h-4 w-4" />
-              이메일로 계속하기
-            </Button>
-
-            <hr className="border-gray-700/50" />
+              Sign in with Google
+            </SocialButton>
 
             <div className="text-center text-xs text-gray-500">
-              이미 계정이 있으신가요? <a href="#" className="text-primary hover:underline" onClick={(e) => {
-                e.preventDefault();
-                // 로그인 모드로 전환하는 로직
-              }}>로그인</a>
-            </div>
-
-            <div className="text-center text-xs text-gray-500">
-              계속 진행하면 서비스 <a href="/terms" className="text-primary hover:underline">이용약관</a>과 <a href="/privacy" className="text-primary hover:underline">개인정보처리방침</a>에 동의하게 됩니다.
+              By continuing, you agree to our <a href="/privacy" className="text-primary hover:underline" target="_blank">Privacy Policy</a>.
             </div>
           </div>
         </div>
@@ -144,42 +127,3 @@ export default function SignInPage() {
     </div>
   )
 }
-
-// 아이콘 컴포넌트들
-function GoogleIcon(props: React.ComponentProps<'svg'>) {
-  return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      data-prefix="fab"
-      data-icon="google"
-      role="img"
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 488 512"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
-      />
-    </svg>
-  )
-}
-
-function EmailIcon(props: React.ComponentProps<'svg'>) {
-  return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      role="img"
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 512 512"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M48 64C21.5 64 0 85.5 0 112c0 15.1 7.1 29.3 19.2 38.4L236.8 313.6c11.4 8.5 27 8.5 38.4 0L492.8 150.4c12.1-9.1 19.2-23.3 19.2-38.4c0-26.5-21.5-48-48-48H48zM0 176V384c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V176L294.4 339.2c-22.8 17.1-54 17.1-76.8 0L0 176z"
-      />
-    </svg>
-  )
-} 
