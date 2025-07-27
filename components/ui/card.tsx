@@ -6,7 +6,7 @@ const cardVariants = cva("w-full relative p-6", {
   variants: {
     variant: {
       default: [
-        "border rounded-xl",
+        "border rounded-2xl",
         "border-zinc-300 dark:border-zinc-900",
         "bg-white dark:bg-zinc-950",
       ],

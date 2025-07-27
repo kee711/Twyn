@@ -210,7 +210,7 @@ export default function SettingsPage() {
               {/* 소셜 계정 관련 설정 */}
               <div className="space-y-6">
                 <div>
-                  <Label htmlFor="socialAccount" className="mb-2 block">Social Account</Label>
+                  <Label htmlFor="socialAccount" className="mb-4 block">Social Account</Label>
                   <Select
                     value={selectedSocialAccount}
                     onValueChange={setSelectedSocialAccount}
