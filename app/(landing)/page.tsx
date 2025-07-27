@@ -84,14 +84,16 @@ export default function Home() {
             title: "Legal",
             links: [
               {
-                name: "Terms of Service",
+                name: "Data Deletion Policy",
                 icon: "Handshake",
-                href: "/legal/terms",
+                href: "/legal/data-deletion-policy",
+                openInNewTab: true,
               },
               {
                 name: "Privacy Policy",
                 icon: "Scale",
                 href: "/legal/privacy",
+                openInNewTab: true,
               },
             ],
           },

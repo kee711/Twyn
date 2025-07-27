@@ -30,6 +30,7 @@ interface FooterLink {
   name: string;
   icon: string;
   href?: string;
+  openInNewTab?: boolean;
 }
 
 interface FooterColumn {
@@ -87,7 +88,7 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
                 <div key={title} className="last:mt-12 md:last:mt-0">
                   <h3 className="text-sm font-semibold text-landing-text-primary">{title}</h3>
                   <ul className="mt-4 space-y-2.5">
-                    {links.map(({ name, icon, href }) => {
+                    {links.map(({ name, icon, href, openInNewTab }) => {
                       const IconComponent = ICONS[icon] || Blocks;
 
                       return (
@@ -95,6 +96,7 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
                           <a
                             href={href || "#"}
                             className="text-sm transition-all text-landing-text-secondary hover:text-landing-primary-600 group"
+                            {...(openInNewTab && { target: "_blank", rel: "noopener noreferrer" })}
                           >
                             <IconComponent className="inline stroke-2 h-4 mr-1.5 transition-all text-landing-text-secondary group-hover:text-landing-primary-600" />
                             {name}
