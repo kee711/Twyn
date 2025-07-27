@@ -86,13 +86,13 @@ export default function Home() {
               {
                 name: "Data Deletion Policy",
                 icon: "Handshake",
-                href: "/legal/data-deletion-policy",
+                href: "/data-deletion-policy",
                 openInNewTab: true,
               },
               {
                 name: "Privacy Policy",
                 icon: "Scale",
-                href: "/legal/privacy",
+                href: "/privacy",
                 openInNewTab: true,
               },
             ],
