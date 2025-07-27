@@ -334,7 +334,7 @@ export function CommentList() {
                             {/* Get Ideas Button */}
                             <Link
                                 href="/contents/topic-finder"
-                                className="bg-zinc-100 border border-muted-foreground/10 rounded-lg px-3 py-2 flex items-center justify-center gap-2.5 cursor-pointer hover:bg-zinc-200 transition-colors"
+                                className="bg-zinc-100 border border-muted-foreground/10 rounded-xl px-3 py-2 flex items-center justify-center gap-2.5 cursor-pointer hover:bg-zinc-200 transition-colors"
                             >
                                 <span className="text-black text-sm font-medium">
                                     Get Ideas

@@ -248,7 +248,7 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
         <SelectContent>
           {/* 계정 추가 버튼을 드롭다운 상단에 배치 */}
           <div
-            className="flex items-center gap-2 px-2 py-2 mb-1 cursor-pointer hover:bg-accent rounded-sm"
+            className="flex items-center gap-2 px-2 py-2 mb-1 cursor-pointer hover:bg-accent rounded-xl"
             onClick={addSocialAccount}
           >
             <PlusCircle className="h-4 w-4" />

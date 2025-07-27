@@ -6,13 +6,13 @@ const cardVariants = cva("w-full relative p-6", {
   variants: {
     variant: {
       default: [
-        "border rounded-2xl",
+        "border rounded-xl",
         "border-zinc-300 dark:border-zinc-900",
         "bg-white dark:bg-zinc-950",
       ],
       dots: [
         "relative mx-auto w-full",
-        "rounded-lg border border-dashed",
+        "rounded-xl border border-dashed",
         "border-zinc-300 dark:border-zinc-800",
         "px-4 sm:px-6 md:px-8",
       ],
@@ -30,7 +30,7 @@ const cardVariants = cva("w-full relative p-6", {
         "dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,0.7)]",
       ],
       inner: [
-        "border-[0.5px] rounded-sm p-2",
+        "border-[0.5px] rounded-xl p-2",
         "border-zinc-300 dark:border-zinc-800",
       ],
       lifted: [
@@ -42,7 +42,7 @@ const cardVariants = cva("w-full relative p-6", {
         "bg-zinc-50 dark:bg-zinc-900/50",
       ],
       corners: [
-        "border-2 rounded-md",
+        "border-2 rounded-xl",
         "border-zinc-100 dark:border-zinc-700",
         "relative",
       ],
@@ -258,7 +258,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
           className={cn(cardVariants({ variant, className }))}
           {...props}
         >
-          <div className="border rounded-sm bg-gradient-to-br from-white to-zinc-200/60 border-zinc-300 shadow-[2px_0_8px_rgba(0,_0,_0,_0.15)] dark:from-zinc-950 dark:to-zinc-900/60 dark:border-zinc-900/50 dark:shadow-inner">
+          <div className="border rounded-xl bg-gradient-to-br from-white to-zinc-200/60 border-zinc-300 shadow-[2px_0_8px_rgba(0,_0,_0,_0.15)] dark:from-zinc-950 dark:to-zinc-900/60 dark:border-zinc-900/50 dark:shadow-inner">
             {content}
           </div>
         </div>
