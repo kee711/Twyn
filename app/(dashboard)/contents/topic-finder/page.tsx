@@ -37,6 +37,7 @@ export default function TopicFinderPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
     const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const { setPendingThreadChain } = useThreadChainStore();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
@@ -63,6 +64,11 @@ export default function TopicFinderPage() {
         removeTopicResult,
         clearTopicResults
     } = useTopicResultsStore();
+
+    // Mount 상태 설정 - hydration 오류 방지
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // 토픽 변경 핸들러
     const handleTopicChange = (idx: number, newVal: string) => {
@@ -326,17 +332,27 @@ export default function TopicFinderPage() {
         // 필요시 topicResults 변경 추적
     }, [topicResults]);
 
+    const profilePicture = mounted ? getSelectedAccount()?.threads_profile_picture_url || '' : '';
+
     return (
         <div className="p-4 md:p-6 h-screen">
             <div className="flex flex-col items-center justify-center h-full">
                 <div className="w-full mx-auto pb-48 flex flex-col items-center overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {/* 중앙 정렬 인사말 */}
-                    <div className="flex flex-row items-center gap-4 mb-6 mt-16">
-                        <Image src="/saltAIIcon.svg" alt="Salt AI Icon" width={48} height={48} />
-                        <h2 className="text-2xl font-semibold text-left">Hi {currentUsername || 'User'},<br />What would you like to write about?</h2>
+                    <div className="">
+                        <div className="flex flex-row items-center gap-2 mb-1">
+                            {/* 프로필 이미지 - hydration 안전 */}
+                            {mounted && profilePicture && (
+                                <img src={profilePicture} alt="" className="w-8 h-8 rounded-full" />
+                            )}
+                            <h2 className="text-2xl font-semibold text-left">
+                                Hi {mounted ? (currentUsername || 'User') : 'User'},
+                            </h2>
+                        </div>
+                        <h2 className="text-2xl font-semibold text-left">What would you like to write about?</h2>
                     </div>
                     {/* Profile Description Dropdown */}
-                    {currentSocialId && (
+                    {mounted && currentSocialId && (
                         <div className="w-full mt-3 flex justify-between max-w-80 transition-all duration-300 xs:max-w-xs sm:max-w-xl">
                             <ProfileDescriptionDropdown accountId={currentSocialId} initialDescription={accountInfo || ''} />
                         </div>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useTheme } from 'next-themes'
 import { signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -30,7 +28,6 @@ import useSocialAccountStore from '@/stores/useSocialAccountStore'
 import { PricingModal } from '@/components/modals/PricingModal'
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme()
   const { data: session, status } = useSession()
   const [language, setLanguage] = useState('ko')
   const [showPricingModal, setShowPricingModal] = useState(false)
@@ -352,18 +349,9 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
-              <CardDescription>Configure theme and language settings.</CardDescription>
+              <CardDescription>Configure language settings.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className='flex gap-4 items-center'>
-                <Label htmlFor="dark-mode">Dark Mode</Label>
-                <Switch
-                  id="dark-mode"
-                  checked={theme === 'dark'}
-                  onCheckedChange={(checked: boolean) => setTheme(checked ? 'dark' : 'light')}
-                />
-              </div>
-
               <div className="flex gap-4 items-center">
                 <Label>Language</Label>
                 <Select value={language} onValueChange={setLanguage}>
