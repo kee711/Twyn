@@ -1,4 +1,9 @@
 import Link from 'next/link';
+import { generatePageMetadata } from '@/lib/generatePageMetadata';
+
+export async function generateMetadata() {
+  return await generatePageMetadata('privacy');
+}
 
 export default function PrivacyPolicy() {
   return (
