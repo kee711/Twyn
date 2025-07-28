@@ -10,7 +10,6 @@ interface SocialAccount {
   owner: string
   is_active: boolean
   username?: string
-  threads_profile_picture_url?: string
 }
 
 // 스토어 타입 정의

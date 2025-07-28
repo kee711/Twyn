@@ -230,19 +230,10 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
         disabled={isLoading}
       >
         <SelectTrigger className="mt-2 p-4 flex justify-between items-center w-full bg-muted-foreground/10 dark:bg-gray-900 border-0 rounded-xl">
-          <div className="flex items-center gap-2">
-            {selectedAccount?.threads_profile_picture_url && (
-              <img
-                src={selectedAccount.threads_profile_picture_url}
-                alt={selectedAccount.username || selectedAccount.social_id}
-                className="w-6 h-6 rounded-full"
-              />
-            )}
-            <div className="font-medium text-base text-muted-foreground">
-              {selectedAccount
-                ? (selectedAccount.username || selectedAccount.social_id)
-                : '계정 선택'}
-            </div>
+          <div className="font-medium text-base text-muted-foreground">
+            {selectedAccount
+              ? (selectedAccount.username || selectedAccount.social_id)
+              : '계정 선택'}
           </div>
         </SelectTrigger>
         <SelectContent>

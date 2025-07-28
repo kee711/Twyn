@@ -16,6 +16,7 @@ import NextImage from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
+import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
 
 interface RightSidebarProps {
   className?: string;
@@ -404,6 +405,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
             fetchPublishTimes={fetchPublishTimes}
             toggleSidebar={() => setIsCollapsed(true)}
             isMobile={false}
+            currentSocialId={currentSocialId}
             getSelectedAccount={getSelectedAccount}
             mobileViewportHeight={mobileViewportHeight}
             // Thread chain props
@@ -451,6 +453,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
               fetchPublishTimes={fetchPublishTimes}
               toggleSidebar={closeRightSidebar}
               isMobile={true}
+              currentSocialId={currentSocialId}
               getSelectedAccount={getSelectedAccount}
               mobileViewportHeight={mobileViewportHeight}
               // Thread chain props
@@ -497,6 +500,7 @@ function RightSidebarContent({
   fetchPublishTimes,
   toggleSidebar,
   isMobile,
+  currentSocialId,
   getSelectedAccount,
   mobileViewportHeight,
   // Thread chain props
@@ -516,6 +520,7 @@ function RightSidebarContent({
   fetchPublishTimes: () => void;
   toggleSidebar: () => void;
   isMobile: boolean;
+  currentSocialId: string;
   getSelectedAccount: () => any;
   mobileViewportHeight: number;
   // Thread chain props
@@ -531,6 +536,8 @@ function RightSidebarContent({
   const hasCharacterLimitViolation = () => {
     return threadChain.some(thread => thread.content.length > 500);
   };
+
+  const { profilePictureUrl } = useThreadsProfilePicture(currentSocialId);
 
   return (
     <div className="flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 shadow-lg">
@@ -575,7 +582,7 @@ function RightSidebarContent({
           <ThreadChain
             threads={threadChain}
             variant="writing"
-            avatar={getSelectedAccount()?.threads_profile_picture_url}
+            avatar={profilePictureUrl || ''}
             username={getSelectedAccount()?.username}
             onThreadContentChange={updateThreadContent}
             onThreadMediaChange={updateThreadMedia}

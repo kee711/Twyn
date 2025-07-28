@@ -422,14 +422,14 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
       features.push('Basic analytics');
     } else if (plan.plan_type === 'Pro') {
       features.push(plan.credits ? `${plan.credits} credits per month` : '<span class="font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent" style="animation: gentlePulse 3s ease-in-out infinite;">Unlimited</span> AI credits');
-      features.push('AI-powered content generation');
       features.push('<span class="font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent" style="animation: gentlePulse 3s ease-in-out infinite;">Unlimited</span> auto scheduling');
+      features.push('AI-powered content generation');
       features.push(`${plan.account_limit || 0} social account binding`);
       features.push('Advanced analytics');
     } else if (plan.plan_type === 'Expert') {
-      features.push('Everything in Pro');
       features.push('<span class="font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent" style="animation: gentlePulse 3s ease-in-out infinite;">Unlimited</span> social account binding');
       features.push('Dedicated support');
+      features.push('Everything in Pro');
     }
 
     return features;
@@ -491,7 +491,8 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
   if (loading) {
     return (
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DialogTitle>Choose Your Plan</DialogTitle>
+        {/* Title 안보이게 */}
+        <DialogTitle className="sr-only">Choose Your Plan</DialogTitle>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-center py-8">
             <div className="text-center">Loading plans...</div>
@@ -514,7 +515,7 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
         }
       `}</style>
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-        <DialogTitle>Choose Your Plan</DialogTitle>
+        <DialogTitle className="sr-only">Choose Your Plan</DialogTitle>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
@@ -587,7 +588,7 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
                   <ul className="space-y-3">
                     {getFeatures(plan).map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <Check className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <span
                           className="text-sm"
                           dangerouslySetInnerHTML={{ __html: feature }}

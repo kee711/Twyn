@@ -29,7 +29,6 @@ import { LucideIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { SocialAccountSelector } from '@/components/SocialAccountSelector';
-import { useTheme } from 'next-themes';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { hr } from 'date-fns/locale';
 
@@ -56,7 +55,6 @@ const STORAGE_KEY = 'sidebar-open-items';
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { theme } = useTheme();
   const { isSidebarOpen, closeSidebar, isMobile } = useMobileSidebar();
 
   // Initialize with empty array to prevent hydration mismatch
@@ -141,8 +139,8 @@ export function Sidebar({ className }: SidebarProps) {
     },
   ];
 
-  // 테마에 따라 적절한 로고 이미지 선택
-  const logoSrc = theme === 'dark' ? '/twyn-logo-wh.svg' : '/twyn-logo-blk.svg';
+  // 항상 라이트 테마 로고 사용
+  const logoSrc = '/twyn-logo-blk.svg';
 
   // 모바일에서 오버레이 클릭 시 사이드바 닫기
   const handleOverlayClick = (e: React.MouseEvent) => {
