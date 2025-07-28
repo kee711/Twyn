@@ -61,10 +61,10 @@ export async function GET(req: NextRequest) {
 
     console.log("장기 토큰 획득 성공");
 
-    // 사용자 정보(ID, 유저네임, 프로필 사진 등) 가져오기
+    // 사용자 정보(ID, 유저네임) 가져오기
     console.log("사용자 프로필 정보 요청");
     const meRes = await fetch(
-      'https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url,threads_biography',
+      'https://graph.threads.net/v1.0/me?fields=id,username,name,threads_biography',
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
@@ -76,12 +76,10 @@ export async function GET(req: NextRequest) {
     const userData = await meRes.json();
     const threadsUserId = userData.id;
     const username = userData.username || threadsUserId;
-    const profilePictureUrl = userData.threads_profile_picture_url || null;
 
     console.log("사용자 정보 획득 성공:", {
       id: threadsUserId,
-      username,
-      hasProfilePicture: !!profilePictureUrl
+      username
     });
 
     // 소셜 계정 정보를 Supabase에 저장
@@ -116,7 +114,6 @@ export async function GET(req: NextRequest) {
           expires_at: expiresAt,
           updated_at: new Date().toISOString(),
           is_active: true,
-          threads_profile_picture_url: profilePictureUrl,
           username: username
         })
         .eq("id", accountId);
@@ -137,7 +134,6 @@ export async function GET(req: NextRequest) {
           access_token: encryptedToken,
           social_id: threadsUserId,
           username: username,
-          threads_profile_picture_url: profilePictureUrl,
           expires_at: expiresAt,
           updated_at: new Date().toISOString(),
           is_active: true,

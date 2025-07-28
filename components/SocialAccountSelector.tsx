@@ -230,25 +230,16 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
         disabled={isLoading}
       >
         <SelectTrigger className="mt-2 p-4 flex justify-between items-center w-full bg-muted-foreground/10 dark:bg-gray-900 border-0 rounded-xl">
-          <div className="flex items-center gap-2">
-            {selectedAccount?.threads_profile_picture_url && (
-              <img
-                src={selectedAccount.threads_profile_picture_url}
-                alt={selectedAccount.username || selectedAccount.social_id}
-                className="w-6 h-6 rounded-full"
-              />
-            )}
-            <div className="font-medium text-base text-muted-foreground">
-              {selectedAccount
-                ? (selectedAccount.username || selectedAccount.social_id)
-                : '계정 선택'}
-            </div>
+          <div className="font-medium text-base text-muted-foreground">
+            {selectedAccount
+              ? (selectedAccount.username || selectedAccount.social_id)
+              : '계정 선택'}
           </div>
         </SelectTrigger>
         <SelectContent>
           {/* 계정 추가 버튼을 드롭다운 상단에 배치 */}
           <div
-            className="flex items-center gap-2 px-2 py-2 mb-1 cursor-pointer hover:bg-accent rounded-sm"
+            className="flex items-center gap-2 px-2 py-2 mb-1 cursor-pointer hover:bg-accent rounded-xl"
             onClick={addSocialAccount}
           >
             <PlusCircle className="h-4 w-4" />
