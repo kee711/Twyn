@@ -4,6 +4,7 @@ import { CookingPot, LoaderCircle, Sparkles } from 'lucide-react';
 import { ProfileDescriptionDropdown } from '@/components/contents-helper/ProfileDescriptionDropdown';
 import { HeadlineInput } from '@/components/contents-helper/HeadlineInput';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
+import { ThreadsProfilePicture } from '@/components/ThreadsProfilePicture';
 import { startTransition, useEffect, useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -42,7 +43,7 @@ export default function TopicFinderPage() {
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
 
-    const { accounts, currentSocialId, currentUsername, getSelectedAccount } = useSocialAccountStore()
+    const { accounts, currentSocialId, currentUsername } = useSocialAccountStore()
     const [accountInfo, setAccountInfo] = useState('')
     const [accountTags, setAccountTags] = useState<string[]>([])
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -332,8 +333,6 @@ export default function TopicFinderPage() {
         // 필요시 topicResults 변경 추적
     }, [topicResults]);
 
-    const profilePicture = mounted ? getSelectedAccount()?.threads_profile_picture_url || '' : '';
-
     return (
         <div className="p-4 md:p-6 h-screen">
             <div className="flex flex-col items-center justify-center h-full">
@@ -341,9 +340,13 @@ export default function TopicFinderPage() {
                     {/* 중앙 정렬 인사말 */}
                     <div className="">
                         <div className="flex flex-row items-center gap-2 mb-1">
-                            {/* 프로필 이미지 - hydration 안전 */}
-                            {mounted && profilePicture && (
-                                <img src={profilePicture} alt="" className="w-8 h-8 rounded-full" />
+                            {/* 프로필 이미지 - 동적으로 가져오기 */}
+                            {mounted && (
+                                <ThreadsProfilePicture 
+                                    socialId={currentSocialId} 
+                                    alt="Profile picture"
+                                    className="w-8 h-8 rounded-full" 
+                                />
                             )}
                             <h2 className="text-2xl font-semibold text-left">
                                 Hi {mounted ? (currentUsername || 'User') : 'User'},
