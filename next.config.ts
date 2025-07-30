@@ -1,12 +1,7 @@
 import { NextConfig } from 'next';
-import createNextIntlPlugin from 'next-intl/plugin';
-
-const withNextIntl = createNextIntlPlugin('./i18n.ts');
 
 const config: NextConfig = {
-  output: 'standalone',
   trailingSlash: true,
-  transpilePackages: ['next-intl'],
   async headers() {
     return [
       {
@@ -96,4 +91,4 @@ const config: NextConfig = {
   },
 };
 
-export default withNextIntl(config);
+export default config;
