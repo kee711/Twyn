@@ -4,7 +4,7 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const withNextIntl = createNextIntlPlugin('./i18n.ts');
 
 const config: NextConfig = {
-  serverExternalPackages: ['next-intl'],
+  output: 'standalone',
   async headers() {
     return [
       {
