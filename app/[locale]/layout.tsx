@@ -8,13 +8,13 @@ import { LocaleProvider } from '@/components/providers/LocaleProvider';
 
 const inter = Inter({ subsets: ["latin"] });
 
-export async function generateStaticParams() {
-  return [
-    { locale: 'ko' },
-    { locale: 'en' }
-  ];
-}
-
+// export async function generateStaticParams() {
+//   return [
+//     { locale: 'ko' },
+//     { locale: 'en' }
+//   ];
+// }
+export const dynamic = 'force-dynamic';
 export default async function LocaleLayout({
   children,
   params
