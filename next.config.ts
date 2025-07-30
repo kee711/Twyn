@@ -4,7 +4,7 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const withNextIntl = createNextIntlPlugin('./i18n.ts');
 
 const config: NextConfig = {
-  output: 'standalone',
+  transpilePackages: ['next-intl'],
   async headers() {
     return [
       {
@@ -44,7 +44,7 @@ const config: NextConfig = {
     // Vercel 배포 시 TypeScript 검사를 건너뜁니다.
     ignoreBuildErrors: true,
   },
-  webpack: (config, { dev }) => {
+  webpack: (config, { dev, isServer }) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -52,6 +52,25 @@ const config: NextConfig = {
       path: false,
       os: false,
     };
+
+    // Fix for client reference manifest generation
+    if (!isServer) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks?.cacheGroups,
+            client: {
+              name: 'client',
+              chunks: 'all',
+              test: /[\\/]node_modules[\\/]/,
+              priority: 10,
+            },
+          },
+        },
+      };
+    }
 
     // Only include stagewise in development mode
     if (!dev) {
