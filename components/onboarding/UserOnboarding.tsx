@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Users, Lightbulb, User, Building, Zap, Target, MessageSquare, TrendingUp, AlertCircle, Clock, BarChart3 } from 'lucide-react';
+import { useLocaleContext } from '../providers/LocaleProvider';
 
 interface UserOnboardingProps {
   onComplete: (responses: {
@@ -15,37 +16,38 @@ interface UserOnboardingProps {
 
 type Step = 1 | 2 | 3 | 4;
 
-const stepData = {
+const stepData = (t: any) => ({
   1: {
-    title: 'What inspired you to start creating content?',
-    description: 'Tell us about your motivation for content creation',
+    title: t('UserOnboarding.step1Title'),
+    description: t('UserOnboarding.step1Description'),
     options: [
-      { id: 'followers', title: 'I want to grow my followers', description: 'I want to grow my followers', icon: TrendingUp },
-      { id: 'brand', title: 'I want to build brand awareness', description: 'I want to build brand awareness', icon: Target },
-      { id: 'product', title: 'I\'m promoting a product', description: 'I\'m promoting a product', icon: BarChart3 },
+      { id: 'followers', title: t('UserOnboarding.followers'), description: t('UserOnboarding.followersDescription'), icon: TrendingUp },
+      { id: 'brand', title: t('UserOnboarding.brand'), description: t('UserOnboarding.brandDescription'), icon: Target },
+      { id: 'product', title: t('UserOnboarding.product'), description: t('UserOnboarding.productDescription'), icon: BarChart3 },
     ]
   },
   2: {
-    title: 'How are you currently working on your content?',
-    description: 'Help us understand your current setup',
+    title: t('UserOnboarding.step2Title'),
+    description: t('UserOnboarding.step2Description'),
     options: [
-      { id: 'solo', title: 'I\'m doing it solo', description: 'I\'m doing it solo', icon: User },
-      { id: 'marketer', title: 'I\'m a marketer at a company', description: 'I\'m a marketer at a company', icon: Building },
-      { id: 'agency', title: 'I manage it for my clients', description: 'I manage it for my clients', icon: Zap },
+      { id: 'solo', title: t('UserOnboarding.solo'), description: t('UserOnboarding.soloDescription'), icon: User },
+      { id: 'marketer', title: t('UserOnboarding.marketer'), description: t('UserOnboarding.marketerDescription'), icon: Building },
+      { id: 'agency', title: t('UserOnboarding.agency'), description: t('UserOnboarding.agencyDescription'), icon: Zap },
     ]
   },
   3: {
-    title: 'What is the hardest part about creating content?',
-    description: 'Let us know your biggest challenge',
+    title: t('UserOnboarding.step3Title'),
+    description: t('UserOnboarding.step3Description'),
     options: [
-      { id: 'ideas', title: 'I\'m running out of ideas', description: 'I\'m running out of ideas', icon: Lightbulb },
-      { id: 'consistent', title: 'It\'s hard to stay consistent', description: 'It\'s hard to stay consistent', icon: Clock },
-      { id: 'engagement', title: 'I\'m not getting much engagement', description: 'I\'m not getting much engagement', icon: TrendingUp },
+      { id: 'ideas', title: t('UserOnboarding.ideas'), description: t('UserOnboarding.ideasDescription'), icon: Lightbulb },
+      { id: 'consistent', title: t('UserOnboarding.consistent'), description: t('UserOnboarding.consistentDescription'), icon: Clock },
+      { id: 'engagement', title: t('UserOnboarding.engagement'), description: t('UserOnboarding.engagementDescription'), icon: TrendingUp },
     ]
   }
-};
+});
 
 export function UserOnboarding({ onComplete }: UserOnboardingProps) {
+  const { t } = useLocaleContext();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [responses, setResponses] = useState({
     step1: null as string | null,
@@ -55,7 +57,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
 
   const handleOptionSelect = (optionId: string) => {
     if (currentStep <= 3) {
-      const currentData = stepData[currentStep as keyof typeof stepData];
+      const currentData = stepData(t)[currentStep as keyof typeof stepData] as { options: { id: string; title: string; description: string; icon: React.ElementType }[] };
       const selectedOption = currentData.options.find((opt: any) => opt.id === optionId);
 
       setResponses(prev => ({
@@ -87,10 +89,6 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
     window.location.href = '/api/threads/oauth';
   };
 
-  const handleConnectLater = () => {
-    window.location.href = '/contents/topic-finder';
-  };
-
   const getCurrentSelectedOption = () => {
     return responses[`step${currentStep}` as keyof typeof responses];
   };
@@ -108,10 +106,10 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
           <div className="flex flex-col items-center">
             <img src="/logo.svg" alt="Threads" className="w-52 h-fit mb-4" />
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Connect your first account
+              {t('UserOnboarding.connectThreadsTitle')}
             </h1>
             <p className="text-lg text-gray-600">
-              Link your Threads account to start creating amazing content
+              {t('UserOnboarding.connectThreadsDescription')}
             </p>
           </div>
           <div className="text-center space-y-4 flex flex-col items-center">
@@ -121,13 +119,13 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
               onClick={handleConnectThreads}
             >
               <img src="/threads.svg" alt="Threads" className="w-6 h-6 mr-2" />
-              Connect Threads Account
+              {t('UserOnboarding.connectThreads')}
             </Button>
             {/* <button
               onClick={handleConnectLater}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Connect later
+              {t('UserOnboarding.connectLater')}
             </button> */}
           </div>
         </div>
@@ -136,7 +134,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
   }
 
   // Steps 1-3: Question screens
-  const currentData = stepData[currentStep as keyof typeof stepData];
+  const currentData = stepData(t)[currentStep as keyof typeof stepData] as { title: string; description: string; options: { id: string; title: string; description: string; icon: React.ElementType }[] };
   const currentSelectedOption = getCurrentSelectedOption();
 
   return (
@@ -204,14 +202,14 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
             onClick={handleContinue}
             disabled={!currentSelectedOption}
           >
-            Continue
+            {t('UserOnboarding.continue')}
           </Button>
           {currentStep !== 3 && (
             <button
               onClick={handleSkip}
               className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
-              skip
+              {t('UserOnboarding.skip')}
             </button>
           )}
         </div>

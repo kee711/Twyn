@@ -1,0 +1,589 @@
+{
+  "common": {
+    "loading": "로딩 중...",
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "편집",
+    "create": "생성",
+    "back": "뒤로",
+    "next": "다음",
+    "previous": "이전",
+    "search": "검색",
+    "filter": "필터",
+    "clear": "지우기",
+    "confirm": "확인",
+    "close": "닫기",
+    "success": "성공",
+    "error": "오류",
+    "warning": "경고",
+    "info": "정보",
+    "menu": "메뉴 열기"
+  },
+  "auth": {
+    "signIn": "로그인",
+    "signOut": "로그아웃",
+    "signInWithGoogle": "Google로 로그인",
+    "welcome": "Twyn에 오신 것을 환영합니다!",
+    "loginRequired": "로그인이 필요합니다",
+    "signInDescription": "계속하려면 계정에 로그인하세요",
+    "privacyNotice": "계속하면 다음에 동의하는 것입니다",
+    "privacyPolicy": "개인정보 처리방침",
+    "close": "닫기"
+  },
+  "UserOnboarding": {
+    "step1Title": "콘텐츠 생성을 시작하게 된 계기는 무엇인가요?",
+    "step1Description": "콘텐츠 생성에 대한 동기를 알려주세요",
+    "step1Options": {
+      "followers": "팔로워 증가",
+      "brand": "브랜드 인지도 향상",
+      "product": "제품 홍보"
+    },
+    "step2Title": "현재 콘텐츠 생성 방법은 어떻게 되나요?",
+    "step2Description": "현재 콘텐츠 생성 방법을 알려주세요",
+    "step2Options": {
+      "solo": "혼자 하고 있어요",
+      "marketer": "기업에서 마케팅 담당자로 일하고 있어요",
+      "agency": "클라이언트를 위해 관리하고 있어요"
+    },
+    "step3Title": "콘텐츠 생성에 가장 어려운 부분은 무엇인가요?",
+    "step3Description": "가장 어려운 부분을 알려주세요",
+    "step3Options": {
+      "ideas": "아이디어가 부족해요",
+      "consistent": "일관성 유지가 어려워요",
+      "engagement": "참여도가 낮아요"
+    },
+    "connectThreads": "스레드 계정 연결",
+    "connectThreadsDescription": "스레드 계정을 연결하여 멋진 콘텐츠를 생성하세요",
+    "connectThreadsTitle": "첫 번째 계정 연결",
+    "connectLater": "나중에 연결",
+    "skip": "건너뛰기",
+    "continue": "계속"
+  },
+  "SocialOnboarding": {
+    "title": "프로필에 대해 알려주세요",
+    "description": "더 나은 콘텐츠를 만들기 위해 {platform} 계정에 대해 알려주세요",
+    "connected": "연결됨: @{username}",
+    "profileDescriptionLabel": "프로필 설명",
+    "profileDescriptionPlaceholder": "계정에 대해, 타겟 오디언스, 만드시는 콘텐츠 유형, 그리고 프로필의 독특한 점에 대해 알려주세요...",
+    "profileDescriptionHint": "더 자세한 정보를 제공할수록 더 매력적인 콘텐츠를 만드는 데 도움을 드릴 수 있습니다.",
+    "complete": "설정 완료",
+    "skip": "나중에 하기",
+    "errors": {
+      "loadingAccountInfo": "계정 정보 로딩 중 오류가 발생했습니다"
+    }
+  },
+  "navigation": {
+    "dashboard": "대시보드",
+    "contentsCooker": "콘텐츠",
+    "topicFinder": "주제 찾기",
+    "postRadar": "포스트 레이더",
+    "saved": "저장됨",
+    "schedule": "일정",
+    "calendar": "캘린더",
+    "list": "목록",
+    "statistics": "통계",
+    "engagement": "소통",
+    "settings": "설정",
+    "product": "제품",
+    "features": "기능",
+    "pricing": "가격",
+    "legal": "법적고지",
+    "dataDeletion": "데이터 삭제 정책",
+    "privacy": "개인정보 처리방침",
+    "draft": "초안",
+    "comments": "댓글",
+    "mentions": "멘션",
+    "writeOrAddContents": "콘텐츠 작성 또는 추가",
+    "addContentsFrom": "콘텐츠 추가",
+    "saveToDraft": "초안으로 저장",
+    "postNow": "지금 게시",
+    "schedulePost": "포스트 예약"
+  },
+  "SocialAccountSelector": {
+    "selectAccount": "계정 선택",
+    "addAccount": "계정 추가",
+    "noAccount": "등록된 계정이 없습니다",
+    "accountList": "계정 목록"
+  },
+  "content": {
+    "title": "제목",
+    "description": "설명",
+    "content": "내용",
+    "tags": "태그",
+    "category": "카테고리",
+    "status": "상태",
+    "publishAt": "게시 시간",
+    "createdAt": "생성일",
+    "updatedAt": "수정일",
+    "draft": "초안",
+    "published": "게시됨",
+    "scheduled": "예약됨",
+    "generateContent": "콘텐츠 생성",
+    "saveContent": "콘텐츠 저장",
+    "publishContent": "콘텐츠 게시",
+    "scheduleContent": "콘텐츠 예약"
+  },
+  "scheduling": {
+    "selectTime": "시간 선택",
+    "publishNow": "지금 게시",
+    "schedulePost": "포스트 예약",
+    "scheduledPosts": "예약된 포스트",
+    "publishTime": "게시 시간",
+    "repeatSettings": "반복 설정",
+    "once": "한 번",
+    "daily": "매일",
+    "weekly": "매주",
+    "monthly": "매월"
+  },
+  "statistics": {
+    "overview": "개요",
+    "engagement": "참여도",
+    "reach": "도달률",
+    "impressions": "노출 수",
+    "likes": "좋아요",
+    "comments": "댓글",
+    "shares": "공유",
+    "followers": "팔로워",
+    "growth": "성장률",
+    "performance": "성과",
+    "analytics": "분석"
+  },
+  "settings": {
+    "profile": "프로필",
+    "account": "계정",
+    "notifications": "알림",
+    "privacy": "개인정보",
+    "language": "언어",
+    "theme": "테마",
+    "preferences": "환경설정",
+    "connectedAccounts": "연결된 계정",
+    "apiKeys": "API 키",
+    "billing": "결제"
+  },
+  "errors": {
+    "somethingWentWrong": "문제가 발생했습니다",
+    "pageNotFound": "페이지를 찾을 수 없습니다",
+    "accessDenied": "접근이 거부되었습니다",
+    "networkError": "네트워크 오류",
+    "validationError": "유효성 검사 오류",
+    "serverError": "서버 오류"
+  },
+  "landing": {
+    "description": "스레드에서 포스팅하고 소통하며 성장하는 데 드는 시간과 에너지를 최소화하세요.",
+    "hero": {
+      "badge": "베타 액세스 - 제한된 자리",
+      "title": "알고리즘 정복이 이렇게 쉬웠던 적은 없었습니다",
+      "subtitle": "스레드에서 10배 빠르게 포스팅하고, 소통하고, 성장하세요.\nAI 마케팅 에이전트가 모든 무거운 작업을 처리합니다",
+      "ctaButton": "2개월 무료 체험",
+      "betaPrivilege": "베타 특혜"
+    },
+    "features": {
+      "ideaTitle": "아이디어 고갈은 이제 그만",
+      "ideaDesc1": "당신에게 완벽하게 맞는 아이디어를 탐색하세요",
+      "ideaDesc2": "물론, 최신 트렌드 주제들이 여기에 있습니다",
+      "ideaDesc3": "개인 프로필 데이터로 더욱 개인화된 주제 제공",
+      "writeTitle": "10배 빠르고 좋게 작성하기",
+      "writeDesc1": "클릭 한 번으로 바로 게시할 수 있는 초안 생성",
+      "writeDesc2": "AI로 톤과 스타일을 세밀하게 조정",
+      "scheduleTitle": "쉬는 동안 자동 게시",
+      "scheduleDesc1": "언제든지 자동으로 게시",
+      "scheduleDesc2": "드래그 앤 드롭으로 몇 초 만에 일정 변경",
+      "scheduleDesc3": "추가 노력 없이 일관성 유지",
+      "engageTitle": "10배 빠른 소통",
+      "engageDesc1": "클릭 한 번으로 모든 댓글에 답글 생성",
+      "engageDesc2": "상황에 맞는 인간적인 느낌의 답글 작성"
+    },
+    "pricing": {
+      "title": "Twyn의 모든 잠재력을 활용하세요",
+      "titleHighlight": "무료로",
+      "subtitle": "베타 기간 동안 모든 기능을 무료로 이용하세요.",
+      "freePlan": "TWYN FREE",
+      "proPlan": "TWYN PRO",
+      "proPlusPlan": "TWYN PRO+",
+      "monthlyUser": "/월 사용자당",
+      "limitedBeta": "제한된 베타 액세스",
+      "comingSoon": "곧 출시",
+      "freeFeatures": {
+        "feature1": "AI 지원 콘텐츠 생성 (제한: 월 50개 게시물 또는 댓글 상호작용)",
+        "feature2": "프로필 기반 기본 주제 제안",
+        "feature3": "기본 일정 관리 및 자동 업로드 기능",
+        "feature4": "Discord를 통한 커뮤니티 지원 (베타 사용자만)"
+      },
+      "proFeatures": {
+        "feature1": "Twyn Free의 모든 기능 + 추가:",
+        "feature2": "AI 상호작용 한도 증가 (월 1,000개 게시물 또는 댓글 상호작용)",
+        "feature3": "최대 3개 계정",
+        "feature4": "최고 성과 게시물 추적 분석"
+      },
+      "proPlusFeatures": {
+        "feature1": "Twyn Pro의 모든 기능 + 추가:",
+        "feature2": "AI 상호작용 한도 증가 (월 3,000개 게시물 또는 댓글 상호작용)",
+        "feature3": "우선 일정 관리 및 자동 게시",
+        "feature4": "고급 콘텐츠 전략 팁 및 프리미엄 지원 독점 액세스"
+      }
+    },
+    "faq": {
+      "title": "자주 묻는 질문",
+      "questions": {
+        "q1": "Twyn을 얼마나 오래 무료로 사용할 수 있나요?",
+        "a1": "베타 기간 동안에는 합리적인 제한 하에서 Twyn을 무료로 사용할 수 있습니다. 정확한 기간은 베타 종료가 가까워질 때 공지될 예정입니다.",
+        "q2": "베타 기간 동안 사용 제한이 있나요?",
+        "a2": "네, 시스템 안정성과 모든 사용자의 공정한 사용을 위해 베타 기간 동안 합리적인 제한이 있습니다.",
+        "q3": "베타 기간이 끝나면 어떻게 되나요?",
+        "a3": "베타 기간이 끝나면 Twyn은 유료 구독 모델로 전환됩니다. 베타 사용자들은 사전 공지, 특별 혜택, 원활한 마이그레이션 지원을 받게 됩니다.",
+        "q4": "Twyn을 사용하려면 Threads 계정이 필요한가요?",
+        "a4": "네, Twyn은 Threads와 직접 연동됩니다. 게시물 작성, 일정 관리, 콘텐츠 관리를 위해 Threads 계정을 연결해야 합니다.",
+        "q5": "Twyn의 AI 기반 상호작용이란 무엇인가요?",
+        "a5": "Twyn의 AI 기반 상호작용에는 자동 콘텐츠 생성, 톤 최적화, 스마트 일정 관리, 상황 인식 댓글 답변이 포함되어 있으며, 모두 시간을 절약하고 일관성을 유지하도록 설계되었습니다.",
+        "q6": "Twyn 구독으로 추가 AI 상호작용을 구매할 수 있나요?",
+        "a6": "추가 AI 상호작용 패키지는 베타 기간 이후에 제공될 예정입니다. 가격 및 애드온 옵션은 공식 출시 전에 발표될 예정입니다."
+      }
+    },
+    "nav": {
+      "features": "기능",
+      "benefits": "혜택",
+      "pricing": "가격",
+      "faq": "FAQ",
+      "login": "로그인",
+      "signup": "회원가입"
+    },
+    "additionalFeatures": {
+      "title": "손쉬운 콘텐츠로 도달률 극대화",
+      "subtitle": "매력적인 콘텐츠를 만들고, 오디언스를 늘리고, Threads 존재감을 높일 수 있는 강력한 AI 기반 소셜 미디어 도구입니다.",
+      "saveUrl": {
+        "title": "URL로 저장",
+        "description": "나중에 사용할 아이디어를 저장하고, seamlessly하게 다시 활용하세요.\n더 이상 수동 복사-붙여넣기는 필요 없습니다."
+      },
+      "analytics": {
+        "title": "진행 상황 분석",
+        "description": "상세한 분석을 통해 성장을 모니터링하세요. 참여도, 도달률, 팔로워 증가를 실행 가능한 인사이트와 함께 추적하세요."
+      }
+    }
+  },
+  "pages": {
+    "settings": {
+      "title": "설정",
+      "loadingSession": "세션 정보를 불러오는 중...",
+      "signOut": "로그아웃",
+      "accountSettings": {
+        "title": "계정 설정",
+        "description": "계정 관련 설정을 관리합니다.",
+        "socialAccount": "소셜 계정",
+        "selectAccount": "계정을 선택하세요",
+        "accountType": "계정 유형",
+        "selectAccountType": "계정 유형을 선택하세요",
+        "businessChannel": "비즈니스 마케팅 채널",
+        "expert": "전문가",
+        "general": "일반",
+        "accountInfo": "계정 정보",
+        "accountInfoPlaceholder": "계정에 대한 설명을 입력하세요",
+        "profileDescription": "프로필 설명",
+        "profileDescriptionPlaceholder": "프로필에 대한 상세한 설명을 입력하세요. 프로필의 내용, 타겟 오디언스, 고유 특성 등을 포함하세요.",
+        "profileDescriptionHint": "이 설명은 더 정확한 AI 콘텐츠 생성에 사용됩니다.",
+        "tags": "태그",
+        "addNewTag": "새 태그 추가",
+        "add": "추가",
+        "save": "저장",
+        "saving": "저장 중...",
+        "noAccountSelected": "선택된 계정이 없습니다.",
+        "accountInfoUpdated": "계정 정보가 업데이트되었습니다.",
+        "accountInfoLoadError": "계정 정보를 불러오는 중 오류가 발생했습니다.",
+        "accountInfoSaveError": "계정 정보를 저장하는 중 오류가 발생했습니다."
+      },
+      "plan": {
+        "title": "플랜",
+        "description": "현재 구독을 확인하고 관리합니다.",
+        "currentPlan": "현재 플랜",
+        "free": "무료",
+        "upgradePlan": "플랜 업그레이드",
+        "managePlan": "플랜 관리"
+      },
+      "appearance": {
+        "title": "외관",
+        "description": "언어 설정을 구성합니다.",
+        "language": "언어",
+        "english": "영어",
+        "korean": "한국어"
+      },
+      "deleteAccount": {
+        "title": "계정 삭제",
+        "description": "계정 삭제를 요청하려면 이메일로 문의해주세요.",
+        "requestDeletion": "계정 삭제 요청"
+      }
+    },
+    "contents": {
+      "topicFinder": {
+        "greeting": "안녕하세요 {username}님,",
+        "question": "어떤 주제로 글을 작성하고 싶으신가요?",
+        "writeOrAddTopic": "주제를 작성하거나 추가해주세요",
+        "threadsGenerated": "{count}개의 스레드가 생성되었습니다! 글쓰기 사이드바에서 게시해보세요.",
+        "failedToGenerateChain": "스레드 체인 생성에 실패했습니다",
+        "accountInfoLoadError": "계정 정보를 불러오는 중 오류가 발생했습니다.",
+        "noAccountInfo": "계정 정보가 없습니다.",
+        "invalidTopicFormat": "잘못된 주제 결과 형식입니다",
+        "failedToGenerateTopics": "주제 생성에 실패했습니다",
+        "deleteAllTopics": "모든 주제 삭제",
+        "deleteAllTopicsDescription": "생성한 모든 주제를 삭제하시겠습니까?",
+        "cancel": "취소",
+        "delete": "삭제",
+        "ideas": "아이디어 얻기",
+        "createDetails": "포스트 생성하기",
+        "profileDescription": "프로필 설명",
+        "profileDescriptionDescription": "더 정확한 AI 콘텐츠 생성에 사용됩니다",
+        "headlineInput": {
+          "placeholder": "제목을 작성하세요...",
+          "instructionPlaceholder": "설명을 작성하세요..."
+        }
+      },
+      "draft": {
+        "title": "초안"
+      },
+      "saved": {
+        "title": "저장됨",
+        "addByUrl": "URL로 추가",
+        "addByUrlDescription": "URL로 스레드 콘텐츠를 추가합니다.",
+        "urlPlaceholder": "https://threads.net/...",
+        "saving": "저장 중...",
+        "addByUrlButton": "URL로 추가",
+        "invalidUrl": "유효한 Threads URL을 입력해주세요. (예: https://www.threads.net/@username/post/shortcode)",
+        "selectSocialAccount": "소셜 계정을 선택해주세요",
+        "savedSuccessfully": "성공적으로 저장되었습니다.",
+        "saveError": "저장 중 오류가 발생했습니다."
+      },
+      "postRadar": {
+        "title": "포스트 레이더"
+      }
+    },
+    "onboarding": {
+      "userNotFound": "사용자 정보를 찾을 수 없습니다.",
+      "accountNotFound": "계정 정보를 찾을 수 없습니다",
+      "profileSetupCompleted": "프로필 설정이 완료되었습니다",
+      "errorSavingUserOnboarding": "사용자 온보딩 저장 중 오류가 발생했습니다",
+      "errorSavingSocialOnboarding": "소셜 온보딩 저장 중 오류가 발생했습니다"
+    },
+    "error": {
+      "title": "로그인 오류",
+      "fallbackMessage": "인증 중 문제가 발생했습니다.",
+      "backToSignin": "로그인 페이지로 돌아가기",
+      "messages": {
+        "AccessDenied": "인증이 거부되었습니다. 다시 시도해주세요.",
+        "Verification": "인증 링크가 만료되었거나 이미 사용되었습니다.",
+        "Configuration": "서버 설정에 문제가 있습니다. 관리자에게 문의해주세요.",
+        "OAuthSignin": "로그인 시도 중 문제가 발생했습니다. 다시 시도해주세요.",
+        "OAuthCallback": "인증 제공자로부터 응답을 받는 중 문제가 발생했습니다.",
+        "OAuthCreateAccount": "계정 생성 중 문제가 발생했습니다. 다시 시도해주세요.",
+        "EmailCreateAccount": "이메일 계정 생성 중 문제가 발생했습니다.",
+        "Callback": "인증 처리 중 문제가 발생했습니다.",
+        "OAuthAccountNotLinked": "이미 다른 인증 방식으로 가입된 이메일입니다.",
+        "EmailSignin": "이메일 로그인 중 문제가 발생했습니다.",
+        "CredentialsSignin": "로그인 정보가 올바르지 않습니다.",
+        "SessionRequired": "이 페이지에 접근하려면 로그인이 필요합니다.",
+        "default": "알 수 없는 오류가 발생했습니다."
+      }
+    }
+  },
+  "components": {
+    "rightSidebar": {
+      "schedulePost": "포스트 예약",
+      "noSchedule": "설정된 게시 시간이 없습니다.",
+      "add": "추가",
+      "save": "저장",
+      "publishTime": "게시 시간",
+      "publishTimeDescription": "게시물이 자동으로 등록될 시간을 설정합니다. 가까운 시간대부터 순서대로 예약됩니다."
+    },
+    "postCard": {
+      "writeContent": "내용을 작성하세요...",
+      "addThread": "스레드에 추가하기",
+      "expandPost": "길이 늘리기",
+      "addHooks": "후킹 추가",
+      "addInformation": "세부 정보 추가"
+    },
+    "statistics": {
+      "title": "통계",
+      "dateRanges": {
+        "7days": "7일",
+        "30days": "30일",
+        "90days": "90일"
+      },
+      "refresh": "새로고침",
+      "metrics": {
+        "totalViews": "총 조회수",
+        "totalFollowers": "총 팔로워",
+        "totalLikes": "총 좋아요",
+        "totalReplies": "총 댓글",
+        "totalReposts": "총 리포스트",
+        "totalQuotes": "총 인용",
+        "trendInPeriod": "기간 내 트렌드",
+        "currentCount": "현재 수",
+        "fromPreviousPeriod": "이전 기간 대비",
+        "noData": "데이터 없음"
+      },
+      "charts": {
+        "viewsPerformance": "조회수 성과",
+        "engagementBreakdown": "참여도 분석",
+        "forLastDays": "지난 {days}일간"
+      },
+      "topPosts": {
+        "title": "인기 포스트",
+        "description": "지난 {days}일 동안 가장 높은 성과를 기록한 포스트",
+        "noData": "선택된 기간에 포스트 데이터가 없습니다."
+      },
+      "noAccount": {
+        "title": "계정 연결이 필요해요",
+        "description": "통계를 확인하려면 먼저 Threads 계정을 연결해주세요.",
+        "connectButton": "Threads 계정 연결하기"
+      },
+      "noAuth": {
+        "title": "인증이 필요합니다",
+        "description": "통계를 보려면 로그인해주세요."
+      }
+    }
+  },
+  "schedule": {
+    "noAccount": {
+      "title": "계정 추가가 필요해요",
+      "description": "스케줄 관리를 위해 먼저 Threads 계정을 연결해주세요.",
+      "connectButton": "계정 연결"
+    }
+  },
+  "comments": {
+    "title": "댓글",
+    "loadingAccount": "소셜 계정을 불러오는 중...",
+    "noCommentsToReply": "답변할 댓글이 없습니다.",
+    "repliedStatus": "{total}개 중 {replied}개 답변 완료",
+    "draftAllReplies": "모든 답글 초안 작성",
+    "me": "나",
+    "replyPlaceholder": "댓글에 답글 달기...",
+    "hide": "숨기기",
+    "confirmHideComment": "댓글을 숨기시겠습니까?",
+    "ai": {
+      "generated": "AI 답글이 생성되었습니다!",
+      "generationFailed": "AI 답글 생성에 실패했습니다.",
+      "loadingAccount": "소셜 계정 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
+      "allReplied": "모든 댓글에 답변이 완료되었습니다.",
+      "draftingReplies": "모든 댓글에 대한 답글을 작성 중입니다...",
+      "draftingCompleted": "초안 작성이 완료되었습니다!"
+    },
+    "actions": {
+      "commentHidden": "댓글이 숨김 처리되었습니다!",
+      "hideCommentFailed": "댓글 숨김에 실패했습니다."
+    },
+    "noCommentsToReplyDescription": "댓글을 달면 새로운 스레드를 생성할 수 있습니다.",
+    "getIdeas": "아이디어 얻기",
+    "loadingComments": "댓글을 불러오는 중입니다...",
+    "errorLoadingComments": "댓글을 불러오는 중 오류가 발생했습니다.",
+    "remainingPostsToReply": "{count}개의 댓글이 남아있습니다."
+  },
+  "mentions": {
+    "title": "멘션",
+    "noMentionsToReply": "답변할 멘션이 없습니다.",
+    "noMentionsToReplyDescription": "멘션을 달면 새로운 멘션을 생성할 수 있습니다.",
+    "getIdeas": "아이디어 얻기",
+    "loadingAccount": "소셜 계정을 불러오는 중...",
+    "draftAllReplies": "모든 답글 초안 작성",
+    "me": "나",
+    "replyPlaceholder": "멘션에 답글 달기...",
+    "remainingMentionsToReply": "{count}개의 멘션이 남아있습니다.",
+    "errorLoadingMentions": "멘션을 불러오는 중 오류가 발생했습니다.",
+    "allReplied": "모든 멘션에 답변이 완료되었습니다.",
+    "draftingReplies": "모든 멘션에 대한 답글을 작성 중입니다...",
+    "draftingCompleted": "초안 작성이 완료되었습니다!",
+    "ai": {
+      "generated": "AI 답글이 생성되었습니다!",
+      "generationFailed": "AI 답글 생성에 실패했습니다.",
+      "loadingAccount": "소셜 계정 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
+      "allReplied": "모든 댓글에 답변이 완료되었습니다.",
+      "draftingReplies": "모든 댓글에 대한 답글을 작성 중입니다...",
+      "draftingCompleted": "초안 작성이 완료되었습니다!"
+    }
+  },
+  "scheduleHeader": {
+    "calendar": "캘린더",
+    "list": "목록",
+    "scheduled": "예약됨",
+    "posted": "게시됨"
+  },
+  "editPostModal": {
+    "title": "콘텐츠 편집",
+    "failedStatus": "실패 - 저장 시 재예약됩니다",
+    "loadingThreadChain": "스레드 체인을 불러오는 중...",
+    "fallbackUsername": "나",
+    "selectDate": "날짜 선택",
+    "deleteSchedule": "일정 삭제",
+    "cancel": "취소",
+    "changeSchedule": "일정 변경",
+    "unsavedChanges": "저장되지 않은 변경사항",
+    "unsavedChangesMessage": "저장되지 않은 변경사항이 있습니다. 정말 닫으시겠습니까? 변경사항이 저장되지 않습니다.",
+    "close": "닫기",
+    "futureTimeRequired": "예약 시간은 미래 시간이어야 합니다.",
+    "scheduleUpdated": "일정이 성공적으로 업데이트되었습니다!",
+    "threadChainScheduled": "스레드 체인이 예약되었습니다",
+    "postScheduled": "포스트가 예약되었습니다",
+    "threadChainPublishing": "스레드 체인을 게시하고 있습니다",
+    "postPublished": "포스트가 게시되었습니다"
+  },
+  "contentList": {
+    "loginRequired": "🔒 콘텐츠를 보려면 로그인이 필요합니다.",
+    "loadingContents": "콘텐츠를 불러오는 중...",
+    "noContentsFound": "{category}에 해당하는 콘텐츠가 없습니다.",
+    "addContent": "콘텐츠 추가",
+    "contentRemoved": "콘텐츠가 스레드 체인에서 제거되었습니다",
+    "contentAdded": "콘텐츠가 스레드 체인에 추가되었습니다",
+    "threadChainRemoved": "스레드 체인이 스레드 체인에서 제거되었습니다",
+    "threadChainAdded": "스레드 체인이 스레드 체인에 추가되었습니다",
+    "loadError": "콘텐츠를 불러오는데 실패했습니다."
+  },
+  "pricingModal": {
+    "title": "플랜 선택",
+    "loading": "플랜을 불러오는 중...",
+    "subtitle": "Salt AI의 모든 잠재력을 발휘하여 소셜 미디어 참여도를 높이세요",
+    "saveDiscount": "최대 20% 절약",
+    "billing": {
+      "monthly": "월간",
+      "annual": "연간"
+    },
+    "badges": {
+      "mostPopular": "가장 인기"
+    },
+    "descriptions": {
+      "free": "시작하기에 완벽함",
+      "pro": "콘텐츠 크리에이터와 소기업을 위한",
+      "expert": "콘텐츠 전문가와 에이전시를 위한"
+    },
+    "features": {
+      "aiCreditsPerDay": "일일 AI 크레딧 {credits}개",
+      "topicSuggestions": "주제 제안",
+      "socialAccountBinding": "소셜 계정 연결 {limit}개",
+      "autoScheduling": "자동 스케줄링 {limit}개",
+      "basicAnalytics": "기본 분석",
+      "creditsPerMonth": "월간 크레딧 {credits}개",
+      "unlimitedCredits": "<span class=\"font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent\" style=\"animation: gentlePulse 3s ease-in-out infinite;\">무제한</span> AI 크레딧",
+      "unlimitedScheduling": "<span class=\"font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent\" style=\"animation: gentlePulse 3s ease-in-out infinite;\">무제한</span> 자동 스케줄링",
+      "aiContentGeneration": "AI 기반 콘텐츠 생성",
+      "advancedAnalytics": "고급 분석",
+      "unlimitedAccounts": "<span class=\"font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent\" style=\"animation: gentlePulse 3s ease-in-out infinite;\">무제한</span> 소셜 계정 연결",
+      "dedicatedSupport": "전담 지원",
+      "everythingInPro": "Pro의 모든 기능"
+    },
+    "actions": {
+      "currentPlan": "현재 플랜",
+      "skipProBenefits": "Pro 혜택 건너뛰기",
+      "claimFreeMonth": "무료 체험 시작",
+      "upgradeTo": "{plan}으로 업그레이드",
+      "downgradeTo": "{plan}으로 다운그레이드"
+    },
+    "errors": {
+      "userInfoNotFound": "사용자 정보를 찾을 수 없습니다",
+      "userProfileNotFound": "사용자 프로필을 찾을 수 없습니다",
+      "createPlanError": "플랜 생성 중 오류가 발생했습니다",
+      "updatePlanError": "플랜 업데이트 중 오류가 발생했습니다",
+      "claimTrialError": "무료 체험 신청 중 오류가 발생했습니다"
+    },
+    "success": {
+      "title": "축하합니다!",
+      "message": "Pro 체험이 시작되었습니다! 소셜 계정의 무한한 잠재력을 발휘하세요!",
+      "getStarted": "시작하기"
+    }
+  }
+}

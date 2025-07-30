@@ -17,6 +17,7 @@ import { EditPostModal } from './EditPostModal'
 import { Event } from './types'
 import { deleteSchedule } from '@/app/actions/schedule'
 import { utcISOToLocalTime } from '@/lib/utils/time'
+import { useLocaleContext } from '@/components/providers/LocaleProvider'
 
 interface CalendarProps {
   defaultView?: 'calendar' | 'list'
@@ -35,14 +36,15 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null)
   const listContainerRef = useRef<HTMLDivElement>(null)
   const { currentSocialId } = useSocialAccountStore()
+  const { t } = useLocaleContext()
 
   // Check if social account is connected
   const checkSocialAccountConnection = () => {
     if (!currentSocialId) {
-      toast.error("계정 추가가 필요해요", {
-        description: "스케줄 관리를 위해 먼저 Threads 계정을 연결해주세요.",
+      toast.error(t("components.schedule.noAccount.title"), {
+        description: t("components.schedule.noAccount.description"),
         action: {
-          label: "계정 연결",
+          label: t("components.schedule.noAccount.connectButton"),
           onClick: () => window.location.href = "/api/threads/oauth"
         }
       });

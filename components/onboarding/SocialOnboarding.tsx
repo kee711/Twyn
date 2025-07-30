@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { useLocaleContext } from '@/components/providers/LocaleProvider';
 
 interface SocialOnboardingProps {
   socialAccountId: string;
@@ -21,6 +22,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
     platform?: string;
   }>({});
   const [loading, setLoading] = useState(true);
+  const { t } = useLocaleContext();
 
   // Load account information
   useEffect(() => {
@@ -47,7 +49,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
         }
       } catch (error) {
         console.error('Error loading account info:', error);
-        toast.error('Error loading account info');
+        toast.error(t('SocialOnboarding.errors.loadingAccountInfo'));
       } finally {
         setLoading(false);
       }
@@ -90,21 +92,21 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
       {/* Content */}
       <div className="space-y-6 flex-1 flex flex-col justify-center">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Tell us about your profile</h1>
+          <h1 className="text-3xl font-bold">{t('SocialOnboarding.title')}</h1>
           <p className="text-muted-foreground">
-            Help us understand your {accountInfo.platform} account to create better content
+            {t('SocialOnboarding.description', { platform: accountInfo.platform })}
           </p>
           {accountInfo.username && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              Connected: @{accountInfo.username}
+              {t('SocialOnboarding.connected', { username: accountInfo.username })}
             </div>
           )}
         </div>
 
         <Card className="border-none">
           <CardHeader>
-            <CardTitle>Profile Description</CardTitle>
+            <CardTitle>{t('SocialOnboarding.profileDescriptionLabel')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4">
@@ -155,7 +157,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
             onClick={handleSubmit}
             disabled={!profileDescription.trim()}
           >
-            Complete Setup
+            {t('SocialOnboarding.complete')}
           </Button>
 
           {/* <button

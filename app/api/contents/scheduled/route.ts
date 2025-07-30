@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth/authOptions'
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions)
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'No authenticated user' }, { status: 401 })
+    }
+
+    const userId = session.user.id
+    const supabase = await createClient()
+
     const { data, error } = await supabase
       .from('my_contents')
       .select('*')
+      .eq('owner', userId)
       .or('publish_status.eq.scheduled,publish_status.eq.posted')
       .order('scheduled_at', { ascending: true });
 

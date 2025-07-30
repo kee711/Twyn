@@ -23,6 +23,7 @@ import {
   AtSign,
   Bookmark
 } from 'lucide-react';
+import { useLocaleContext } from '@/components/providers/LocaleProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { LucideIcon } from 'lucide-react';
@@ -56,6 +57,7 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { isSidebarOpen, closeSidebar, isMobile } = useMobileSidebar();
+  const { t, locale } = useLocaleContext();
 
   // Initialize with empty array to prevent hydration mismatch
   const [openItems, setOpenItems] = useState<string[]>([]);
@@ -108,33 +110,33 @@ export function Sidebar({ className }: SidebarProps) {
   // Navigation configuration
   const navigation: NavItem[] = [
     {
-      name: 'Contents Cooker',
+      name: t('navigation.contentsCooker'),
       icon: FileEdit,
       isExpandable: true,
       subItems: [
-        { name: 'Topic Finder', href: '/contents/topic-finder', icon: TrendingUp },
-        // { name: 'Post Radar', href: '/contents/post-radar', icon: Newspaper },
-        { name: 'Draft', href: '/contents/draft', icon: FileText },
-        { name: 'Saved', href: '/contents/saved', icon: Bookmark },
+        { name: t('navigation.topicFinder'), href: `/${locale}/contents/topic-finder`, icon: TrendingUp },
+        // { name: t('navigation.postRadar'), href: '/contents/post-radar', icon: Newspaper },
+        { name: t('navigation.draft'), href: `/${locale}/contents/draft`, icon: FileText },
+        { name: t('navigation.saved'), href: `/${locale}/contents/saved`, icon: Bookmark },
       ],
     },
     {
-      name: 'Schedule',
-      href: '/schedule',
+      name: t('navigation.schedule'),
+      href: `/${locale}/schedule`,
       icon: Calendar,
     },
     {
-      name: 'Statistics',
-      href: '/statistics',
+      name: t('navigation.statistics'),
+      href: `/${locale}/statistics`,
       icon: BarChart2,
     },
     {
-      name: 'Comments',
+      name: t('navigation.engagement'),
       icon: MessageSquare,
       isExpandable: true,
       subItems: [
-        { name: 'Comments', href: '/comments', icon: MessageSquareReply },
-        { name: 'Mentions', href: '/mentions', icon: AtSign },
+        { name: t('navigation.comments'), href: `/${locale}/comments`, icon: MessageSquareReply },
+        { name: t('navigation.mentions'), href: `/${locale}/mentions`, icon: AtSign },
       ],
     },
   ];
@@ -234,6 +236,7 @@ function SidebarContent({
   onLinkClick: () => void;
   isMobile?: boolean;
 }) {
+  const { t, locale } = useLocaleContext();
   return (
     <div className="flex flex-col justify-between h-full">
       {/* Top section: Logo and Navigation */}
@@ -242,7 +245,7 @@ function SidebarContent({
         <div className="py-5 px-2">
           <Link className={cn(
             isMobile ? "mt-1" : "mt-2"
-          )} href="/contents/topic-finder" onClick={onLinkClick}>
+          )} href={`/${locale}/contents/topic-finder`} onClick={onLinkClick}>
             <Image
               src={logoSrc}
               alt="Logo"
@@ -374,9 +377,9 @@ function SidebarContent({
                 asChild
                 className="flex items-center gap-1 text-gray-400 hover:bg-gray-200"
               >
-                <Link href="/settings" onClick={onLinkClick}>
+                <Link href={`/${locale}/settings`} onClick={onLinkClick}>
                   <Settings className="h-5 w-5" />
-                  <span className="sr-only">설정</span>
+                  <span className="sr-only">{t('navigation.settings')}</span>
                 </Link>
               </Button>
             </div>
@@ -388,7 +391,7 @@ function SidebarContent({
             className="w-full"
             onClick={() => signIn()}
           >
-            로그인
+            {t('auth.signIn')}
           </Button>
         )}
       </div>

@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
+import { useLocaleContext } from '@/components/providers/LocaleProvider';
 
 interface Comment {
     id: string;
@@ -40,6 +41,7 @@ export function MentionList() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
+    const { t, locale } = useLocaleContext();
 
     const {
         data,
@@ -121,11 +123,11 @@ export function MentionList() {
         },
         onError: (_, __, context) => {
             queryClient.setQueryData(['mentions', currentSocialId], context?.previousData);
-            toast.error("답글 전송에 실패했습니다.");
+            toast.error(t('mentions.ai.generationFailed'));
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mentions', currentSocialId] });
-            toast.success("답글이 성공적으로 전송되었습니다!");
+            toast.success(t('mentions.ai.generated'));
         }
     });
 
@@ -170,10 +172,10 @@ export function MentionList() {
                 }
             }, 1);
 
-            toast.success("AI 답글이 생성되었습니다!");
+            toast.success(t('mentions.ai.generated'));
         } catch (error) {
             console.error('AI generation error:', error);
-            toast.error("AI 답글 생성에 실패했습니다.");
+            toast.error(t('mentions.ai.generationFailed'));
         } finally {
             setAiGenerating(prev => ({ ...prev, [mentionId]: false }));
         }
@@ -187,17 +189,17 @@ export function MentionList() {
         console.log('Unreplied mentions:', unrepliedMentions.length);
 
         if (unrepliedMentions.length === 0) {
-            toast.info("All mentions have been replied to.");
+            toast.info(t('mentions.allReplied'));
             return;
         }
 
-        toast.info("Drafting replies to all mentions...");
+        toast.info(t('mentions.draftingReplies'));
 
         for (const mention of unrepliedMentions) {
             await generateAIReply(mention.text, mention.id);
         }
 
-        toast.success("Completed drafting!");
+        toast.success(t('mentions.draftingCompleted'));
     };
 
     // Handle sending reply
@@ -227,10 +229,10 @@ export function MentionList() {
     if (isLoading) {
         return (
             <div className="h-full w-full overflow-hidden flex flex-col p-6">
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Mentions</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('mentions.title')}</h1>
                 <div className="flex-1 flex flex-col gap-3 items-center justify-center bg-muted rounded-[20px]">
                     <Loader className="w-10 h-10 text-muted-foreground/30 animate-spin" />
-                    <div className="text-muted-foreground">Getting mentions...</div>
+                    <div className="text-muted-foreground">{t('mentions.loadingAccount')}</div>
                 </div>
             </div>
         );
@@ -239,10 +241,10 @@ export function MentionList() {
     if (isError) {
         return (
             <div className="h-full w-full overflow-hidden flex flex-col p-6">
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Mentions</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('mentions.title')}</h1>
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-red-500">
-                        {error instanceof Error ? error.message : "데이터를 가져오는 중 오류가 발생했습니다."}
+                        {error instanceof Error ? error.message : t('mentions.errorLoadingMentions')}
                     </div>
                 </div>
             </div>
@@ -252,7 +254,7 @@ export function MentionList() {
     if (!isLoading && mentions.length === 0) {
         return (
             <div className="h-full w-full overflow-hidden p-6 flex flex-col">
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Mentions</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('mentions.title')}</h1>
                 <div className="flex items-center justify-center flex-1">
                     <div className="bg-muted rounded-[20px] w-full h-full flex items-center justify-center">
                         <div className="flex flex-col items-center justify-center gap-6">
@@ -261,18 +263,18 @@ export function MentionList() {
                             </div>
                             <div className="flex flex-col items-center gap-3 w-full">
                                 <h2 className="text-zinc-700 text-xl font-semibold text-center">
-                                    No mentions to reply
+                                    {t('mentions.noMentionsToReply')}
                                 </h2>
                                 <p className="text-zinc-500 text-sm font-normal text-center">
-                                    Post new threads to get mentions
+                                    {t('mentions.noMentionsToReplyDescription')}
                                 </p>
                             </div>
                             <Link
-                                href="/contents/topic-finder"
+                                href={`/${locale}/contents/topic-finder`}
                                 className="bg-zinc-100 border border-muted-foreground/10 rounded-xl px-3 py-2 flex items-center justify-center gap-2.5 cursor-pointer hover:bg-zinc-200 transition-colors"
                             >
                                 <span className="text-black text-sm font-medium">
-                                    Get Ideas
+                                    {t('mentions.getIdeas')}
                                 </span>
                             </Link>
                         </div>
@@ -285,7 +287,7 @@ export function MentionList() {
     if (!isLoading && visibleMentions.length === 0) {
         return (
             <div className="h-full w-full overflow-hidden p-6 flex flex-col">
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Mentions</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('mentions.title')}</h1>
                 <div className="flex items-center justify-center flex-1">
                     <div className="bg-muted rounded-[20px] w-full h-full flex items-center justify-center">
                         <div className="flex flex-col items-center justify-center gap-6">
@@ -294,18 +296,18 @@ export function MentionList() {
                             </div>
                             <div className="flex flex-col items-center gap-3 w-full">
                                 <h2 className="text-zinc-700 text-xl font-semibold text-center">
-                                    No mentions to reply
+                                    {t('mentions.noMentionsToReply')}
                                 </h2>
                                 <p className="text-zinc-500 text-sm font-normal text-center">
-                                    All mentions have been replied to
+                                    {t('mentions.noMentionsToReplyDescription')}
                                 </p>
                             </div>
                             <Link
-                                href="/contents/topic-finder"
+                                href={`/${locale}/contents/topic-finder`}
                                 className="bg-zinc-100 border border-muted-foreground/10 rounded-xl px-3 py-2 flex items-center justify-center gap-2.5 cursor-pointer hover:bg-zinc-200 transition-colors"
                             >
                                 <span className="text-black text-sm font-medium">
-                                    Get Ideas
+                                    {t('mentions.getIdeas')}
                                 </span>
                             </Link>
                         </div>
@@ -317,13 +319,13 @@ export function MentionList() {
 
     return (
         <div className="h-full w-full overflow-hidden flex flex-col p-6">
-            <h1 className="text-3xl font-bold text-zinc-700 mb-6">Mentions</h1>
+            <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('mentions.title')}</h1>
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col bg-gray-50 rounded-[32px] p-6 overflow-hidden">
                 <div className="mb-6 flex justify-between items-center">
                     <p className="text-gray-500 text-base">
-                        {remainingMentions} remaining mentions to reply
+                        {t('mentions.remainingMentionsToReply', { count: remainingMentions })}
                     </p>
                     <Button
                         onClick={writeAllReplies}
@@ -331,7 +333,7 @@ export function MentionList() {
                         className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700"
                     >
                         <Sparkles className="w-4 h-4" />
-                        <span className="text-base font-medium">Draft all replies</span>
+                        <span className="text-base font-medium">{t('mentions.draftAllReplies')}</span>
                     </Button>
                 </div>
 
@@ -354,7 +356,7 @@ export function MentionList() {
                                         <div className="flex-1 min-w-0">
                                             <div className="mb-2">
                                                 <h3 className="font-semibold text-black text-[17px]">
-                                                    {currentUsername || 'You'}
+                                                    {currentUsername || t('mentions.me')}
                                                 </h3>
                                             </div>
                                             <p className="text-black text-[17px] leading-relaxed line-clamp-3">
@@ -394,7 +396,7 @@ export function MentionList() {
                                                 rows={1}
                                                 value={replyTexts[mention.id] || ''}
                                                 onChange={(e) => handleTextareaChange(mention.id, e.target.value)}
-                                                placeholder="Reply to Mention..."
+                                                placeholder={t('mentions.replyPlaceholder')}
                                                 className={`
                                                     bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
                                                     [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] focus:outline-none focus:focus-visible:ring-0

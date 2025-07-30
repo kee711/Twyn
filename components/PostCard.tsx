@@ -24,6 +24,7 @@ import { improvePost } from "@/app/actions/improvePost";
 import { uploadMediaFilesClient, deleteMediaFileClient } from "@/lib/utils/upload";
 import { useSession } from "next-auth/react";
 import { PRESET_PROMPTS } from "@/lib/prompts";
+import { useLocaleContext } from "@/components/providers/LocaleProvider";
 
 interface PostCardProps {
   variant?: "default" | "writing" | "compact";
@@ -121,7 +122,7 @@ export function PostCard({
   const [selectedMedia, setSelectedMedia] = useState<string[]>(media);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const { t } = useLocaleContext();
   // NextAuth 세션 (컴포넌트 최상위 레벨에서 호출)
   const { data: session, status } = useSession();
 
@@ -353,19 +354,19 @@ export function PostCard({
   const presetButtons = [
     {
       icon: ChevronsLeftRightEllipsis,
-      text: "Expand post",
+      text: t('components.postCard.expandPost'),
       prompt: PRESET_PROMPTS.EXPAND_POST,
       delay: "delay-100"
     },
     {
       icon: Anchor,
-      text: "Add hooks",
+      text: t('components.postCard.addHooks'),
       prompt: PRESET_PROMPTS.ADD_HOOKS,
       delay: "delay-200"
     },
     {
       icon: LibraryBig,
-      text: "Add information",
+      text: t('components.postCard.addInformation'),
       prompt: PRESET_PROMPTS.ADD_INFORMATION,
       delay: "delay-300"
     }
@@ -429,7 +430,7 @@ export function PostCard({
                   onContentChange?.(e.target.value);
                   adjustTextareaHeight();
                 }}
-                placeholder={content.length === 0 ? "내용을 작성하세요..." : ""}
+                placeholder={content.length === 0 ? t('components.postCard.writeContent') : ""}
                 rows={1}
                 onFocus={onTextareaFocus}
               />
@@ -560,14 +561,13 @@ export function PostCard({
               >
                 <ImagePlus className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              {/* <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Vote className="h-4 w-4" />
-              </Button>
+              </Button> */}
               <Button
-                variant="toggle"
                 size="sm"
                 data-state={isAiActive ? "on" : "off"}
-                className={`flex items-center gap-1 rounded-full px-3 pr-4 text-sm font-[400] ${showAiInput ? "bg-black text-white hover:bg-black/80" : "bg-gray-200 text-gray-400"}`}
+                className={`flex items-center gap-1 rounded-full px-3 pr-4 text-sm font-[400] ${showAiInput ? "bg-black text-white hover:bg-black/80" : "bg-gray-200 text-gray-400 hover:bg-gray-200/80"}`}
                 onClick={() => setShowAiInput(!showAiInput)} // Toggle AI Input Dropdown
               >
                 <Sparkles className="h-4 w-4" />
@@ -646,7 +646,7 @@ export function PostCard({
             ? 'text-muted-foreground hover:text-foreground/70'
             : 'text-muted-foreground/50'
             }`}>
-            Add to threads
+            {t('components.postCard.addThread')}
           </p>
         </div>
       )}

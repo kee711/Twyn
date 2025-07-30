@@ -1,9 +1,12 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export default withAuth(
+const locales = ['en', 'ko']
+const defaultLocale = 'en'
+
+const authMiddleware = withAuth(
   function middleware(req) {
-    // 로그인하지 않은 사용자가 보호된 경로에 접근하면 로그인 페이지로 리다이렉트
     if (!req.nextauth.token) {
       return NextResponse.redirect(new URL('/signin', req.url))
     }
@@ -15,14 +18,66 @@ export default withAuth(
   }
 )
 
-// 보호할 경로 설정
+export default async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  console.log('🔍 Middleware - pathname:', pathname)
+
+  // Skip for API routes, _next static files, and other internal paths
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/opengraph-image') ||
+    pathname.startsWith('/apple-icon') ||
+    pathname.startsWith('/icon') ||
+    pathname.includes('.') ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml'
+  ) {
+    console.log('⏭️ Skipping middleware for:', pathname)
+    return NextResponse.next()
+  }
+
+  // Check if pathname already has locale
+  const pathnameHasLocale = locales.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+  )
+
+  console.log('🌐 Has locale:', pathnameHasLocale)
+
+  // If no locale, redirect to default locale
+  if (!pathnameHasLocale) {
+    console.log('🔄 Redirecting to default locale')
+    return NextResponse.redirect(new URL(`/${defaultLocale}${pathname}`, request.url))
+  }
+
+  // Check if path needs authentication (remove locale prefix for checking)
+  const pathnameWithoutLocale = pathname.replace(/^\/[a-z]{2}/, '') || '/'
+  const protectedPaths = ['/dashboard', '/schedule', '/contents', '/statistics', '/comments']
+  const needsAuth = protectedPaths.some(path => pathnameWithoutLocale.startsWith(path))
+
+  console.log('🔐 Auth check - pathnameWithoutLocale:', pathnameWithoutLocale, 'needsAuth:', needsAuth)
+
+  if (needsAuth) {
+    console.log('🔒 Running auth middleware')
+    const authResponse = await (authMiddleware as any)(request)
+    if (authResponse) return authResponse
+  }
+
+  console.log('✅ Continuing with request')
+  return NextResponse.next()
+}
+
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/schedule/:path*',
-    '/contents/:path*',
-    '/statistics/:path*',
-    '/comments/:path*',
-    // 로그인이 필요한 다른 경로들 추가
-  ],
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api/|_next/static|_next/image|favicon.ico|opengraph-image|apple-icon|icon).*)',
+  ]
 } 

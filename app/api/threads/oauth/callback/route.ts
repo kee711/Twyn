@@ -4,12 +4,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/authOptions";
 import { createClient } from "@/lib/supabase/server";
 import { encryptToken } from "@/lib/utils/crypto";
+import { createLocaleRedirect, extractLocaleFromRequest } from "@/lib/utils/locale-redirect";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
+  
   if (!session?.user?.id) {
     console.error("인증되지 않은 사용자");
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/social-connect?error=unauthenticated`);
+    return NextResponse.redirect(createLocaleRedirect('/social-connect?error=unauthenticated', 'en'));
   }
 
   console.log("Threads OAuth 콜백 시작:", session.user.id);
@@ -17,9 +19,16 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  if (!code || state !== session.user.id) {
-    console.error("유효하지 않은 코드 또는 상태:", { code: !!code, stateMatch: state === session.user.id });
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/social-connect?error=invalid_code`);
+  
+  // Parse state to extract user ID and locale
+  const statePattern = /^(.+):([a-z]{2})$/;
+  const stateMatch = state?.match(statePattern);
+  const stateUserId = stateMatch ? stateMatch[1] : state;
+  const locale = stateMatch ? stateMatch[2] : extractLocaleFromRequest(req);
+  
+  if (!code || stateUserId !== session.user.id) {
+    console.error("유효하지 않은 코드 또는 상태:", { code: !!code, stateMatch: stateUserId === session.user.id });
+    return NextResponse.redirect(createLocaleRedirect('/social-connect?error=invalid_code', locale));
   }
 
   try {
@@ -41,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     if (!shortRes.ok || !shortData.access_token) {
       console.error("short-token 교환 실패:", shortData);
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/social-connect?error=token_exchange`);
+      return NextResponse.redirect(createLocaleRedirect('/social-connect?error=token_exchange', locale));
     }
 
     console.log("단기 토큰 획득 성공");
@@ -70,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     if (!meRes.ok) {
       console.error("사용자 정보 요청 실패:", await meRes.text());
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/social-connect?error=user_info_fetch`);
+      return NextResponse.redirect(createLocaleRedirect('/social-connect?error=user_info_fetch', locale));
     }
 
     const userData = await meRes.json();
@@ -96,7 +105,7 @@ export async function GET(req: NextRequest) {
 
     if (checkError) {
       console.error("기존 계정 확인 오류:", checkError);
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/social-connect?error=db_error`);
+      return NextResponse.redirect(createLocaleRedirect('/social-connect?error=db_error', locale));
     }
 
     let accountId;
@@ -120,7 +129,7 @@ export async function GET(req: NextRequest) {
 
       if (dbError) {
         console.error("소셜 계정 정보 업데이트 실패:", dbError);
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/social-connect?error=db_error`);
+        return NextResponse.redirect(createLocaleRedirect('/social-connect?error=db_error', locale));
       }
     } else {
       // 새 계정 생성
@@ -144,7 +153,7 @@ export async function GET(req: NextRequest) {
 
       if (dbError || !newAccount) {
         console.error("소셜 계정 정보 저장 실패:", dbError);
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/social-connect?error=db_error`);
+        return NextResponse.redirect(createLocaleRedirect('/social-connect?error=db_error', locale));
       }
 
       accountId = newAccount.id;
@@ -167,12 +176,12 @@ export async function GET(req: NextRequest) {
 
     // 새 계정이면 소셜 온보딩으로 리다이렉트
     if (isNewAccount) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/onboarding?type=social&account_id=${accountId}`);
+      return NextResponse.redirect(createLocaleRedirect(`/onboarding?type=social&account_id=${accountId}`, locale));
     } else {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/contents/topic-finder`);
+      return NextResponse.redirect(createLocaleRedirect('/contents/topic-finder', locale));
     }
   } catch (error) {
     console.error("Threads OAuth 콜백 처리 중 오류:", error);
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/contents/topic-finder`);
+    return NextResponse.redirect(createLocaleRedirect('/contents/topic-finder', locale));
   }
 }

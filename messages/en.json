@@ -1,0 +1,589 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "clear": "Clear",
+    "confirm": "Confirm",
+    "close": "Close",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "menu": "Open menu"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signInWithGoogle": "Sign in with Google",
+    "welcome": "Welcome to Twyn!",
+    "loginRequired": "Login required",
+    "signInDescription": "Sign in to your account to continue",
+    "privacyNotice": "By continuing, you agree to our",
+    "privacyPolicy": "Privacy Policy",
+    "close": "Close"
+  },
+  "UserOnboarding": {
+    "step1Title": "What inspired you to start creating content?",
+    "step1Description": "Tell us about your motivation for content creation",
+    "step1Options": {
+      "followers": "I want to grow my followers",
+      "brand": "I want to build brand awareness",
+      "product": "I'm promoting a product"
+    },
+    "step2Title": "How are you currently working on your content?",
+    "step2Description": "Help us understand your current setup",
+    "step2Options": {
+      "solo": "I'm doing it solo",
+      "marketer": "I'm a marketer at a company",
+      "agency": "I manage it for my clients"
+    },
+    "step3Title": "What is the hardest part about creating content?",
+    "step3Description": "Let us know your biggest challenge",
+    "step3Options": {
+      "ideas": "I'm running out of ideas",
+      "consistent": "It's hard to stay consistent",
+      "engagement": "I'm not getting much engagement"
+    },
+    "connectThreads": "Connect Threads Account",
+    "connectThreadsDescription": "Link your Threads account to start creating amazing content",
+    "connectThreadsTitle": "Connect your first account",
+    "connectLater": "Connect later",
+    "skip": "Skip",
+    "continue": "Continue"
+  },
+  "SocialOnboarding": {
+    "title": "Tell us about your profile",
+    "description": "Help us understand your {platform} account to create better content",
+    "connected": "Connected: @{username}",
+    "profileDescriptionLabel": "Profile Description",
+    "profileDescriptionPlaceholder": "Tell us about your account, your target audience, the type of content you create, and what makes your profile unique...",
+    "profileDescriptionHint": "The more details you provide, the better we can help you create engaging content.",
+    "complete": "Complete Setup",
+    "skip": "Skip for now",
+    "errors": {
+      "loadingAccountInfo": "Error loading account info"
+    }
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "contentsCooker": "Contents",
+    "topicFinder": "Topic Finder",
+    "postRadar": "Post Radar",
+    "saved": "Saved",
+    "schedule": "Schedule",
+    "calendar": "Calendar",
+    "list": "List",
+    "statistics": "Statistics",
+    "engagement": "Engagement",
+    "settings": "Settings",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "legal": "Legal",
+    "dataDeletion": "Data Deletion Policy",
+    "privacy": "Privacy Policy",
+    "draft": "Draft",
+    "comments": "Comments",
+    "mentions": "Mentions",
+    "writeOrAddContents": "Write or Add contents",
+    "addContentsFrom": "Add contents from",
+    "saveToDraft": "Save to Draft",
+    "postNow": "Post Now",
+    "schedulePost": "Schedule Post"
+  },
+  "SocialAccountSelector": {
+    "selectAccount": "Select Account",
+    "addAccount": "Add Account",
+    "noAccount": "No account",
+    "accountList": "Account List"
+  },
+  "content": {
+    "title": "Title",
+    "description": "Description",
+    "content": "Content",
+    "tags": "Tags",
+    "category": "Category",
+    "status": "Status",
+    "publishAt": "Publish At",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "draft": "Draft",
+    "published": "Published",
+    "scheduled": "Scheduled",
+    "generateContent": "Generate Content",
+    "saveContent": "Save Content",
+    "publishContent": "Publish Content",
+    "scheduleContent": "Schedule Content"
+  },
+  "scheduling": {
+    "selectTime": "Select Time",
+    "publishNow": "Publish Now",
+    "schedulePost": "Schedule Post",
+    "scheduledPosts": "Scheduled Posts",
+    "publishTime": "Publish Time",
+    "repeatSettings": "Repeat Settings",
+    "once": "Once",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly"
+  },
+  "statistics": {
+    "overview": "Overview",
+    "engagement": "Engagement",
+    "reach": "Reach",
+    "impressions": "Impressions",
+    "likes": "Likes",
+    "comments": "Comments",
+    "shares": "Shares",
+    "followers": "Followers",
+    "growth": "Growth",
+    "performance": "Performance",
+    "analytics": "Analytics"
+  },
+  "settings": {
+    "profile": "Profile",
+    "account": "Account",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "language": "Language",
+    "theme": "Theme",
+    "preferences": "Preferences",
+    "connectedAccounts": "Connected Accounts",
+    "apiKeys": "API Keys",
+    "billing": "Billing"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "pageNotFound": "Page not found",
+    "accessDenied": "Access denied",
+    "networkError": "Network error",
+    "validationError": "Validation error",
+    "serverError": "Server error"
+  },
+  "landing": {
+    "description": "Minimize your time & energy to post, engage, and grow on Threads.",
+    "hero": {
+      "badge": "Beta Access - Limited Spots",
+      "title": "Conquering the Algorithm has Never Been Easier",
+      "subtitle": "Post, engage, and grow 10x faster on Threads.\nYour AI Marketing Agent does all the heavy lifting",
+      "ctaButton": "Get 2 months free",
+      "betaPrivilege": "Beta privilege"
+    },
+    "features": {
+      "ideaTitle": "Never run out of ideas",
+      "ideaDesc1": "Explore ideas, perfectly suitable for you",
+      "ideaDesc2": "Obviously, up-to-date topics are here",
+      "ideaDesc3": "Personal profile data makes topic more yours",
+      "writeTitle": "Write 10x faster & better",
+      "writeDesc1": "Generate a ready-to-post draft with one click",
+      "writeDesc2": "Fine‑tune tone & style with AI",
+      "scheduleTitle": "Auto-post while you rest",
+      "scheduleDesc1": "Post anytime, hands‑free",
+      "scheduleDesc2": "Drag & drop to reschedule in seconds",
+      "scheduleDesc3": "Stay consistent without extra effort",
+      "engageTitle": "Engage 10x faster",
+      "engageDesc1": "Generate Replies to all comments in one click",
+      "engageDesc2": "Crafts context‑aware replies that feel human"
+    },
+    "pricing": {
+      "title": "Unlock the full potential of Twyn",
+      "titleHighlight": "for free",
+      "subtitle": "During our beta period, take advantage of all features at no cost.",
+      "freePlan": "TWYN FREE",
+      "proPlan": "TWYN PRO",
+      "proPlusPlan": "TWYN PRO+",
+      "monthlyUser": "/mo. per user",
+      "limitedBeta": "LIMITED BETA ACCESS",
+      "comingSoon": "COMING SOON",
+      "freeFeatures": {
+        "feature1": "AI-assisted content generation (limit: 50 posts or comment interactions per month)",
+        "feature2": "Basic topic suggestions based on your profile",
+        "feature3": "Basic scheduling and auto-upload features",
+        "feature4": "Community support via Discord (beta users only)"
+      },
+      "proFeatures": {
+        "feature1": "Everything in Twyn Free, plus:",
+        "feature2": "Increased AI interaction limits (1,000 posts or comment interactions per month)",
+        "feature3": "Up to 3 accounts",
+        "feature4": "Analytics to track your best-performing posts"
+      },
+      "proPlusFeatures": {
+        "feature1": "Everything in Twyn Pro, plus:",
+        "feature2": "Increased AI interaction limits (3,000 posts or comment interactions per month)",
+        "feature3": "Priority scheduling and auto-posting",
+        "feature4": "Exclusive access to advanced content strategy tips and premium support"
+      }
+    },
+    "faq": {
+      "title": "Commonly asked questions",
+      "questions": {
+        "q1": "How long can I use Twyn for free?",
+        "a1": "During the beta period, you can use Twyn for free with reasonable limits. The exact duration will be announced as we approach the end of the beta.",
+        "q2": "Are there usage limits during the beta period?",
+        "a2": "Yes, there are reasonable limits in place during the beta period to ensure system stability and fair usage for all users.",
+        "q3": "What happens after the beta period?",
+        "a3": "After the beta period ends, Twyn will transition to a paid subscription model. Beta users will receive early notice, special offers, and smooth migration support.",
+        "q4": "Do I need a Threads account to use Twyn?",
+        "a4": "Yes, Twyn integrates directly with Threads. You need to connect your Threads account to post, schedule, and manage content.",
+        "q5": "What are AI-powered interactions in Twyn?",
+        "a5": "AI-powered interactions in Twyn include automated content generation, tone optimization, smart scheduling, and context-aware comment replies—all designed to save you time and keep you consistent.",
+        "q6": "Can I purchase additional AI interactions with my Twyn subscription?",
+        "a6": "Additional AI interaction packages will be available after the beta period. Pricing and add-on options will be announced before the official launch."
+      }
+    },
+    "nav": {
+      "features": "Features",
+      "benefits": "Benefits",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "login": "Login",
+      "signup": "Sign up"
+    },
+    "additionalFeatures": {
+      "title": "Effortless content to maximize reach",
+      "subtitle": "Powerful, AI-driven social media tools to help you create engaging content, grow your audience, and boost your Threads presence.",
+      "saveUrl": {
+        "title": "Save with URL",
+        "description": "Save your thought for later, use it again seemlessly.\nNo more manual copy-pasting."
+      },
+      "analytics": {
+        "title": "Analyze your progress",
+        "description": "Monitor your growth with detailed analytics. Track engagement, reach, and follower growth with actionable insights."
+      }
+    }
+  },
+  "pages": {
+    "settings": {
+      "title": "Settings",
+      "loadingSession": "Loading session information...",
+      "signOut": "Sign Out",
+      "accountSettings": {
+        "title": "Account Settings",
+        "description": "Manage your account related settings.",
+        "socialAccount": "Social Account",
+        "selectAccount": "Select an account",
+        "accountType": "Account Type",
+        "selectAccountType": "Select account type",
+        "businessChannel": "Business Marketing Channel",
+        "expert": "Expert",
+        "general": "General",
+        "accountInfo": "Account Information",
+        "accountInfoPlaceholder": "Enter a description for your account",
+        "profileDescription": "Profile Description",
+        "profileDescriptionPlaceholder": "Enter a detailed description of your profile. Include what your profile is about, target audience, unique characteristics, etc.",
+        "profileDescriptionHint": "This description is used for more accurate AI content generation.",
+        "tags": "Tags",
+        "addNewTag": "Add new tag",
+        "add": "Add",
+        "save": "Save",
+        "saving": "Saving...",
+        "noAccountSelected": "No account selected.",
+        "accountInfoUpdated": "Account information has been updated.",
+        "accountInfoLoadError": "An error occurred while loading account information.",
+        "accountInfoSaveError": "An error occurred while saving account information."
+      },
+      "plan": {
+        "title": "Plan",
+        "description": "Check and manage your current subscription.",
+        "currentPlan": "Current Plan",
+        "free": "Free",
+        "upgradePlan": "Upgrade Plan",
+        "managePlan": "Manage Plan"
+      },
+      "appearance": {
+        "title": "Appearance",
+        "description": "Configure language settings.",
+        "language": "Language",
+        "english": "English",
+        "korean": "Korean"
+      },
+      "deleteAccount": {
+        "title": "Delete Account",
+        "description": "Please contact us via email to request account deletion.",
+        "requestDeletion": "Request Account Deletion"
+      }
+    },
+    "contents": {
+      "topicFinder": {
+        "greeting": "Hi {username},",
+        "question": "What would you like to write about?",
+        "writeOrAddTopic": "Please write or add a topic",
+        "threadsGenerated": "Generated {count} threads! Check the writing sidebar to publish.",
+        "failedToGenerateChain": "Failed to generate thread chain",
+        "accountInfoLoadError": "An error occurred while loading account information.",
+        "noAccountInfo": "No account info.",
+        "invalidTopicFormat": "Invalid topic result format",
+        "failedToGenerateTopics": "Failed to generate topics",
+        "deleteAllTopics": "Delete All Topics",
+        "deleteAllTopicsDescription": "Are you sure you want to delete all topics you've created?",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "ideas": "Get Ideas",
+        "createDetails": "Create Post",
+        "profileDescription": "Profile Description",
+        "profileDescriptionDescription": "Used for more accurate AI content generation",
+        "headlineInput": {
+          "placeholder": "Write headline...",
+          "instructionPlaceholder": "Write instruction..."
+        }
+      },
+      "draft": {
+        "title": "Draft"
+      },
+      "saved": {
+        "title": "Saved",
+        "addByUrl": "Add by URL",
+        "addByUrlDescription": "Add threads content by url.",
+        "urlPlaceholder": "https://threads.net/...",
+        "saving": "Saving...",
+        "addByUrlButton": "Add by URL",
+        "invalidUrl": "Please enter a valid Threads URL. (e.g. https://www.threads.net/@username/post/shortcode)",
+        "selectSocialAccount": "Please select a social account",
+        "savedSuccessfully": "Successfully saved.",
+        "saveError": "An error occurred while saving."
+      },
+      "postRadar": {
+        "title": "Post Radar"
+      }
+    },
+    "onboarding": {
+      "userNotFound": "User information not found.",
+      "accountNotFound": "Account information not found",
+      "profileSetupCompleted": "Profile setup completed",
+      "errorSavingUserOnboarding": "Error saving user onboarding",
+      "errorSavingSocialOnboarding": "Error saving social onboarding"
+    },
+    "error": {
+      "title": "Login Error",
+      "fallbackMessage": "An error occurred during authentication.",
+      "backToSignin": "Back to Sign In",
+      "messages": {
+        "AccessDenied": "Authentication was denied. Please try again.",
+        "Verification": "The verification link has expired or has already been used.",
+        "Configuration": "There is a problem with the server configuration. Please contact the administrator.",
+        "OAuthSignin": "A problem occurred while attempting to sign in. Please try again.",
+        "OAuthCallback": "A problem occurred while receiving response from the authentication provider.",
+        "OAuthCreateAccount": "A problem occurred while creating the account. Please try again.",
+        "EmailCreateAccount": "A problem occurred while creating the email account.",
+        "Callback": "A problem occurred during authentication processing.",
+        "OAuthAccountNotLinked": "This email is already registered with a different authentication method.",
+        "EmailSignin": "A problem occurred during email sign in.",
+        "CredentialsSignin": "The login information is incorrect.",
+        "SessionRequired": "You need to be signed in to access this page.",
+        "default": "An unknown error occurred."
+      }
+    }
+  },
+  "components": {
+    "rightSidebar": {
+      "schedulePost": "Schedule Post",
+      "noSchedule": "No scheduled time",
+      "add": "Add",
+      "save": "Save",
+      "publishTime": "Publish Time",
+      "publishTimeDescription": "Set the time for your post to be automatically published. The nearest time slots are scheduled first."
+    },
+    "postCard": {
+      "writeContent": "Write content...",
+      "addThread": "Add to threads",
+      "expandPost": "Expand post",
+      "addHooks": "Add hooks",
+      "addInformation": "Add information"
+    },
+    "statistics": {
+      "title": "Statistics",
+      "dateRanges": {
+        "7days": "7 days",
+        "30days": "30 days",
+        "90days": "90 days"
+      },
+      "refresh": "Refresh",
+      "metrics": {
+        "totalViews": "Total Views",
+        "totalFollowers": "Total Followers",
+        "totalLikes": "Total Likes",
+        "totalReplies": "Total Replies",
+        "totalReposts": "Total Reposts",
+        "totalQuotes": "Total Quotes",
+        "trendInPeriod": "trend in period",
+        "currentCount": "Current count",
+        "fromPreviousPeriod": "from previous period",
+        "noData": "No data"
+      },
+      "charts": {
+        "viewsPerformance": "Views Performance",
+        "engagementBreakdown": "Engagement Breakdown",
+        "forLastDays": "For the last {days} days"
+      },
+      "topPosts": {
+        "title": "Top Posts",
+        "description": "Top performing posts in the last {days} days",
+        "noData": "No post data available for the selected period."
+      },
+      "noAccount": {
+        "title": "Account connection required",
+        "description": "Please connect your Threads account first to view statistics.",
+        "connectButton": "Connect Threads Account"
+      },
+      "noAuth": {
+        "title": "Authentication Required",
+        "description": "Please sign in to view your statistics."
+      }
+    }
+  },
+  "schedule": {
+    "noAccount": {
+      "title": "Account connection required",
+      "description": "Please connect your Threads account first for schedule management.",
+      "connectButton": "Connect Account"
+    }
+  },
+  "comments": {
+    "title": "Comments",
+    "loadingAccount": "Loading social account...",
+    "noCommentsToReply": "No comments to reply to.",
+    "repliedStatus": "{replied} out of {total} replied",
+    "draftAllReplies": "Draft all replies",
+    "me": "Me",
+    "replyPlaceholder": "Reply to Comment...",
+    "hide": "Hide",
+    "confirmHideComment": "Are you sure you want to hide this comment?",
+    "ai": {
+      "generated": "AI reply has been generated!",
+      "generationFailed": "Failed to generate AI reply.",
+      "loadingAccount": "Loading social account information. Please try again in a moment.",
+      "allReplied": "All comments have been replied to.",
+      "draftingReplies": "Drafting replies to all comments...",
+      "draftingCompleted": "Completed drafting!"
+    },
+    "actions": {
+      "commentHidden": "Comment has been hidden!",
+      "hideCommentFailed": "Failed to hide comment."
+    },
+    "noCommentsToReplyDescription": "You can create new threads by commenting.",
+    "getIdeas": "Get Ideas",
+    "loadingComments": "Loading comments...",
+    "errorLoadingComments": "Failed to load comments.",
+    "remainingPostsToReply": "{count} remaining posts to reply"
+  },
+  "mentions": {
+    "title": "Mentions",
+    "noMentionsToReply": "No mentions to reply to.",
+    "noMentionsToReplyDescription": "You can create new mentions by mentioning.",
+    "getIdeas": "Get Ideas",
+    "loadingAccount": "Loading social account...",
+    "draftAllReplies": "Draft all replies",
+    "me": "Me",
+    "replyPlaceholder": "Reply to Mention...",
+    "remainingMentionsToReply": "{count} remaining mentions to reply",
+    "errorLoadingMentions": "Failed to load mentions.",
+    "allReplied": "All mentions have been replied to.",
+    "draftingReplies": "Drafting replies to all mentions...",
+    "draftingCompleted": "Completed drafting!",
+    "ai": {
+      "generated": "AI reply has been generated!",
+      "generationFailed": "Failed to generate AI reply.",
+      "loadingAccount": "Loading social account information. Please try again in a moment.",
+      "allReplied": "All comments have been replied to.",
+      "draftingReplies": "Drafting replies to all comments...",
+      "draftingCompleted": "Completed drafting!"
+    }
+  },
+  "scheduleHeader": {
+    "calendar": "Calendar",
+    "list": "List",
+    "scheduled": "Scheduled",
+    "posted": "Posted"
+  },
+  "editPostModal": {
+    "title": "Edit content",
+    "failedStatus": "Failed - Will reschedule on save",
+    "loadingThreadChain": "Loading thread chain...",
+    "fallbackUsername": "Me",
+    "selectDate": "Pick a date",
+    "deleteSchedule": "Delete Schedule",
+    "cancel": "Cancel",
+    "changeSchedule": "Change Schedule",
+    "unsavedChanges": "Unsaved changes",
+    "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to close? Your changes will not be saved.",
+    "close": "Close",
+    "futureTimeRequired": "The scheduled time must be in the future.",
+    "scheduleUpdated": "Schedule updated successfully!",
+    "threadChainScheduled": "Your thread chain is scheduled",
+    "postScheduled": "Your post is scheduled",
+    "threadChainPublishing": "Your thread chain is being published",
+    "postPublished": "Your post is published"
+  },
+  "contentList": {
+    "loginRequired": "🔒 You need to login to view contents.",
+    "loadingContents": "Loading contents...",
+    "noContentsFound": "No contents found for {category}.",
+    "addContent": "Add content",
+    "contentRemoved": "Content removed from thread chain",
+    "contentAdded": "Content added to thread chain",
+    "threadChainRemoved": "Thread chain removed from thread chain",
+    "threadChainAdded": "Thread chain added to thread chain",
+    "loadError": "Failed to load contents."
+  },
+  "pricingModal": {
+    "title": "Choose Your Plan",
+    "loading": "Loading plans...",
+    "subtitle": "Unlock the full potential of Salt AI and grow your social media engagement",
+    "saveDiscount": "Save up to 20%",
+    "billing": {
+      "monthly": "Monthly",
+      "annual": "Annual"
+    },
+    "badges": {
+      "mostPopular": "Most Popular"
+    },
+    "descriptions": {
+      "free": "Perfect for getting started",
+      "pro": "For content creators and small businesses",
+      "expert": "For contents experts and agencies"
+    },
+    "features": {
+      "aiCreditsPerDay": "{credits} AI credits per day",
+      "topicSuggestions": "Topic suggestions",
+      "socialAccountBinding": "{limit} social account binding",
+      "autoScheduling": "{limit} auto scheduling",
+      "basicAnalytics": "Basic analytics",
+      "creditsPerMonth": "{credits} credits per month",
+      "unlimitedCredits": "<span class=\"font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent\" style=\"animation: gentlePulse 3s ease-in-out infinite;\">Unlimited</span> AI credits",
+      "unlimitedScheduling": "<span class=\"font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent\" style=\"animation: gentlePulse 3s ease-in-out infinite;\">Unlimited</span> auto scheduling",
+      "aiContentGeneration": "AI-powered content generation",
+      "advancedAnalytics": "Advanced analytics",
+      "unlimitedAccounts": "<span class=\"font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent\" style=\"animation: gentlePulse 3s ease-in-out infinite;\">Unlimited</span> social account binding",
+      "dedicatedSupport": "Dedicated support",
+      "everythingInPro": "Everything in Pro"
+    },
+    "actions": {
+      "currentPlan": "Current Plan",
+      "skipProBenefits": "Skip Pro Benefits",
+      "claimFreeMonth": "Claim Free Month",
+      "upgradeTo": "Upgrade to {plan}",
+      "downgradeTo": "Downgrade to {plan}"
+    },
+    "errors": {
+      "userInfoNotFound": "Cant find user information",
+      "userProfileNotFound": "Cant find user profile",
+      "createPlanError": "Error creating user plan",
+      "updatePlanError": "Error updating user plan",
+      "claimTrialError": "Error claiming free trial"
+    },
+    "success": {
+      "title": "Congratulations!",
+      "message": "Your Pro Trial has started! Unleash Infinite Potential of Your Social Account!",
+      "getStarted": "Get Started"
+    }
+  }
+}

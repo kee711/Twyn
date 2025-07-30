@@ -18,12 +18,14 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
+import { useLocaleContext } from '@/components/providers/LocaleProvider';
 
 export function CommentList() {
     const { currentSocialId, currentUsername } = useSocialAccountStore();
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
+    const { t, locale } = useLocaleContext();
 
     const {
         data,
@@ -215,10 +217,10 @@ export function CommentList() {
                 }
             }, 1);
 
-            toast.success("AI 답글이 생성되었습니다!");
+            toast.success(t("components.comments.ai.generated"));
         } catch (error) {
             console.error('AI generation error:', error);
-            toast.error("AI 답글 생성에 실패했습니다.");
+            toast.error(t("components.comments.ai.generationFailed"));
         } finally {
             setAiGenerating(prev => ({ ...prev, [commentId]: false }));
         }
@@ -228,7 +230,7 @@ export function CommentList() {
     const sendReply = async (commentId: string) => {
         // currentSocialId 검증
         if (!currentSocialId || currentSocialId.trim() === '') {
-            toast.error('소셜 계정 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+            toast.error(t('components.comments.ai.loadingAccount'));
             return;
         }
 
@@ -262,17 +264,17 @@ export function CommentList() {
         const unrepliedComments = currentPostComments.filter(c => !c.is_replied);
 
         if (unrepliedComments.length === 0) {
-            toast.info("All comments have been replied to.");
+            toast.info(t("components.comments.ai.allReplied"));
             return;
         }
 
-        toast.info("Drafting replies to all comments...");
+        toast.info(t("components.comments.ai.draftingReplies"));
 
         for (const comment of unrepliedComments) {
             await generateAIReply(comment.text, comment.id);
         }
 
-        toast.success("Completed drafting!");
+        toast.success(t("components.comments.ai.draftingCompleted"));
     };
 
     // Handle post click with dynamic positioning
@@ -295,10 +297,10 @@ export function CommentList() {
     if (!currentSocialId || currentSocialId.trim() === '') {
         return (
             <div className="h-full w-full overflow-hidden p-6 flex flex-col">
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Comments</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('comments.title')}</h1>
                 <div className="flex-1 flex flex-col gap-3 items-center justify-center bg-muted rounded-[20px] min-h-0">
                     <Loader className="w-10 h-10 text-muted-foreground/30 animate-spin speed-50" />
-                    <div className="text-muted-foreground">소셜 계정 정보를 불러오는 중...</div>
+                    <div className="text-muted-foreground">{t('comments.loadingAccount')}</div>
                 </div>
             </div>
         );
@@ -308,7 +310,7 @@ export function CommentList() {
         return (
             <div className="h-full w-full overflow-hidden p-6 flex flex-col">
                 {/* Header */}
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Comments</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('comments.title')}</h1>
 
                 {/* Empty State */}
                 <div className="flex items-center justify-center flex-1">
@@ -324,20 +326,20 @@ export function CommentList() {
                             {/* Text Content */}
                             <div className="flex flex-col items-center gap-3 w-full">
                                 <h2 className="text-zinc-700 text-xl font-semibold text-center">
-                                    No comments to reply
+                                    {t('comments.noCommentsToReply')}
                                 </h2>
                                 <p className="text-zinc-500 text-sm font-normal text-center">
-                                    Post new threads to get a comment
+                                    {t('comments.noCommentsToReplyDescription')}
                                 </p>
                             </div>
 
                             {/* Get Ideas Button */}
                             <Link
-                                href="/contents/topic-finder"
+                                href={`/${locale}/contents/topic-finder`}
                                 className="bg-zinc-100 border border-muted-foreground/10 rounded-xl px-3 py-2 flex items-center justify-center gap-2.5 cursor-pointer hover:bg-zinc-200 transition-colors"
                             >
                                 <span className="text-black text-sm font-medium">
-                                    Get Ideas
+                                    {t('comments.getIdeas')}
                                 </span>
                             </Link>
                         </div>
@@ -351,18 +353,18 @@ export function CommentList() {
         <div className="w-full overflow-hidden flex flex-col p-6" style={{ height: 'calc(100vh - 1rem)' }}>
             {/* Header */}
 
-            <h1 className="text-3xl font-bold text-zinc-700 mb-6 flex-shrink-0">Comments</h1>
+            <h1 className="text-3xl font-bold text-zinc-700 mb-6 flex-shrink-0">{t('comments.title')}</h1>
 
             {isLoading && (
                 <div className="flex-1 flex flex-col gap-3 items-center justify-center bg-muted rounded-[20px] min-h-0">
                     <Loader className="w-10 h-10 text-muted-foreground/30 animate-spin speed-50" />
-                    <div className="text-muted-foreground">Getting comments...</div>
+                    <div className="text-muted-foreground">{t('comments.loadingComments')}</div>
                 </div>
             )}
 
             {isError && (
                 <div className="flex-1 flex items-center justify-center min-h-0">
-                    <div className="text-red-500">데이터를 가져오는 중 오류가 발생했습니다.</div>
+                    <div className="text-red-500">{t('comments.errorLoadingComments')}</div>
                 </div>
             )}
 
@@ -374,7 +376,7 @@ export function CommentList() {
                         <div className="flex-1 bg-gray-50 rounded-[32px] p-6 flex flex-col min-h-0">
                             <div className="mb-6 flex-shrink-0">
                                 <p className="text-gray-500 text-base">
-                                    {remainingPosts} remaining posts to reply
+                                    {t('comments.remainingPostsToReply', { count: remainingPosts })}
                                 </p>
                             </div>
 
@@ -420,7 +422,7 @@ export function CommentList() {
                             {/* Header */}
                             <div className="flex justify-between items-center mb-6 flex-shrink-0">
                                 <p className="text-gray-500 text-base">
-                                    {repliedCount} out of {currentPostComments.length} replied
+                                    {t('comments.repliedStatus', { replied: repliedCount, total: currentPostComments.length })}
                                 </p>
                                 <Button
                                     onClick={writeAllReplies}
@@ -428,7 +430,7 @@ export function CommentList() {
                                     className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700"
                                 >
                                     <Sparkles className="w-4 h-4" />
-                                    <span className="text-base font-medium">Draft all replies</span>
+                                    <span className="text-base font-medium">{t('comments.draftAllReplies')}</span>
                                 </Button>
                             </div>
 
@@ -456,20 +458,20 @@ export function CommentList() {
                                                             </div>
                                                             <button
                                                                 onClick={async () => {
-                                                                    if (window.confirm("댓글을 숨기시겠습니까?")) {
+                                                                    if (window.confirm(t("comments.confirmHideComment"))) {
                                                                         try {
                                                                             await hideComment(comment.id);
-                                                                            toast.success("댓글이 숨김 처리되었습니다!");
+                                                                            toast.success(t("comments.actions.commentHidden"));
                                                                             queryClient.invalidateQueries({ queryKey: ['comments', currentSocialId] });
                                                                         } catch (e) {
-                                                                            toast.error("댓글 숨김에 실패했습니다.");
+                                                                            toast.error(t("comments.actions.hideCommentFailed"));
                                                                         }
                                                                     }
                                                                 }}
                                                                 className="bg-gray-100 rounded-full px-2.5 py-1 flex items-center gap-1.5 hover:bg-gray-200 transition-colors"
                                                             >
                                                                 <EyeOff className="w-3 h-3 text-gray-400" />
-                                                                <span className="text-gray-400 text-base">Hide</span>
+                                                                <span className="text-gray-400 text-base">{t('comments.hide')}</span>
                                                             </button>
                                                         </div>
                                                     </div>
@@ -483,7 +485,7 @@ export function CommentList() {
                                                     {/* My Reply (if exists) */}
                                                     {comment.is_replied && comment.replies.length > 0 && (
                                                         <div className="bg-gray-100 rounded-[16px] p-3 mb-5">
-                                                            <p className="text-gray-500 text-xs font-bold mb-1.5">Me</p>
+                                                            <p className="text-gray-500 text-xs font-bold mb-1.5">{t('comments.me')}</p>
                                                             <p className="text-black text-base">
                                                                 {comment.replies[0]?.text}
                                                             </p>
@@ -501,7 +503,7 @@ export function CommentList() {
                                                                     rows={1}
                                                                     value={replyTexts[comment.id] || ''}
                                                                     onChange={(e) => handleTextareaChange(comment.id, e.target.value)}
-                                                                    placeholder="Reply to Comment..."
+                                                                    placeholder={t('comments.replyPlaceholder')}
                                                                     className={`
                                                                     bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
                                                                     [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] focus:outline-none focus:focus-visible:ring-0

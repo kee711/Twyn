@@ -2,8 +2,10 @@
 
 import { Card } from "@/components/ui/card";
 import { BarChart3, Calendar, Rocket } from "lucide-react";
+import { useLocaleContext } from "@/components/providers/LocaleProvider";
 
 export const AdditionalFeaturesSection = () => {
+  const { t } = useLocaleContext();
   return (
     <section
       id="benefits"
@@ -24,12 +26,10 @@ export const AdditionalFeaturesSection = () => {
               <Rocket className="w-12 h-12 text-landing-text-reverse" />
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-landing-text-reverse leading-tight">
-              Effortless content to
-              <br />
-              maximize reach
+              {t('landing.additionalFeatures.title')}
             </h2>
             <p className="text-lg text-landing-text-reverse opacity-70 leading-relaxed max-w-md">
-              Powerful, AI-driven social media tools to help you create engaging content, grow your audience, and boost your Threads presence.
+              {t('landing.additionalFeatures.subtitle')}
             </p>
           </div>
 
@@ -41,10 +41,10 @@ export const AdditionalFeaturesSection = () => {
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-landing-text-primary">
-                  Save with URL
+                  {t('landing.additionalFeatures.saveUrl.title')}
                 </h3>
-                <p className="text-sm text-landing-text-secondary">
-                  Save your thought for later, use it again seemlessly. <br /> No more manual copy-pasting.
+                <p className="text-sm text-landing-text-secondary whitespace-pre-line">
+                  {t('landing.additionalFeatures.saveUrl.description')}
                 </p>
               </div>
             </Card>
@@ -55,10 +55,10 @@ export const AdditionalFeaturesSection = () => {
                   <BarChart3 className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-landing-text-primary">
-                  Analyze your progress
+                  {t('landing.additionalFeatures.analytics.title')}
                 </h3>
                 <p className="text-sm text-landing-text-secondary">
-                  Monitor your growth with detailed analytics. Track engagement, reach, and follower growth with actionable insights.
+                  {t('landing.additionalFeatures.analytics.description')}
                 </p>
               </div>
             </Card>

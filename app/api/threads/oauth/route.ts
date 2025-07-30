@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/authOptions";
+import { extractLocaleFromRequest } from "@/lib/utils/locale-redirect";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -9,6 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "로그인 필요" }, { status: 401 });
   }
 
+  const locale = extractLocaleFromRequest(req);
   const clientId = process.env.THREADS_CLIENT_ID!;
   const redirectUri = `${process.env.NEXTAUTH_URL}/api/threads/oauth/callback`;
   const authUrl = new URL("https://threads.net/oauth/authorize");
@@ -16,7 +18,7 @@ export async function GET(req: NextRequest) {
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("scope", "threads_basic,threads_content_publish,threads_manage_insights,threads_manage_mentions,threads_manage_replies,threads_read_replies");
   authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("state", session.user.id); // CSRF: tie to user
+  authUrl.searchParams.set("state", `${session.user.id}:${locale}`); // CSRF: tie to user and include locale
 
   console.log("client_id : ", clientId)
   console.log("redirectUri : ", redirectUri)

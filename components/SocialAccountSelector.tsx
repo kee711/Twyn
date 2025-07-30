@@ -17,12 +17,14 @@ import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { OnboardingModal } from './OnboardingModal';
+import { useLocaleContext } from './providers/LocaleProvider';
 
 interface SocialAccountSelectorProps {
   className?: string;
 }
 
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
+  const { t } = useLocaleContext();
   const [isLoading, setIsLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [newAccountId, setNewAccountId] = useState<string | null>(null);
@@ -233,7 +235,7 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
           <div className="font-medium text-base text-muted-foreground">
             {selectedAccount
               ? (selectedAccount.username || selectedAccount.social_id)
-              : '계정 선택'}
+              : t('SocialAccountSelector.selectAccount')}
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -243,7 +245,7 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
             onClick={addSocialAccount}
           >
             <PlusCircle className="h-4 w-4" />
-            <span className="font-medium">계정 추가</span>
+            <span className="font-medium">{t('SocialAccountSelector.addAccount')}</span>
           </div>
 
           {/* 구분선 추가 */}
@@ -251,10 +253,10 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
 
           {/* 계정 목록 */}
           <SelectGroup>
-            <SelectLabel>계정 목록</SelectLabel>
+            <SelectLabel>{t('SocialAccountSelector.accountList')}</SelectLabel>
             {accounts.length === 0 ? (
               <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                등록된 계정이 없습니다
+                {t('SocialAccountSelector.noAccount')}
               </div>
             ) : (
               accounts.map((account) => (

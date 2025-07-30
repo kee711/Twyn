@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Clock, Zap, Sparkles, Users } from "lucide-react";
+import { useLocaleContext } from "@/components/providers/LocaleProvider";
 
 const MovSection = ({ src }: { src: string }) => {
   return (
@@ -52,6 +53,8 @@ const TextSection = ({ title, description1, description2, description3 }: { titl
 
 
 export const FeatureSection = () => {
+  const { t } = useLocaleContext();
+  
   return (
     <section id="features" className="py-20 sm:py-32 bg-landing-background-primary">
       {/* Feature Sections */}
@@ -61,10 +64,10 @@ export const FeatureSection = () => {
           <div className="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-16 max-w-6xl mx-auto">
             <MovSection src="/landing-page/vid_topic-finder.mov" />
             <TextSection
-              title="Never run out of ideas"
-              description1="Explore ideas, perfectly suitable for you"
-              description2="Obviously, up-to-date topics are here"
-              description3="Personal profile data makes topic more yours"
+              title={t('landing.features.ideaTitle')}
+              description1={t('landing.features.ideaDesc1')}
+              description2={t('landing.features.ideaDesc2')}
+              description3={t('landing.features.ideaDesc3')}
             />
           </div>
         </div>
@@ -72,9 +75,9 @@ export const FeatureSection = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16 max-w-6xl mx-auto">
             <TextSection
-              title="Write 10x faster & better"
-              description1="Generate a ready-to-post draft with one click"
-              description2="Fine‑tune tone & style with AI"
+              title={t('landing.features.writeTitle')}
+              description1={t('landing.features.writeDesc1')}
+              description2={t('landing.features.writeDesc2')}
             />
             <MovSection src="/landing-page/vid_create-detail.mov" />
           </div>
@@ -84,10 +87,10 @@ export const FeatureSection = () => {
           <div className="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-16 max-w-6xl mx-auto">
             <MovSection src="/landing-page/vid_schedule.mov" />
             <TextSection
-              title="Auto-post while you rest"
-              description1="Post anytime, hands‑free"
-              description2="Drag & drop to reschedule in seconds"
-              description3="Stay consistent without extra effort"
+              title={t('landing.features.scheduleTitle')}
+              description1={t('landing.features.scheduleDesc1')}
+              description2={t('landing.features.scheduleDesc2')}
+              description3={t('landing.features.scheduleDesc3')}
             />
           </div>
         </div>
@@ -95,9 +98,9 @@ export const FeatureSection = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16 max-w-6xl mx-auto">
             <TextSection
-              title="Engage 10x faster"
-              description1="Generate Replies to all comments in one click"
-              description2="Crafts context‑aware replies that feel human"
+              title={t('landing.features.engageTitle')}
+              description1={t('landing.features.engageDesc1')}
+              description2={t('landing.features.engageDesc2')}
             />
             <MovSection src="/landing-page/vid_comment.mov" />
           </div>

@@ -3,46 +3,49 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { useLocaleContext } from "@/components/providers/LocaleProvider";
 
 export const PricingCTASection = () => {
+  const { t } = useLocaleContext();
+  
   const pricingPlans = [
     {
-      name: "TWYN FREE",
+      name: t('landing.pricing.freePlan'),
       price: "$0",
-      period: "/mo. per user",
-      badge: "LIMITED BETA ACCESS",
+      period: t('landing.pricing.monthlyUser'),
+      badge: t('landing.pricing.limitedBeta'),
       badgeColor: "bg-landing-primary-100 text-landing-primary-700 border-landing-primary-200",
       features: [
-        "AI-assisted content generation (limit: 50 posts or comment interactions per month)",
-        "Basic topic suggestions based on your profile",
-        "Basic scheduling and auto-upload features",
-        "Community support via Discord (beta users only)"
+        t('landing.pricing.freeFeatures.feature1'),
+        t('landing.pricing.freeFeatures.feature2'),
+        t('landing.pricing.freeFeatures.feature3'),
+        t('landing.pricing.freeFeatures.feature4')
       ]
     },
     {
-      name: "TWYN PRO",
+      name: t('landing.pricing.proPlan'),
       price: "$19",
-      period: "/mo. per user",
-      badge: "COMING SOON",
+      period: t('landing.pricing.monthlyUser'),
+      badge: t('landing.pricing.comingSoon'),
       badgeColor: "bg-landing-bg-primary text-landing-primary-600 border-landing-primary-200",
       features: [
-        "Everything in Twyn Free, plus:",
-        "Increased AI interaction limits (1,000 posts or comment interactions per month)",
-        "Up to 3 accounts",
-        "Analytics to track your best-performing posts"
+        t('landing.pricing.proFeatures.feature1'),
+        t('landing.pricing.proFeatures.feature2'),
+        t('landing.pricing.proFeatures.feature3'),
+        t('landing.pricing.proFeatures.feature4')
       ]
     },
     {
-      name: "TWYN PRO+",
+      name: t('landing.pricing.proPlusPlan'),
       price: "$39",
-      period: "/mo. per user",
-      badge: "COMING SOON",
+      period: t('landing.pricing.monthlyUser'),
+      badge: t('landing.pricing.comingSoon'),
       badgeColor: "bg-landing-bg-primary text-landing-primary-600 border-landing-primary-200",
       features: [
-        "Everything in Twyn Pro, plus:",
-        "Increased AI interaction limits (3,000 posts or comment interactions per month)",
-        "Priority scheduling and auto-posting",
-        "Exclusive access to advanced content strategy tips and premium support"
+        t('landing.pricing.proPlusFeatures.feature1'),
+        t('landing.pricing.proPlusFeatures.feature2'),
+        t('landing.pricing.proPlusFeatures.feature3'),
+        t('landing.pricing.proPlusFeatures.feature4')
       ]
     }
   ];
@@ -52,10 +55,10 @@ export const PricingCTASection = () => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16 max-w-4xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-landing-text-primary mb-4">
-            Unlock the full potential of Twyn <span className="text-landing-primary-600">for free</span>
+            {t('landing.pricing.title')} <span className="text-landing-primary-600">{t('landing.pricing.titleHighlight')}</span>
           </h2>
           <p className="text-lg text-landing-text-secondary max-w-2xl mx-auto">
-            During our beta period, take advantage of all features at no cost.
+            {t('landing.pricing.subtitle')}
           </p>
         </div>
 

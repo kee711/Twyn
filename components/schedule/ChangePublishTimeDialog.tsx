@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Clock, Edit, Plus, Check } from "lucide-react"
 import { DropdownTime } from "@/components/ui/dropdown-time"
 import { utcTimeToLocalTime, localTimeToUTCTime, isUTCISOString } from "@/lib/utils/time"
+import { useLocaleContext } from "@/components/providers/LocaleProvider"
 
 interface ChangePublishTimeDialogProps {
   variant?: 'default' | 'icon'
@@ -13,6 +14,7 @@ interface ChangePublishTimeDialogProps {
 }
 
 export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChange, ondisabled }: ChangePublishTimeDialogProps) {
+  const { t } = useLocaleContext()
   const [publishTimes, setPublishTimes] = useState<string[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [newTime, setNewTime] = useState('')
@@ -107,26 +109,24 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={variant === 'icon' ? 'default' : 'outline'} disabled={ondisabled} className={`flex items-center gap-2 ${variant === 'icon' ? 'h-full w-8 p-0 rounded-l-xl rounded-r-xl bg-black text-white hover:bg-black/90' : 'text-muted-foreground rounded-xl'}`}>
+        <Button variant={variant === 'icon' ? 'default' : 'outline'} disabled={ondisabled} className={`flex items-center gap-2 ${variant === 'icon' ? 'h-full w-8 p-0 rounded-l-sm rounded-r-xl bg-black text-white hover:bg-black/90' : 'text-muted-foreground rounded-xl'}`}>
           {variant === 'icon' ? (
             <Clock className="h-full w-4" />
           ) : (
             <>
               <Clock className="h-4 w-4" />
-              <span>게시 시간 변경</span>
+              <span>{t('components.rightSidebar.schedulePost')}</span>
             </>
           )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">게시 시간 관리</DialogTitle>
+          <DialogTitle className="text-xl">{t('components.rightSidebar.publishTime')}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4">
           <div className="text-sm text-muted-foreground mb-2">
-            게시물이 자동으로 등록될 시간을 설정합니다.
-            <br />
-            가까운 시간대부터 순서대로 예약됩니다.
+            {t('components.rightSidebar.publishTimeDescription')}
           </div>
 
           {publishTimes.length > 0 ? (
@@ -136,8 +136,8 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
                   {editingIndex === index ? (
                     <div className="flex items-center gap-2 w-full">
                       <div className="flex-1">
-                        <DropdownTime 
-                          value={newTime} 
+                        <DropdownTime
+                          value={newTime}
                           onValueChange={setNewTime}
                           className="w-full"
                         />
@@ -171,26 +171,26 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              설정된 게시 시간이 없습니다.
+              {t('components.rightSidebar.noSchedule')}
             </div>
           )}
 
           <div className="flex items-center gap-2 w-full mt-4">
             <div className="flex-1">
-              <DropdownTime 
-                value={newTime} 
+              <DropdownTime
+                value={newTime}
                 onValueChange={setNewTime}
                 className="w-full"
               />
             </div>
             <Button variant="outline" onClick={addTime} disabled={!newTime}>
               <Plus className="h-4 w-4 mr-2" />
-              <span>추가</span>
+              <span>{t('components.rightSidebar.add')}</span>
             </Button>
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={saveToDatabase} className="w-full">저장</Button>
+          <Button onClick={saveToDatabase} className="w-full h-11">{t('components.rightSidebar.save')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -7,21 +7,15 @@ import { cn } from "@/lib/utils";
 import { ShimmerButton } from "../ui/shimmer-button";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
+import { useLocaleContext } from "@/components/providers/LocaleProvider";
 
-function HeroSection({
-    badge = "Beta Access - Limited Spots",
-    title1 = "Conquering the Algorithm has Never Been Easier",
-    subtitle = "Post, engage, and grow 10x faster on Threads.\nYour AI Marketing Agent does all the heavy lifting",
-}: {
-    badge?: string;
-    title1?: string;
-    subtitle?: string;
-}) {
+function HeroSection() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [isSuccess, setIsSuccess] = useState(false);
+    const { t, locale } = useLocaleContext();
 
     const fadeUpVariants = {
         hidden: { opacity: 0, y: 30 },
@@ -29,7 +23,7 @@ function HeroSection({
     };
 
     const handleGetStarted = () => {
-        router.push('/signin');
+        router.push(`/${locale}/signin`);
     };
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -105,7 +99,7 @@ function HeroSection({
                                 >
                                     <Circle className="h-2 w-2 fill-landing-primary-600" />
                                     <span className="text-sm text-landing-primary-700 tracking-wide">
-                                        {badge}
+                                        {t('landing.hero.badge')}
                                     </span>
                                 </motion.div>
 
@@ -116,7 +110,7 @@ function HeroSection({
                                     transition={{ duration: 0.6, delay: 0.3 }}
                                 >
                                     <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 tracking-tight text-landing-text-primary">
-                                        {title1}
+                                        {t('landing.hero.title')}
                                     </h1>
                                 </motion.div>
 
@@ -127,7 +121,7 @@ function HeroSection({
                                     transition={{ duration: 0.6, delay: 0.4 }}
                                 >
                                     <p className="text-lg text-landing-text-secondary mb-8 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">
-                                        {subtitle}
+                                        {t('landing.hero.subtitle')}
                                     </p>
                                 </motion.div>
 
@@ -138,14 +132,18 @@ function HeroSection({
                                     transition={{ duration: 0.6, delay: 0.5 }}
                                 >
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                                        {/* 시작 버튼 임시 주석처리 */}
-                                        {/* <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
-                                            Get 2 months free
+                                        {/* <Button className="px-6 py-3 bg-white border border-gray-300 text-landing-text-tertiary hover:bg-gray-50 flex items-center space-x-2">
+                                            <Circle className="w-4 h-4 text-landing-text-muted" />
+                                            <span>Demo</span>
+                                        </Button> */}
+
+                                        <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
+                                            {t('landing.hero.ctaButton')}
                                             <div className="flex items-center gap-2 opacity-80 text-landing-text-reverse">
                                                 <PartyPopper className="w-4 h-4" />
-                                                <div className="text-xs">Beta privilege</div>
+                                                <div className="text-xs">{t('landing.hero.betaPrivilege')}</div>
                                             </div>
-                                        </Button> */}
+                                        </Button>
 
                                         {/* 베타 사용자 이메일 등록 */}
                                         <div className="flex flex-col items-center gap-4 w-full max-w-md">

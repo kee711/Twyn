@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLocaleContext } from '@/components/providers/LocaleProvider';
 
 interface HeadlineInputProps {
     value?: string;
@@ -14,9 +15,10 @@ interface HeadlineInputProps {
 }
 
 export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isSelected, onClick, onInstructionChange }: HeadlineInputProps) {
+    const { t } = useLocaleContext();
     const [headline, setHeadline] = useState<string>(typeof value === 'string' ? value : '');
     const [instruction, setInstruction] = useState<string>('');
-    const [placeholder, setPlaceholder] = useState('Write headline...');
+    const [placeholder, setPlaceholder] = useState(t('components.contentsHelper.headlineInput.placeholder'));
 
     useEffect(() => {
         if (value !== undefined) setHeadline(value);
@@ -49,7 +51,7 @@ export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isS
                     type="text"
                     value={headline}
                     onChange={e => handleChange(e.target.value)}
-                    placeholder={placeholder}
+                    placeholder={t('pages.contents.topicFinder.headlineInput.placeholder')}
                     // 텍스트 줄바꿈 처리, 높이 자동으로 늘어나게 처리
                     className="w-full h-fit bg-transparent text-lg font-medium placeholder-[#B0B0B0] outline-none px-2 py-1 whitespace-pre-wrap"
                     readOnly={readOnly}
@@ -59,7 +61,7 @@ export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isS
                     type="text"
                     value={instruction}
                     onChange={e => setInstruction(e.target.value)}
-                    placeholder="Write instruction..."
+                    placeholder={t('pages.contents.topicFinder.headlineInput.instructionPlaceholder')}
                     className="w-full bg-transparent text-sm font-medium text-gray-500 placeholder-[#B0B0B0] outline-none px-2 py-1"
                     readOnly={readOnly}
                 />

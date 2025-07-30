@@ -13,10 +13,11 @@ import { formatLocalDateTime } from "@/lib/utils/time";
 import { ChangePublishTimeDialog } from "./schedule/ChangePublishTimeDialog";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import NextImage from 'next/image';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
+import { useLocaleContext } from "./providers/LocaleProvider";
+import Link from "next/link";
 
 interface RightSidebarProps {
   className?: string;
@@ -29,6 +30,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
   const pathname = usePathname();
+  const { t } = useLocaleContext();
 
   // Use global thread chain store
   const {
@@ -102,7 +104,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
     }
   }, [threadChain]);
 
-  // 컴포넌트 mount 될 때만 자동으로 처음 한번 실행
+  // 컴포넌트 mount 될 때 한 번만 실행
   useEffect(() => {
     fetchPublishTimes();
     fetchScheduledTimes();
@@ -328,7 +330,9 @@ export function RightSidebar({ className }: RightSidebarProps) {
       const validThreads = threadChain.filter(thread => thread.content.trim() !== '');
       if (validThreads.length === 0 || !scheduleTime) return;
 
-      const message = validThreads.length > 1 ? "Your thread chain is scheduled" : "Your post is scheduled";
+      const message = validThreads.length > 1 
+        ? t('components.editPostModal.threadChainScheduled')
+        : t('components.editPostModal.postScheduled');
       toast.success(message);
 
       const result = await scheduleThreadChain(validThreads, scheduleTime);
@@ -354,7 +358,9 @@ export function RightSidebar({ className }: RightSidebarProps) {
       const validThreads = threadChain.filter(thread => thread.content.trim() !== '');
       if (validThreads.length === 0) return;
 
-      const message = validThreads.length > 1 ? "Your thread chain is being published" : "Your post is published";
+      const message = validThreads.length > 1 
+        ? t('components.editPostModal.threadChainPublishing')
+        : t('components.editPostModal.postPublished');
       toast.success(message);
 
       // Reset UI immediately
@@ -531,7 +537,7 @@ function RightSidebarContent({
   updateThreadMedia: (index: number, media_urls: string[]) => void;
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
+  const { t, locale } = useLocaleContext();
   // Check if any thread exceeds character limit
   const hasCharacterLimitViolation = () => {
     return threadChain.some(thread => thread.content.length > 500);
@@ -544,7 +550,7 @@ function RightSidebarContent({
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-background">
         <h2 className="text-sm font-medium text-muted-foreground">
-          Write or Add contents
+          {t('navigation.writeOrAddContents')}
         </h2>
 
         {/* 모바일에서는 아래로 내리기 버튼, 데스크톱에서는 닫기 버튼 */}
@@ -596,65 +602,65 @@ function RightSidebarContent({
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-background px-4 text-sm text-gray-400">Add contents from</span>
+              <span className="bg-background px-4 text-sm text-gray-400">{t('navigation.addContentsFrom')}</span>
             </div>
           </div>
 
           {/* Navigation Buttons */}
           <div className="grid gap-2 grid-cols-3">
             <Link
-              href="/contents/topic-finder"
+              href={`/${locale}/contents/topic-finder`}
               onClick={() => toggleSidebar()}
               className={cn(
                 "flex flex-col items-center p-4 rounded-xl transition-colors",
-                pathname === "/contents/topic-finder"
+                pathname === `/${locale}/contents/topic-finder`
                   ? "bg-gray-300 text-gray-900"
                   : "bg-gray-100 hover:bg-gray-200 text-muted-foreground"
               )}
             >
               <TextSearch className={cn(
                 "w-6 h-6 mb-2",
-                pathname === "/contents/topic-finder"
+                pathname === `/${locale}/contents/topic-finder`
                   ? "text-gray-900"
                   : "text-muted-foreground"
               )} />
-              <span className="text-xs">Topic Finder</span>
+              <span className="text-xs">{t('navigation.topicFinder')}</span>
             </Link>
             <Link
-              href="/contents/draft"
+              href={`/${locale}/contents/draft`}
               onClick={() => toggleSidebar()}
               className={cn(
                 "flex flex-col items-center p-4 rounded-xl transition-colors",
-                pathname === "/contents/draft"
+                pathname === `/${locale}/contents/draft`
                   ? "bg-gray-300 text-gray-900"
                   : "bg-gray-100 hover:bg-gray-200 text-muted-foreground"
               )}
             >
               <FileText className={cn(
                 "w-6 h-6 mb-2",
-                pathname === "/contents/draft"
+                pathname === `/${locale}/contents/draft`
                   ? "text-gray-900"
                   : "text-muted-foreground"
               )} />
-              <span className="text-xs">Draft</span>
+              <span className="text-xs">{t('navigation.draft')}</span>
             </Link>
             <Link
-              href="/contents/saved"
+              href={`/${locale}/contents/saved`}
               onClick={() => toggleSidebar()}
               className={cn(
                 "flex flex-col items-center p-4 rounded-xl transition-colors",
-                pathname === "/contents/saved"
+                pathname === `/${locale}/contents/saved`
                   ? "bg-gray-300 text-gray-900"
                   : "bg-gray-100 hover:bg-gray-200 text-muted-foreground"
               )}
             >
               <Bookmark className={cn(
                 "w-6 h-6 mb-2",
-                pathname === "/contents/saved"
+                pathname === `/${locale}/contents/saved`
                   ? "text-gray-900"
                   : "text-muted-foreground"
               )} />
-              <span className="text-xs">Saved</span>
+              <span className="text-xs">{t('navigation.saved')}</span>
             </Link>
 
           </div>
@@ -673,7 +679,7 @@ function RightSidebarContent({
           }}
           disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
         >
-          Save to Draft
+          {t('navigation.saveToDraft')}
         </Button>
 
         <div className="flex gap-2">
@@ -686,7 +692,7 @@ function RightSidebarContent({
               disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
             >
               <div className="flex-col">
-                <div>Schedule Post</div>
+                <div>{t('navigation.schedulePost')}</div>
                 {scheduleTime && (
                   <div className="text-xs text-muted-foreground">
                     {formatLocalDateTime(scheduleTime, {
@@ -716,7 +722,7 @@ function RightSidebarContent({
             onClick={handlePublish}
             disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
           >
-            Post Now
+            {t('navigation.postNow')}
           </Button>
         </div>
       </div>

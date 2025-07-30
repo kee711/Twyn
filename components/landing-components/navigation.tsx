@@ -3,10 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocaleContext } from "@/components/providers/LocaleProvider";
 
 export const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
+  const { t, locale } = useLocaleContext();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,11 +30,11 @@ export const Navigation = () => {
   };
 
   const handleLogin = () => {
-    router.push('/signin');
+    router.push(`/${locale}/signin`);
   };
 
   const handleSignup = () => {
-    router.push('/signin');
+    router.push(`/${locale}/signin`);
   };
 
   return (
@@ -53,25 +55,25 @@ export const Navigation = () => {
               onClick={() => scrollToSection('features')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              Features
+              {t('landing.nav.features')}
             </button>
             <button
               onClick={() => scrollToSection('benefits')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              Benefits
+              {t('landing.nav.benefits')}
             </button>
             <button
               onClick={() => scrollToSection('pricing')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              Pricing
+              {t('landing.nav.pricing')}
             </button>
             <button
               onClick={() => scrollToSection('faq')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              FAQ
+              {t('landing.nav.faq')}
             </button>
           </div>
 
@@ -82,13 +84,13 @@ export const Navigation = () => {
               onClick={handleLogin}
               className="text-landing-text-secondary hover:text-landing-text-primary hover:bg-gray-50"
             >
-              Login
+              {t('landing.nav.login')}
             </Button>
             <Button
               onClick={handleSignup}
               className="bg-landing-primary-600 hover:bg-landing-primary-700 text-white px-6 py-3"
             >
-              Sign up
+              {t('landing.nav.signup')}
             </Button>
           </div> */}
         </div>

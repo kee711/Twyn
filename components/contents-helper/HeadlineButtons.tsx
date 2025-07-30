@@ -1,11 +1,7 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '../ui/button';
 import { Dices, Sparkles, Trash } from 'lucide-react';
-import { useState } from 'react';
-import { on } from 'node:events';
-import { hash } from 'node:crypto';
-import { X } from 'lucide-react';
-import { Alert } from '../ui/alert';
+import { useLocaleContext } from '@/components/providers/LocaleProvider';
 
 interface HeadlineButtonsProps {
   tags: string[];
@@ -20,6 +16,8 @@ interface HeadlineButtonsProps {
 }
 
 export function HeadlineButtons({ tags, onCreateDetails, onGenerateTopics, onClickTag, IsIdeasLoading, IsCreateDetailsLoading, hasHeadline, hasTopics, onTopicDelete }: HeadlineButtonsProps) {
+  const { t } = useLocaleContext();
+
   return (
     <div className="w-full max-w-3xl flex justify-between items-center mt-3 flex-wrap">
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -46,14 +44,14 @@ export function HeadlineButtons({ tags, onCreateDetails, onGenerateTopics, onCli
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete All Topics</AlertDialogTitle>
+                <AlertDialogTitle>{t('pages.contents.topicFinder.deleteAllTopics')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete all topics you've created?
+                  {t('pages.contents.topicFinder.deleteAllTopicsDescription')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onTopicDelete}>Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('pages.contents.topicFinder.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={onTopicDelete}>{t('pages.contents.topicFinder.delete')}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -68,7 +66,7 @@ export function HeadlineButtons({ tags, onCreateDetails, onGenerateTopics, onCli
         >
           <Dices className="w-4 h-4 text-white" />
           <span className="font-semibold text-sm text-white">
-            Ideas
+            {t('pages.contents.topicFinder.ideas')}
           </span>
         </Button>
         <Button
@@ -80,7 +78,7 @@ export function HeadlineButtons({ tags, onCreateDetails, onGenerateTopics, onCli
           disabled={!hasHeadline || IsCreateDetailsLoading}
         >
           <Sparkles className="w-4 h-4" />
-          Create details
+          {t('pages.contents.topicFinder.createDetails')}
         </Button>
       </div>
     </div>
