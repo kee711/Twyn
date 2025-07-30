@@ -1,3 +1,5 @@
+'use client';
+
 import HomeClient from './HomeClient';
 
 // export async function generateStaticParams() {
