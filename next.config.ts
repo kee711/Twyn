@@ -8,7 +8,7 @@ const config: NextConfig = {
     locales: ['en', 'ko'],
     defaultLocale: 'en'
   },
-
+  trailingSlash: true,
   transpilePackages: ['next-intl'],
   async headers() {
     return [
