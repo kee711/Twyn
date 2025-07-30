@@ -5,10 +5,6 @@ const withNextIntl = createNextIntlPlugin('./i18n.ts');
 
 const config: NextConfig = {
   output: 'standalone',
-  i18n: {
-    locales: ['en', 'ko'],
-    defaultLocale: 'en'
-  },
   trailingSlash: true,
   transpilePackages: ['next-intl'],
   async headers() {
