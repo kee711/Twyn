@@ -7,7 +7,13 @@ import { Inter } from "next/font/google";
 import { LocaleProvider } from '@/components/providers/LocaleProvider';
 
 const inter = Inter({ subsets: ["latin"] });
-const locales = ['en', 'ko'];
+
+export async function generateStaticParams() {
+  return [
+    { locale: 'ko' },
+    { locale: 'en' }
+  ];
+}
 
 export default async function LocaleLayout({
   children,
@@ -17,8 +23,8 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  
-  if (!locales.includes(locale as any)) {
+
+  if (!['ko', 'en'].includes(locale)) {
     notFound();
   }
 
