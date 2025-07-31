@@ -1,10 +1,10 @@
 'use client'
 
 import { ContentList } from "@/components/contents-helper/ContentList";
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 export default function DraftPage() {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
 
   return (
     <div className="h-full w-full overflow-hidden flex flex-col p-6">

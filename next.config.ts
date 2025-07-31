@@ -1,4 +1,7 @@
 import { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin();
 
 const config: NextConfig = {
   trailingSlash: true,
@@ -50,25 +53,6 @@ const config: NextConfig = {
       os: false,
     };
 
-    // Fix for client reference manifest generation
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          ...config.optimization.splitChunks,
-          cacheGroups: {
-            ...config.optimization.splitChunks?.cacheGroups,
-            client: {
-              name: 'client',
-              chunks: 'all',
-              test: /[\\/]node_modules[\\/]/,
-              priority: 10,
-            },
-          },
-        },
-      };
-    }
-
     // Only include stagewise in development mode
     if (!dev) {
       config.module.rules.push({
@@ -91,4 +75,4 @@ const config: NextConfig = {
   },
 };
 
-export default config;
+export default withNextIntl(config);

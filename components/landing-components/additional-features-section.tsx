@@ -2,10 +2,10 @@
 
 import { Card } from "@/components/ui/card";
 import { BarChart3, Calendar, Rocket } from "lucide-react";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useTranslations } from 'next-intl';
 
 export const AdditionalFeaturesSection = () => {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
   return (
     <section
       id="benefits"

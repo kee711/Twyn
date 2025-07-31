@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Clock, Edit, Plus, Check } from "lucide-react"
 import { DropdownTime } from "@/components/ui/dropdown-time"
 import { utcTimeToLocalTime, localTimeToUTCTime, isUTCISOString } from "@/lib/utils/time"
-import { useLocaleContext } from "@/components/providers/LocaleProvider"
+import { useTranslations } from 'next-intl'
 
 interface ChangePublishTimeDialogProps {
   variant?: 'default' | 'icon'
@@ -14,7 +14,7 @@ interface ChangePublishTimeDialogProps {
 }
 
 export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChange, ondisabled }: ChangePublishTimeDialogProps) {
-  const { t } = useLocaleContext()
+  const t = useTranslations()
   const [publishTimes, setPublishTimes] = useState<string[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [newTime, setNewTime] = useState('')

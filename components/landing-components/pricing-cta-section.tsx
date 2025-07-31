@@ -3,10 +3,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useTranslations } from 'next-intl';
 
 export const PricingCTASection = () => {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
   
   const pricingPlans = [
     {

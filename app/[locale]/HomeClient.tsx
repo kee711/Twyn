@@ -5,7 +5,7 @@ import React from "react";
 import { PricingModal } from "@/components/modals/PricingModal";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 /* New Landing Components */
 import { Navigation } from "@/components/landing-components/navigation";
@@ -19,7 +19,7 @@ export default function HomeClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
-  const { t } = useLocaleContext();
+  const t = useTranslations();
 
   // Check for pricing modal parameter
   useEffect(() => {

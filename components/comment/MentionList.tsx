@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface Comment {
     id: string;
@@ -41,7 +41,8 @@ export function MentionList() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
-    const { t, locale } = useLocaleContext();
+    const t = useTranslations();
+    const locale = useLocale();
 
     const {
         data,

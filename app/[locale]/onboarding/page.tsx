@@ -1,21 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useSession } from 'next-auth/react';
 import { createClient } from '@/lib/supabase/client';
 import { UserOnboarding } from '@/components/onboarding/UserOnboarding';
 import { SocialOnboarding } from '@/components/onboarding/SocialOnboarding';
 import { PricingModal } from '@/components/modals/PricingModal';
 import { toast } from 'sonner';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const { locale, t } = useLocaleContext();
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [onboardingType, setOnboardingType] = useState<'user' | 'social' | null>(null);
   const [socialAccountId, setSocialAccountId] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export default function OnboardingPage() {
     if (status === 'loading') return;
 
     if (!session) {
-      router.push(`/${locale}/signin`);
+      router.push('/signin');
       return;
     }
 
@@ -45,7 +46,7 @@ export default function OnboardingPage() {
       setSocialAccountId(accountId);
     } else {
       // Invalid parameters, redirect to dashboard
-      router.push(`/${locale}/contents/topic-finder`);
+      router.push('/contents/topic-finder');
       return;
     }
 

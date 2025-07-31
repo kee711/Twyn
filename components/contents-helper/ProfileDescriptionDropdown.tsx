@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { BadgeInfo, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 interface ProfileDescriptionDropdownProps {
     accountId: string;
@@ -11,7 +11,7 @@ interface ProfileDescriptionDropdownProps {
 }
 
 export function ProfileDescriptionDropdown({ accountId, initialDescription }: ProfileDescriptionDropdownProps) {
-    const { t } = useLocaleContext();
+    const t = useTranslations();
     const [open, setOpen] = useState(false);
     const [desc, setDesc] = useState(initialDescription);
     const [editing, setEditing] = useState(false);

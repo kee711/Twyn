@@ -1,6 +1,5 @@
-import { withAuth } from 'next-auth/middleware'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
 
 const locales = ['en', 'ko']
 const defaultLocale = 'en'
@@ -101,4 +100,4 @@ export const config = {
      */
     '/((?!api/|_next/static|_next/image|favicon.ico|opengraph-image|apple-icon|icon).*)',
   ]
-} 
+}

@@ -3,12 +3,12 @@
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { useLocaleContext } from '@/components/providers/LocaleProvider'
+import { useTranslations } from 'next-intl'
 
 export default function ErrorPage() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-  const { t, locale } = useLocaleContext()
+  const t = useTranslations()
 
   const getErrorMessage = (error: string) => {
     const messageKey = `pages.error.messages.${error}` as const;

@@ -1,18 +1,20 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { checkOnboardingStatus } from '@/lib/utils/check-onboarding'
 import { SocialButton } from '@/components/signin/buttons/social-button'
-import { useLocaleContext } from '@/components/providers/LocaleProvider'
+import { useTranslations, useLocale } from 'next-intl'
 
 export default function SignInClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
-  const { t, locale } = useLocaleContext()
+  const t = useTranslations()
+  const locale = useLocale()
   const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/contents/topic-finder`
 
   // 세션이 있으면 온보딩 상태 확인 후 리다이렉트
@@ -28,7 +30,7 @@ export default function SignInClient() {
             router.push(callbackUrl)
           } else if (onboardingStatus) {
             console.log('👤 User onboarding needed, redirecting to user onboarding');
-            router.push(`/${locale}/onboarding?type=user`)
+            router.push('/onboarding?type=user')
           } else {
             console.log('🔄 Fallback case, redirecting to:', callbackUrl);
             // Fallback - 온보딩 상태가 명확하지 않은 경우 기본 페이지로
@@ -60,7 +62,7 @@ export default function SignInClient() {
     if (window.history.length > 1) {
       router.back()
     } else {
-      router.push(`/${locale}`)
+      router.push('/')
     }
   }
 

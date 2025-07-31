@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 interface SocialOnboardingProps {
   socialAccountId: string;
@@ -22,7 +22,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
     platform?: string;
   }>({});
   const [loading, setLoading] = useState(true);
-  const { t } = useLocaleContext();
+  const t = useTranslations();
 
   // Load account information
   useEffect(() => {

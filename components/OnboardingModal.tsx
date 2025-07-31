@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 import {
     Dialog,
     DialogContent,
@@ -42,7 +42,6 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { data: session } = useSession();
     const router = useRouter();
-    const { locale } = useLocaleContext();
 
     // 계정 유형 선택 핸들러
     const handleAccountTypeSelect = (type: AccountType) => {
@@ -113,7 +112,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
             onClose();
 
             // '/contents-cooker/topic-finder'로 리다이렉트
-            router.push(`/${locale}/contents/topic-finder`);
+            router.push('/contents/topic-finder');
         } catch (error) {
             console.error('온보딩 저장 오류:', error);
             toast.error('온보딩 정보 저장 중 오류가 발생했습니다.');

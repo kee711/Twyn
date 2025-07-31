@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useMobileSidebar } from "@/contexts/MobileSidebarContext";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useTranslations } from 'next-intl';
 
 export function MobileMenuButton() {
   const { toggleSidebar, isMobile } = useMobileSidebar();
-  const { t } = useLocaleContext();
+  const t = useTranslations();
 
   if (!isMobile) return null;
 

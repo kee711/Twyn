@@ -17,14 +17,14 @@ import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { OnboardingModal } from './OnboardingModal';
-import { useLocaleContext } from './providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 interface SocialAccountSelectorProps {
   className?: string;
 }
 
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
   const [isLoading, setIsLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [newAccountId, setNewAccountId] = useState<string | null>(null);

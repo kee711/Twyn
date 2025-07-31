@@ -2,13 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 export const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
-  const { t, locale } = useLocaleContext();
+  const t = useTranslations();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,11 +30,11 @@ export const Navigation = () => {
   };
 
   const handleLogin = () => {
-    router.push(`/${locale}/signin`);
+    router.push('/signin');
   };
 
   const handleSignup = () => {
-    router.push(`/${locale}/signin`);
+    router.push('/signin');
   };
 
   return (

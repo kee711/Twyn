@@ -7,7 +7,7 @@ import useSocialAccountStore from '@/stores/useSocialAccountStore';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from 'sonner';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 export default function SavedPage() {
     const [error, setError] = useState("");
@@ -15,7 +15,7 @@ export default function SavedPage() {
     const [url, setUrl] = useState("");
     const [refreshKey, setRefreshKey] = useState(0);
     const { currentSocialId } = useSocialAccountStore();
-    const { t } = useLocaleContext();
+    const t = useTranslations();
 
     function isValidThreadsUrl(url: string): boolean {
         const regex = /^https:\/\/www\.threads\.net\/@[\w.-]+\/post\/[\w-]+$/;

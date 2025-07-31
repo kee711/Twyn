@@ -17,7 +17,7 @@ import { EditPostModal } from './EditPostModal'
 import { Event } from './types'
 import { deleteSchedule } from '@/app/actions/schedule'
 import { utcISOToLocalTime } from '@/lib/utils/time'
-import { useLocaleContext } from '@/components/providers/LocaleProvider'
+import { useTranslations } from 'next-intl'
 
 interface CalendarProps {
   defaultView?: 'calendar' | 'list'
@@ -36,15 +36,15 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null)
   const listContainerRef = useRef<HTMLDivElement>(null)
   const { currentSocialId } = useSocialAccountStore()
-  const { t } = useLocaleContext()
+  const t = useTranslations()
 
   // Check if social account is connected
   const checkSocialAccountConnection = () => {
     if (!currentSocialId) {
-      toast.error(t("components.schedule.noAccount.title"), {
-        description: t("components.schedule.noAccount.description"),
+      toast.error(t("schedule.noAccount.title"), {
+        description: t("schedule.noAccount.description"),
         action: {
-          label: t("components.schedule.noAccount.connectButton"),
+          label: t("schedule.noAccount.connectButton"),
           onClick: () => window.location.href = "/api/threads/oauth"
         }
       });

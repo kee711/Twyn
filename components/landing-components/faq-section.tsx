@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Minus } from "lucide-react";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useTranslations } from 'next-intl';
 
 interface FAQItemProps {
   question: string;
@@ -36,7 +36,7 @@ const FAQItem = ({ question, answer }: FAQItemProps) => {
 };
 
 export const FAQSection = () => {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
   
   const faqs = [
     {

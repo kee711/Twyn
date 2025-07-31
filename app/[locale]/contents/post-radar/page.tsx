@@ -1,10 +1,10 @@
 'use client';
 
 import { ContentList } from "@/components/contents-helper/ContentList";
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 export default function PostRadarPage() {
-    const { t } = useLocaleContext();
+    const t = useTranslations();
 
     return (
         <div className="p-4 md:p-6">

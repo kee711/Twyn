@@ -18,14 +18,15 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations, useLocale } from 'next-intl';
 
 export function CommentList() {
     const { currentSocialId, currentUsername } = useSocialAccountStore();
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
-    const { t, locale } = useLocaleContext();
+    const t = useTranslations();
+    const locale = useLocale();
 
     const {
         data,
@@ -217,10 +218,10 @@ export function CommentList() {
                 }
             }, 1);
 
-            toast.success(t("components.comments.ai.generated"));
+            toast.success(t("comments.ai.generated"));
         } catch (error) {
             console.error('AI generation error:', error);
-            toast.error(t("components.comments.ai.generationFailed"));
+            toast.error(t("comments.ai.generationFailed"));
         } finally {
             setAiGenerating(prev => ({ ...prev, [commentId]: false }));
         }
@@ -230,7 +231,7 @@ export function CommentList() {
     const sendReply = async (commentId: string) => {
         // currentSocialId 검증
         if (!currentSocialId || currentSocialId.trim() === '') {
-            toast.error(t('components.comments.ai.loadingAccount'));
+            toast.error(t('comments.ai.loadingAccount'));
             return;
         }
 
@@ -264,17 +265,17 @@ export function CommentList() {
         const unrepliedComments = currentPostComments.filter(c => !c.is_replied);
 
         if (unrepliedComments.length === 0) {
-            toast.info(t("components.comments.ai.allReplied"));
+            toast.info(t("comments.ai.allReplied"));
             return;
         }
 
-        toast.info(t("components.comments.ai.draftingReplies"));
+        toast.info(t("comments.ai.draftingReplies"));
 
         for (const comment of unrepliedComments) {
             await generateAIReply(comment.text, comment.id);
         }
 
-        toast.success(t("components.comments.ai.draftingCompleted"));
+        toast.success(t("comments.ai.draftingCompleted"));
     };
 
     // Handle post click with dynamic positioning

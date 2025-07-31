@@ -16,7 +16,7 @@ import NextImage from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
-import { useLocaleContext } from "./providers/LocaleProvider";
+import { useTranslations, useLocale } from 'next-intl';
 import Link from "next/link";
 
 interface RightSidebarProps {
@@ -30,7 +30,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
   const pathname = usePathname();
-  const { t } = useLocaleContext();
+  const t = useTranslations();
 
   // Use global thread chain store
   const {
@@ -537,7 +537,8 @@ function RightSidebarContent({
   updateThreadMedia: (index: number, media_urls: string[]) => void;
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { t, locale } = useLocaleContext();
+  const t = useTranslations();
+  const locale = useLocale();
   // Check if any thread exceeds character limit
   const hasCharacterLimitViolation = () => {
     return threadChain.some(thread => thread.content.length > 500);

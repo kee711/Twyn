@@ -24,7 +24,7 @@ import { improvePost } from "@/app/actions/improvePost";
 import { uploadMediaFilesClient, deleteMediaFileClient } from "@/lib/utils/upload";
 import { useSession } from "next-auth/react";
 import { PRESET_PROMPTS } from "@/lib/prompts";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useTranslations } from 'next-intl';
 
 interface PostCardProps {
   variant?: "default" | "writing" | "compact";
@@ -122,7 +122,7 @@ export function PostCard({
   const [selectedMedia, setSelectedMedia] = useState<string[]>(media);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useLocaleContext();
+  const t = useTranslations();
   // NextAuth 세션 (컴포넌트 최상위 레벨에서 호출)
   const { data: session, status } = useSession();
 

@@ -6,8 +6,8 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ShimmerButton } from "../ui/shimmer-button";
 import { Button } from "../ui/button";
-import { useRouter } from "next/navigation";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 function HeroSection() {
     const router = useRouter();
@@ -15,7 +15,7 @@ function HeroSection() {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [isSuccess, setIsSuccess] = useState(false);
-    const { t, locale } = useLocaleContext();
+    const t = useTranslations();
 
     const fadeUpVariants = {
         hidden: { opacity: 0, y: 30 },
@@ -23,7 +23,7 @@ function HeroSection() {
     };
 
     const handleGetStarted = () => {
-        router.push(`/${locale}/signin`);
+        router.push('/signin');
     };
 
     const handleEmailSubmit = async (e: React.FormEvent) => {

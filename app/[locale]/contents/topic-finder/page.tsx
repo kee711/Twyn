@@ -33,7 +33,7 @@ import { fetchAndSaveComments, fetchAndSaveMentions } from '@/app/actions/fetchC
 import { getAllCommentsWithRootPosts, getAllMentionsWithRootPosts } from '@/app/actions/comment';
 import { statisticsKeys } from '@/lib/queries/statisticsKeys';
 import { fetchUserInsights, fetchTopPosts } from '@/lib/queries/statisticsQueries';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations, useLocale } from 'next-intl';
 
 export default function TopicFinderPage() {
     const [isLoading, setIsLoading] = useState(false)
@@ -43,7 +43,8 @@ export default function TopicFinderPage() {
     const { setPendingThreadChain } = useThreadChainStore();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
-    const { t, locale } = useLocaleContext();
+    const t = useTranslations();
+    const locale = useLocale();
 
     const { accounts, currentSocialId, currentUsername } = useSocialAccountStore()
     const [accountInfo, setAccountInfo] = useState('')

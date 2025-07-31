@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Users, Lightbulb, User, Building, Zap, Target, MessageSquare, TrendingUp, AlertCircle, Clock, BarChart3 } from 'lucide-react';
-import { useLocaleContext } from '../providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 interface UserOnboardingProps {
   onComplete: (responses: {
@@ -21,33 +21,33 @@ const stepData = (t: any) => ({
     title: t('UserOnboarding.step1Title'),
     description: t('UserOnboarding.step1Description'),
     options: [
-      { id: 'followers', title: t('UserOnboarding.followers'), description: t('UserOnboarding.followersDescription'), icon: TrendingUp },
-      { id: 'brand', title: t('UserOnboarding.brand'), description: t('UserOnboarding.brandDescription'), icon: Target },
-      { id: 'product', title: t('UserOnboarding.product'), description: t('UserOnboarding.productDescription'), icon: BarChart3 },
+      { id: 'followers', title: t('UserOnboarding.step1Options.followers'), description: t('UserOnboarding.followersDescription'), icon: TrendingUp },
+      { id: 'brand', title: t('UserOnboarding.step1Options.brand'), description: t('UserOnboarding.brandDescription'), icon: Target },
+      { id: 'product', title: t('UserOnboarding.step1Options.product'), description: t('UserOnboarding.productDescription'), icon: BarChart3 },
     ]
   },
   2: {
     title: t('UserOnboarding.step2Title'),
     description: t('UserOnboarding.step2Description'),
     options: [
-      { id: 'solo', title: t('UserOnboarding.solo'), description: t('UserOnboarding.soloDescription'), icon: User },
-      { id: 'marketer', title: t('UserOnboarding.marketer'), description: t('UserOnboarding.marketerDescription'), icon: Building },
-      { id: 'agency', title: t('UserOnboarding.agency'), description: t('UserOnboarding.agencyDescription'), icon: Zap },
+      { id: 'solo', title: t('UserOnboarding.step2Options.solo'), description: t('UserOnboarding.soloDescription'), icon: User },
+      { id: 'marketer', title: t('UserOnboarding.step2Options.marketer'), description: t('UserOnboarding.marketerDescription'), icon: Building },
+      { id: 'agency', title: t('UserOnboarding.step2Options.agency'), description: t('UserOnboarding.agencyDescription'), icon: Zap },
     ]
   },
   3: {
     title: t('UserOnboarding.step3Title'),
     description: t('UserOnboarding.step3Description'),
     options: [
-      { id: 'ideas', title: t('UserOnboarding.ideas'), description: t('UserOnboarding.ideasDescription'), icon: Lightbulb },
-      { id: 'consistent', title: t('UserOnboarding.consistent'), description: t('UserOnboarding.consistentDescription'), icon: Clock },
-      { id: 'engagement', title: t('UserOnboarding.engagement'), description: t('UserOnboarding.engagementDescription'), icon: TrendingUp },
+      { id: 'ideas', title: t('UserOnboarding.step3Options.ideas'), description: t('UserOnboarding.ideasDescription'), icon: Lightbulb },
+      { id: 'consistent', title: t('UserOnboarding.step3Options.consistent'), description: t('UserOnboarding.consistentDescription'), icon: Clock },
+      { id: 'engagement', title: t('UserOnboarding.step3Options.engagement'), description: t('UserOnboarding.engagementDescription'), icon: TrendingUp },
     ]
   }
 });
 
 export function UserOnboarding({ onComplete }: UserOnboardingProps) {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [responses, setResponses] = useState({
     step1: null as string | null,

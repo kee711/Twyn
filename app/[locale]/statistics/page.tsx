@@ -47,7 +47,7 @@ import {
     Quote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 
 // 타입 정의는 store에서 import
@@ -81,7 +81,7 @@ export default function StatisticsPage() {
     const { data: session } = useSession();
     const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
     const queryClient = useQueryClient();
-    const { t } = useLocaleContext();
+    const t = useTranslations();
 
     const dateRanges: DateRange[] = [
         { label: t('components.statistics.dateRanges.7days'), days: 7 },

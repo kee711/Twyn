@@ -23,7 +23,7 @@ import {
   AtSign,
   Bookmark
 } from 'lucide-react';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations, useLocale } from 'next-intl';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { LucideIcon } from 'lucide-react';
@@ -57,7 +57,8 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { isSidebarOpen, closeSidebar, isMobile } = useMobileSidebar();
-  const { t, locale } = useLocaleContext();
+  const t = useTranslations();
+  const locale = useLocale();
 
   // Initialize with empty array to prevent hydration mismatch
   const [openItems, setOpenItems] = useState<string[]>([]);
@@ -236,7 +237,8 @@ function SidebarContent({
   onLinkClick: () => void;
   isMobile?: boolean;
 }) {
-  const { t, locale } = useLocaleContext();
+  const t = useTranslations();
+  const locale = useLocale();
   return (
     <div className="flex flex-col justify-between h-full">
       {/* Top section: Logo and Navigation */}

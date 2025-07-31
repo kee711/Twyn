@@ -26,13 +26,13 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import useSocialAccountStore from '@/stores/useSocialAccountStore'
 import { PricingModal } from '@/components/modals/PricingModal'
-import { useLocaleContext } from '@/components/providers/LocaleProvider'
+import { useTranslations } from 'next-intl'
 
 export default function SettingsPage() {
   const { data: session, status } = useSession()
   const [language, setLanguage] = useState('ko')
   const [showPricingModal, setShowPricingModal] = useState(false)
-  const { t } = useLocaleContext()
+  const t = useTranslations()
 
   // 유저 프로필 상태 (user_profiles 테이블)
   const [userProfile, setUserProfile] = useState<{

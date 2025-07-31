@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Clock, Zap, Sparkles, Users } from "lucide-react";
-import { useLocaleContext } from "@/components/providers/LocaleProvider";
+import { useTranslations } from 'next-intl';
 
 const MovSection = ({ src }: { src: string }) => {
   return (
@@ -53,7 +53,7 @@ const TextSection = ({ title, description1, description2, description3 }: { titl
 
 
 export const FeatureSection = () => {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
   
   return (
     <section id="features" className="py-20 sm:py-32 bg-landing-background-primary">

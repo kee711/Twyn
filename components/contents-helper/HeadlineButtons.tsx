@@ -1,7 +1,7 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '../ui/button';
 import { Dices, Sparkles, Trash } from 'lucide-react';
-import { useLocaleContext } from '@/components/providers/LocaleProvider';
+import { useTranslations } from 'next-intl';
 
 interface HeadlineButtonsProps {
   tags: string[];
@@ -16,7 +16,7 @@ interface HeadlineButtonsProps {
 }
 
 export function HeadlineButtons({ tags, onCreateDetails, onGenerateTopics, onClickTag, IsIdeasLoading, IsCreateDetailsLoading, hasHeadline, hasTopics, onTopicDelete }: HeadlineButtonsProps) {
-  const { t } = useLocaleContext();
+  const t = useTranslations();
 
   return (
     <div className="w-full max-w-3xl flex justify-between items-center mt-3 flex-wrap">
