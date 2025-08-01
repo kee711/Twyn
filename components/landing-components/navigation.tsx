@@ -76,7 +76,7 @@ export const Navigation = () => {
           </div>
 
           {/* Auth Buttons */}
-          <div className="flex items-center space-x-4">
+          {/* <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
               onClick={handleLogin}
@@ -90,7 +90,7 @@ export const Navigation = () => {
             >
               Sign up
             </Button>
-          </div>
+          </div> */}
         </div>
       </div>
     </nav>
