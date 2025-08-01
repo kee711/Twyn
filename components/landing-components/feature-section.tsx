@@ -99,7 +99,7 @@ export const FeatureSection = () => {
               description1="Generate Replies to all comments in one click"
               description2="Crafts context‑aware replies that feel human"
             />
-            <MovSection src="/landing-page/vid_comments.mov" />
+            <MovSection src="/landing-page/vid_comment.mov" />
           </div>
         </div>
       </div>

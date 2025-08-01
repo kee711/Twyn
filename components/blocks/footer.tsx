@@ -60,9 +60,9 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
           <div className="grid grid-cols-1 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <a href="#" className="text-xl font-semibold text-landing-text-primary">
-                {brand.name}
+                <img src="/twyn-logo-blk.svg" alt="Twyn" className="w-20 h-20" />
               </a>
-              <p className="text-sm text-landing-text-secondary mt-2">
+              <p className="text-sm text-landing-text-secondary mt-2 whitespace-pre-line">
                 {brand.description}
               </p>
 
