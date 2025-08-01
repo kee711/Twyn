@@ -18,6 +18,10 @@ function HeroSection({
     subtitle?: string;
 }) {
     const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [isSuccess, setIsSuccess] = useState(false);
 
     const fadeUpVariants = {
         hidden: { opacity: 0, y: 30 },
@@ -26,6 +30,45 @@ function HeroSection({
 
     const handleGetStarted = () => {
         router.push('/signin');
+    };
+
+    const handleEmailSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!email.trim()) {
+            setMessage("이메일을 입력해주세요.");
+            setIsSuccess(false);
+            return;
+        }
+
+        setIsLoading(true);
+        setMessage("");
+
+        try {
+            const response = await fetch("/api/waitinglist", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email: email.trim() }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setMessage(data.message);
+                setIsSuccess(true);
+                setEmail(""); // 성공 시 입력 초기화
+            } else {
+                setMessage(data.error || "등록 중 오류가 발생했습니다.");
+                setIsSuccess(false);
+            }
+        } catch (error) {
+            setMessage("네트워크 오류가 발생했습니다.");
+            setIsSuccess(false);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -95,17 +138,46 @@ function HeroSection({
                                     transition={{ duration: 0.6, delay: 0.5 }}
                                 >
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                                        {/* <Button className="px-6 py-3 bg-white border border-gray-300 text-landing-text-tertiary hover:bg-gray-50 flex items-center space-x-2">
-                                            <Circle className="w-4 h-4 text-landing-text-muted" />
-                                            <span>Demo</span>
-                                        </Button> */}
-                                        <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
+                                        {/* 시작 버튼 임시 주석처리 */}
+                                        {/* <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
                                             Get 2 months free
                                             <div className="flex items-center gap-2 opacity-80 text-landing-text-reverse">
                                                 <PartyPopper className="w-4 h-4" />
                                                 <div className="text-xs">Beta privilege</div>
                                             </div>
-                                        </Button>
+                                        </Button> */}
+
+                                        {/* 베타 사용자 이메일 등록 */}
+                                        <div className="flex flex-col items-center gap-4 w-full max-w-md">
+                                            <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 w-full h-12">
+                                                <input
+                                                    type="email"
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    placeholder="베타 테스터 이메일을 입력해주세요"
+                                                    disabled={isLoading}
+                                                    className="flex-1 h-full px-4 py-2 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-landing-primary-500 focus:border-transparent text-landing-text-primary placeholder:text-landing-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
+                                                <Button
+                                                    type="submit"
+                                                    disabled={isLoading}
+                                                    className="px-6 py-3 h-full rounded-2xl text-base bg-landing-primary-600 hover:bg-landing-primary-700 text-white whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {isLoading ? "등록 중..." : "등록하기"}
+                                                </Button>
+                                            </form>
+
+                                            {message && (
+                                                <div className={`text-sm text-center ${isSuccess ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {message}
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center gap-2 text-landing-primary-600">
+                                                <PartyPopper className="w-4 h-4" />
+                                                <span className="text-sm">베타 테스터 등록하고 2개월 무료 혜택 받기</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </motion.div>
                             </div>
@@ -124,9 +196,9 @@ function HeroSection({
                             >
                                 {/* Placeholder for dashboard image */}
                                 <div className="relative">
-                                    <div className="bg-white rounded-lg shadow-2xl border border-gray-200 p-1">
-                                        <div className="bg-gray-100 rounded-md h-fit flex items-center justify-center">
-                                            <img src="/dashboard-bg-img.png" alt="Dashboard Preview" className="w-full h-full object-cover" />
+                                    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-1">
+                                        <div className="bg-gray-100 h-fit flex items-center justify-center rounded-2xl">
+                                            <img src="/hero-img3.png" alt="Dashboard Preview" className="w-full h-full object-cover rounded-xl" />
                                             {/* <div className="text-center">
                                                 <div className="w-16 h-16 bg-landing-primary-100 rounded-full mx-auto mb-4 flex items-center justify-center">
                                                     <svg className="w-8 h-8 text-landing-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

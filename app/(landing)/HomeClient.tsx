@@ -47,7 +47,7 @@ export default function HomeClient() {
       <Footer
         brand={{
           name: "Twyn",
-          description: "Minimize your time & energy to post, engage, and grow on Threads.",
+          description: "Minimize your time & energy to post, engage,\nand grow 10x faster on Threads.",
         }}
         socialLinks={[
           {
