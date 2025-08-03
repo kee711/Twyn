@@ -20,9 +20,16 @@ export default function PrivacyPolicy() {
           <div className="prose prose-gray dark:prose-invert max-w-none">
             <div className="space-y-8">
               <div className="text-muted-foreground leading-relaxed">
+                <p className="font-bold text-xl">Effective as of July 2025</p>
+                <p><strong>App Name</strong>: <strong>Twyn</strong></p>
+                <p><strong>Developer Name</strong>: <strong>Twyn Team (Privacy Management: Minsung Kee)</strong></p>
+                <p><strong>Website URL</strong>: www.twyn.sh</p>
+                <p><strong>Contact Email</strong>: harryki@twyn.sh</p>
                 <p>
-                  Twyn ("The service") values your personal information and is committed to protecting it.<br />
-                  This policy outlines how personal information is collected, used, and managed when using the Service.
+                  Twyn ("the Service") values your personal information and is committed to protecting it.
+                </p>
+                <p>
+                  This Privacy Policy describes how Twyn collects, uses, and manages your personal information when you use our website or mobile application.
                 </p>
               </div>
 
@@ -30,24 +37,28 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold mb-4">1. Personal Information We Collect</h2>
                 <div className="space-y-3">
                   <p className="text-muted-foreground leading-relaxed">
-                    The Service may collect the following personal information through Google OAuth login:
+                    When you use Twyn, we may collect the following information:
                   </p>
+                  
+                  <h3 className="text-lg font-semibold mt-4 mb-2">a. Through Google OAuth:</h3>
                   <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                     <li>Name</li>
                     <li>Email address</li>
                     <li>Profile picture</li>
                   </ul>
-                  <p className="text-muted-foreground leading-relaxed">
-                    The Service may also collect the following personal information through Threads OAuth integration:
-                  </p>
+                  
+                  <h3 className="text-lg font-semibold mt-4 mb-2">b. Through Meta Threads OAuth:</h3>
                   <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-                    <li>Access and display your Threads information and posts (Required)</li>
-                    <li>Create and share posts on your Threads profile (Optional)</li>
-                    <li>Manage replies and quotes on Threads posts (Optional)</li>
-                    <li>Manage insights of Threads posts (Optional)</li>
-                    <li>Read replies on Threads posts (Optional)</li>
-                    <li>Read and reply to mentioned public Threads posts (Optional)</li>
+                    <li>Access and display your Threads information and posts (<strong>Required</strong>)</li>
+                    <li>Create and share posts on your Threads profile (<strong>Optional</strong>)</li>
+                    <li>Manage replies and quotes on Threads posts (<strong>Optional</strong>)</li>
+                    <li>Manage insights of Threads posts (<strong>Optional</strong>)</li>
+                    <li>Read replies on Threads posts (<strong>Optional</strong>)</li>
+                    <li>Read and reply to mentioned public Threads posts (<strong>Optional</strong>)</li>
                   </ul>
+                  <p className="text-muted-foreground leading-relaxed">
+                    These permissions are requested only to support content creation, scheduling, and publishing functionality within the app.
+                  </p>
                 </div>
               </section>
 
@@ -55,12 +66,13 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold mb-4">2. Purpose of Collecting Personal Information</h2>
                 <div className="space-y-3">
                   <p className="text-muted-foreground leading-relaxed">
-                    Personal information is collected solely for the following purposes:
+                    We collect your personal information solely for the following purposes:
                   </p>
                   <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-                    <li>User identification and account management</li>
-                    <li>Providing and maintaining the Service</li>
-                    <li>Smooth communication with users</li>
+                    <li>To authenticate and identify users</li>
+                    <li>To provide and maintain personalized content creation services</li>
+                    <li>To enable content scheduling and posting on Threads</li>
+                    <li>To communicate with users and provide customer support</li>
                   </ul>
                 </div>
               </section>
@@ -68,10 +80,10 @@ export default function PrivacyPolicy() {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">3. Retention and Use Period</h2>
                 <div className="space-y-3">
-                  <p className="text-muted-foreground leading-relaxed">
-                    Personal information will be retained only during the period of Service use.<br />
-                    If a user deletes their account or requests withdrawal, the information will be promptly destroyed.
-                  </p>
+                  <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
+                    <li>Personal information is retained only while the user is actively using the Service.</li>
+                    <li>When a user deletes their account or requests account deletion, their personal data is permanently deleted without delay.</li>
+                  </ul>
                 </div>
               </section>
 
@@ -79,7 +91,7 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold mb-4">4. Provision of Personal Information to Third Parties</h2>
                 <div className="space-y-3">
                   <p className="text-muted-foreground leading-relaxed">
-                    The Service does not share or provide personal information to third parties without the user's prior consent.
+                    We do not share your personal information with third parties without your prior consent.
                   </p>
                 </div>
               </section>
@@ -88,7 +100,7 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold mb-4">5. Outsourcing of Personal Information Processing</h2>
                 <div className="space-y-3">
                   <p className="text-muted-foreground leading-relaxed">
-                    The Service does not outsource the processing of personal information to third parties.
+                    We do not outsource personal information processing to any external service providers.
                   </p>
                 </div>
               </section>
@@ -97,7 +109,7 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold mb-4">6. User Rights and How to Exercise Them</h2>
                 <div className="space-y-3">
                   <p className="text-muted-foreground leading-relaxed">
-                    Users may request to view, modify, delete, or suspend the processing of their personal information at any time.
+                    Users can request access to, modification of, or deletion of their personal data at any time by contacting the email below.
                   </p>
                 </div>
               </section>
@@ -106,16 +118,13 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold mb-4">7. Personal Information Protection Officer</h2>
                 <div className="space-y-3">
                   <p className="text-muted-foreground leading-relaxed">
-                    For any inquiries or complaints regarding personal information, please contact:
+                    For all inquiries regarding personal information, please contact:
                   </p>
                   <div className="bg-muted/50 p-4 rounded-md">
                     <p className="text-muted-foreground font-medium">
-                      Email: <a href="mailto:twyn.sh@gmail.com" className="text-primary hover:underline">twyn.sh@gmail.com</a>
+                      📧 Email: <a href="mailto:harryki@twyn.sh" className="text-primary hover:underline">harryki@twyn.sh</a>
                     </p>
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    This Privacy Policy is effective as of July 2025.
-                  </p>
                 </div>
               </section>
 
@@ -123,15 +132,15 @@ export default function PrivacyPolicy() {
                 <h2 className="text-2xl font-semibold mb-4">8. How to Request Data Deletion</h2>
                 <div className="space-y-3">
                   <p className="text-muted-foreground leading-relaxed">
-                    Users may request the deletion of their personal information at any time by contacting:
+                    To request deletion of your personal data, email us at:
                   </p>
                   <div className="bg-muted/50 p-4 rounded-md">
                     <p className="text-muted-foreground font-medium">
-                      Data deletion request email: <a href="mailto:twyn.sh@gmail.com" className="text-primary hover:underline">twyn.sh@gmail.com</a>
+                      📧 Email: <a href="mailto:harryki@twyn.sh" className="text-primary hover:underline">harryki@twyn.sh</a>
                     </p>
                   </div>
                   <p className="text-muted-foreground leading-relaxed">
-                    Requests for data deletion will be processed promptly.
+                    All deletion requests will be handled promptly.
                   </p>
                 </div>
               </section>
