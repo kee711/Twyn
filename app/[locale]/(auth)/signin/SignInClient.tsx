@@ -6,8 +6,10 @@ import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { checkOnboardingStatus } from '@/lib/utils/check-onboarding'
 import { SocialButton } from '@/components/signin/buttons/social-button'
+import { useTranslations } from 'next-intl'
 
 export default function SignInClient() {
+  const t = useTranslations('auth')
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/contents/topic-finder'
@@ -93,7 +95,7 @@ export default function SignInClient() {
           <button
             onClick={handleGoBack}
             className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-white"
-            aria-label="닫기"
+            aria-label={t('close')}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6 6 18"></path>
@@ -102,9 +104,9 @@ export default function SignInClient() {
           </button>
 
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome to Twyn!</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('welcome')}</h1>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Sign in to your account to continue
+              {t('signInDescription')}
             </p>
           </div>
 
@@ -115,11 +117,11 @@ export default function SignInClient() {
               className="w-full"
               onClick={() => signIn('google', { callbackUrl })}
             >
-              Sign in with Google
+              {t('signInWithGoogle')}
             </SocialButton>
 
             <div className="text-center text-xs text-gray-500">
-              By continuing, you agree to our <a href="/privacy" className="text-primary hover:underline" target="_blank">Privacy Policy</a>.
+              {t('privacyNotice')} <a href="/privacy" className="text-primary hover:underline" target="_blank">{t('privacyPolicy')}</a>.
             </div>
           </div>
         </div>

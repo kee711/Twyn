@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 // 온보딩 단계 타입
 type OnboardingStep = 'account_type' | 'account_info' | 'welcome';
@@ -34,6 +35,7 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingModalProps) {
+    const t = useTranslations('components.onboardingModal');
     const [currentStep, setCurrentStep] = useState<OnboardingStep>('account_type');
     const [accountType, setAccountType] = useState<AccountType | null>(null);
     const [accountInfo, setAccountInfo] = useState('');
@@ -69,7 +71,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
             await completeOnboarding();
         } else {
             // 스킵 시 확인 모달 표시가 필요하다면 여기에 구현
-            const confirmSkip = window.confirm('나중에 설정 페이지에서 이 정보를 입력할 수 있습니다. 건너뛰시겠습니까?');
+            const confirmSkip = window.confirm(t('confirmSkip'));
             if (confirmSkip) {
                 if (currentStep === 'account_type') {
                     // 계정 유형 스킵, welcome 단계로 이동
@@ -85,7 +87,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
     // 온보딩 완료 핸들러
     const completeOnboarding = async () => {
         if (!session?.user?.id || !socialAccountId) {
-            toast.error('사용자 정보를 찾을 수 없습니다.');
+            toast.error(t('userNotFound'));
             return;
         }
 
@@ -107,14 +109,14 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
 
             if (updateError) throw updateError;
 
-            toast.success('온보딩이 완료되었습니다.');
+            toast.success(t('onboardingCompleted'));
             onClose();
 
             // '/contents-cooker/topic-finder'로 리다이렉트
             router.push('/contents/topic-finder');
         } catch (error) {
             console.error('온보딩 저장 오류:', error);
-            toast.error('온보딩 정보 저장 중 오류가 발생했습니다.');
+            toast.error(t('errorSavingOnboarding'));
         } finally {
             setIsSubmitting(false);
         }
@@ -137,7 +139,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
         // 실제 구현에서는 OpenAI 호출하여 태그 생성
         // 지금은 임시로 기본 태그 설정
         setTags(['AI', 'Design', 'Tech', 'Mobile', 'App']);
-        toast.success('키워드가 생성되었습니다.');
+        toast.success(t('keywordsGenerated'));
     };
 
     // 다음 버튼 핸들러
@@ -153,13 +155,13 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
     const getInfoTitleAndHint = () => {
         if (accountType === 'biz') {
             return {
-                title: '어떤 분야의 계정인가요?',
-                hint: 'ViralChef is the master chef of promotion on social media. We blend the ingredients people love to craft strategies that highlight your brand, build close-knit communities, and drive growth—smart, swift, and always friendly.'
+                title: t('businessChannelQuestion'),
+                hint: t('businessChannelHint')
             };
         } else {
             return {
-                title: '어떤 분야의 전문가인가요?',
-                hint: 'I\'m a marketer with 7 years of experience. I\'ve partnered with global companies and repeatedly led localization strategies that helped U.S. brands expand into the Asia-Pacific region. My expertise lies in crafting digital experiences that transcend borders and languages.'
+                title: t('expertQuestion'),
+                hint: t('expertHint')
             };
         }
     };
@@ -171,9 +173,9 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                 return (
                     <>
                         <DialogHeader className="text-center">
-                            <DialogTitle className="text-2xl font-bold">이 Threads 계정을 어떻게 활용하실 건가요?</DialogTitle>
+                            <DialogTitle className="text-2xl font-bold">{t('howToUseAccount')}</DialogTitle>
                             <DialogDescription className="pt-2">
-                                Threads 계정을 성장시키는데 도움이 되는 몇 가지 질문을 드리겠습니다.
+                                {t('helpWithQuestions')}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="flex flex-col gap-4 py-4 px-8">
@@ -184,8 +186,8 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                                 onClick={() => handleAccountTypeSelect('biz')}
                             >
                                 <div className="flex flex-col items-start text-left">
-                                    <span className="font-bold text-lg">비즈니스 마케팅 채널</span>
-                                    <span className="text-sm text-muted-foreground">잠재 고객 참여 및 매출 증대</span>
+                                    <span className="font-bold text-lg">{t('businessMarketing')}</span>
+                                    <span className="text-sm text-muted-foreground">{t('businessDescription')}</span>
                                 </div>
                             </Button>
 
@@ -196,8 +198,8 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                                 onClick={() => handleAccountTypeSelect('expert')}
                             >
                                 <div className="flex flex-col items-start text-left">
-                                    <span className="font-bold text-lg">전문가</span>
-                                    <span className="text-sm text-muted-foreground">전문 지식 공유</span>
+                                    <span className="font-bold text-lg">{t('expert')}</span>
+                                    <span className="text-sm text-muted-foreground">{t('expertDescription')}</span>
                                 </div>
                             </Button>
 
@@ -208,14 +210,14 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                                 onClick={() => handleAccountTypeSelect('casual')}
                             >
                                 <div className="flex flex-col items-start text-left">
-                                    <span className="font-bold text-lg">일반</span>
-                                    <span className="text-sm text-muted-foreground">대화 및 소통</span>
+                                    <span className="font-bold text-lg">{t('general')}</span>
+                                    <span className="text-sm text-muted-foreground">{t('generalDescription')}</span>
                                 </div>
                             </Button>
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={handleSkip}>
-                                나중에 하기
+                                {t('doLater')}
                             </Button>
                         </DialogFooter>
                     </>
@@ -228,7 +230,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                         <DialogHeader className="text-center">
                             <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
                             <DialogDescription className="pt-2">
-                                직접 작성해주시면 SaltAI가 완벽한 키워드를 생성해드립니다.
+                                {t('saltAiHelp')}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="flex flex-col gap-4 py-4 px-8">
@@ -243,13 +245,13 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
 
                             <div className="mt-4">
                                 <div className="flex justify-between items-center mb-2">
-                                    <p className="font-semibold">키워드</p>
+                                    <p className="font-semibold">{t('keywords')}</p>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={generateTags}
                                     >
-                                        SaltAI 생성
+                                        {t('saltAiGenerate')}
                                     </Button>
                                 </div>
 
@@ -269,7 +271,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
 
                                 <div className="flex gap-2">
                                     <Input
-                                        placeholder="새 태그 추가"
+                                        placeholder={t('addNewTag')}
                                         onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                                             if (e.key === 'Enter') {
                                                 addTag((e.target as HTMLInputElement).value);
@@ -285,20 +287,20 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                                             input.value = '';
                                         }}
                                     >
-                                        추가
+                                        {t('add')}
                                     </Button>
                                 </div>
                             </div>
                         </div>
                         <DialogFooter className="flex flex-col sm:flex-row gap-2">
                             <Button variant="outline" onClick={handlePrevious}>
-                                이전
+                                {t('previous')}
                             </Button>
                             <Button variant="outline" onClick={handleSkip}>
-                                나중에 하기
+                                {t('doLater')}
                             </Button>
                             <Button onClick={handleNext} disabled={isSubmitting}>
-                                다음
+                                {t('next')}
                             </Button>
                         </DialogFooter>
                     </>
@@ -308,7 +310,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                 return (
                     <>
                         <DialogHeader className="text-center">
-                            <DialogTitle className="text-2xl font-bold">ViralChef의 주방에 오신 것을 환영합니다!</DialogTitle>
+                            <DialogTitle className="text-2xl font-bold">{t('welcomeToViralChef')}</DialogTitle>
                         </DialogHeader>
                         <div className="flex flex-col items-center justify-center py-8 px-8">
                             <Image
@@ -319,15 +321,15 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
                                 className="mb-4"
                             />
                             <p className="text-center text-muted-foreground">
-                                이제 스레드 계정을 효과적으로 관리하고 성장시키는 데 필요한 모든 도구를 사용할 수 있습니다.
+                                {t('welcomeMessage')}
                             </p>
                         </div>
                         <DialogFooter className="flex flex-col sm:flex-row gap-2">
                             <Button variant="outline" onClick={handlePrevious}>
-                                이전
+                                {t('previous')}
                             </Button>
                             <Button onClick={completeOnboarding} disabled={isSubmitting}>
-                                시작하기
+                                {t('getStarted')}
                             </Button>
                         </DialogFooter>
                     </>
@@ -340,7 +342,7 @@ export function OnboardingModal({ open, onClose, socialAccountId }: OnboardingMo
             // 닫기 버튼 클릭 시 onClose 콜백 호출
             if (!isOpen) {
                 // 여기서는 자동으로 닫히지 않도록 함
-                const confirmClose = window.confirm('온보딩을 건너뛰시겠습니까? 설정 페이지에서 나중에 완료할 수 있습니다.');
+                const confirmClose = window.confirm(t('confirmCloseOnboarding'));
                 if (confirmClose) {
                     onClose();
                 }

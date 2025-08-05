@@ -1,28 +1,42 @@
 import { withAuth } from 'next-auth/middleware'
-import { NextResponse } from 'next/server'
+import createIntlMiddleware from 'next-intl/middleware'
+import { NextRequest } from 'next/server'
+import { routing } from './i18n/routing'
 
-export default withAuth(
-  function middleware(req) {
-    // 로그인하지 않은 사용자가 보호된 경로에 접근하면 로그인 페이지로 리다이렉트
-    if (!req.nextauth.token) {
-      return NextResponse.redirect(new URL('/signin', req.url))
-    }
+const publicPages = ['/', '/signin', '/privacy', '/data-deletion-policy']
+
+const intlMiddleware = createIntlMiddleware(routing)
+
+const authMiddleware = withAuth(
+  function onSuccess(req) {
+    return intlMiddleware(req)
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token }) => token != null,
+    },
+    pages: {
+      signIn: '/signin',
     },
   }
 )
 
-// 보호할 경로 설정
+export default function middleware(req: NextRequest) {
+  const publicPathnameRegex = RegExp(
+    `^(/(${routing.locales.join('|')}))?(${publicPages
+      .flatMap(p => (p === '/' ? ['', '/'] : p))
+      .join('|')})/?$`,
+    'i'
+  )
+  const isPublicPage = publicPathnameRegex.test(req.nextUrl.pathname)
+
+  if (isPublicPage) {
+    return intlMiddleware(req)
+  } else {
+    return (authMiddleware as any)(req)
+  }
+}
+
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/schedule/:path*',
-    '/contents/:path*',
-    '/statistics/:path*',
-    '/comments/:path*',
-    // 로그인이 필요한 다른 경로들 추가
-  ],
-} 
+  matcher: ['/((?!api|_next|.*\\..*).*)']
+}

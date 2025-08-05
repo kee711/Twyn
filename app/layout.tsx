@@ -1,13 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from 'sonner';
-import { Providers } from './providers'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/authOptions'
-
-const inter = Inter({ subsets: ["latin"] });
-
 
 export const metadata: Metadata = {
   title: "twyn | Grow faster on Threads",
@@ -69,90 +60,12 @@ export const metadata: Metadata = {
   category: 'technology',
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions)
-
-  return (
-    <html lang="ko" suppressHydrationWarning className="h-full">
-      <body className={`h-full bg-muted ${inter.className}`}>
-        <div className="h-full">
-          <Providers session={session}>
-            {children}
-          </Providers>
-        </div>
-        <Toaster
-          position="bottom-center"
-          richColors
-          closeButton
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.fbAsyncInit = function() {
-                FB.init({
-                  appId      : '2367583083616415',
-                  xfbml      : true,
-                  version    : 'v22.0'
-                });
-                FB.AppEvents.logPageView();
-              };
-              (function(d, s, id){
-                var js, fjs = d.getElementsByTagName(s)[0];
-                if (d.getElementById(id)) {return;}
-                js = d.createElement(s); js.id = id;
-                js.src = "https://connect.facebook.net/en_US/sdk.js";
-                fjs.parentNode.insertBefore(js, fjs);
-              }(document, 'script', 'facebook-jssdk'));
-            `,
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebApplication",
-              "name": "twyn",
-              "description": {
-                "ko": "스레드에서 더 빠르게 성장하세요. AI가 콘텐츠를 생성하고 최적의 시간에 자동 게시해드립니다.",
-                "en": "Grow faster on Threads with your AI twin. Automated content creation and optimal posting times."
-              },
-              "url": "https://twyn.sh",
-              "applicationCategory": "BusinessApplication",
-              "operatingSystem": "Web",
-              "offers": {
-                "@type": "Offer",
-                "category": "Software"
-              },
-              "provider": {
-                "@type": "Organization",
-                "name": "twyn"
-              },
-              "featureList": {
-                "ko": [
-                  "AI 콘텐츠 생성",
-                  "자동 게시 스케줄링",
-                  "트렌드 분석",
-                  "성과 통계",
-                  "댓글 관리"
-                ],
-                "en": [
-                  "AI Content Generation",
-                  "Automated Post Scheduling",
-                  "Trend Analysis",
-                  "Performance Analytics",
-                  "Comment Management"
-                ]
-              },
-              "inLanguage": ["ko", "en"]
-            })
-          }}
-        />
-      </body>
-    </html>
-  );
+  // This is the root layout that wraps all pages
+  // The actual HTML structure is in [locale]/layout.tsx
+  return children;
 }

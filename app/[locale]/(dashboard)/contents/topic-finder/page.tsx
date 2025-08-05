@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PricingModal } from '@/components/modals/PricingModal';
 import {
     AlertDialog,
@@ -35,6 +36,7 @@ import { statisticsKeys } from '@/lib/queries/statisticsKeys';
 import { fetchUserInsights, fetchTopPosts } from '@/lib/queries/statisticsQueries';
 
 export default function TopicFinderPage() {
+    const t = useTranslations('pages.contents.topicFinder');
     const [isLoading, setIsLoading] = useState(false)
     const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
     const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
@@ -99,7 +101,7 @@ export default function TopicFinderPage() {
     // 디테일 생성 핸들러 - Generate thread chain instead of single post
     const handleGenerateDetail = async () => {
         if (!selectedHeadline) {
-            toast.error('Please write or add a topic');
+            toast.error(t('writeOrAddTopic'));
             return;
         }
         setTopicLoading(selectedHeadline, true);
@@ -126,9 +128,9 @@ export default function TopicFinderPage() {
             // Store detail for UI feedback
             setTopicDetail(selectedHeadline, data.threads.join('\n\n'));
 
-            toast.success(`Generated ${threadChain.length} threads! Check the writing sidebar to publish.`);
+            toast.success(t('threadsGenerated', { count: threadChain.length }));
         } catch (e) {
-            toast.error('Failed to generate thread chain');
+            toast.error(t('failedToGenerateChain'));
             setTopicLoading(selectedHeadline, false);
         } finally {
             setIsGeneratingDetails(false);
@@ -292,7 +294,7 @@ export default function TopicFinderPage() {
     // 토픽 생성 함수
     const generateTopics = async () => {
         if (!accountInfo) {
-            toast.error('No account info.');
+            toast.error(t('noAccountInfo'));
             return;
         }
         setIsGeneratingTopics(true);
@@ -322,7 +324,7 @@ export default function TopicFinderPage() {
                 }))
             );
         } catch (e) {
-            toast.error('Failed to generate topics');
+            toast.error(t('failedToGenerateTopics'));
         } finally {
             setIsGeneratingTopics(false);
             setIsLoading(false);
@@ -349,10 +351,10 @@ export default function TopicFinderPage() {
                                 />
                             )}
                             <h2 className="text-2xl font-semibold text-left">
-                                Hi {mounted ? (currentUsername || 'User') : 'User'},
+                                {t('greeting', { username: mounted ? (currentUsername || t('defaultUser')) : t('defaultUser') })}
                             </h2>
                         </div>
-                        <h2 className="text-2xl font-semibold text-left">What would you like to write about?</h2>
+                        <h2 className="text-2xl font-semibold text-left">{t('question')}</h2>
                     </div>
                     {/* Profile Description Dropdown */}
                     {mounted && currentSocialId && (

@@ -47,6 +47,7 @@ import {
     Quote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from 'next-intl';
 
 
 // 타입 정의는 store에서 import
@@ -74,16 +75,17 @@ interface DateRange {
     days: number;
 }
 
-const dateRanges: DateRange[] = [
-    { label: '7 days', days: 7 },
-    { label: '30 days', days: 30 },
-    { label: '90 days', days: 90 },
-];
-
 export default function StatisticsPage() {
+    const t = useTranslations('components.statistics');
     const { data: session } = useSession();
     const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
     const queryClient = useQueryClient();
+
+    const dateRanges: DateRange[] = [
+        { label: t('dateRanges.7days'), days: 7 },
+        { label: t('dateRanges.30days'), days: 30 },
+        { label: t('dateRanges.90days'), days: 90 },
+    ];
 
     // 로컬 상태
     const [selectedMetric, setSelectedMetric] = useState('views');
@@ -265,50 +267,50 @@ export default function StatisticsPage() {
     // 메트릭 카드 데이터
     const metricCards = [
         {
-            title: "Total Views",
-            value: getInsightValue('views') || 'No data',
+            title: t('metrics.totalViews'),
+            value: getInsightValue('views') || t('metrics.noData'),
             change: changes?.views?.change || 'N/A',
             changeType: changes?.views?.changeType || 'neutral' as const,
             icon: <Eye className="w-5 h-5" />,
-            description: "trend in period"
+            description: t('metrics.trendInPeriod')
         },
         {
-            title: "Total Followers",
-            value: getInsightValue('followers_count') || 'No data',
+            title: t('metrics.totalFollowers'),
+            value: getInsightValue('followers_count') || t('metrics.noData'),
             icon: <Users className="w-5 h-5" />,
-            description: "Current count"
+            description: t('metrics.currentCount')
         },
         {
-            title: "Total Likes",
-            value: getInsightValue('likes') || 'No data',
+            title: t('metrics.totalLikes'),
+            value: getInsightValue('likes') || t('metrics.noData'),
             change: changes?.likes?.change || '',
             changeType: changes?.likes?.changeType || 'neutral' as const,
             icon: <Heart className="w-5 h-5" />,
-            description: "from previous period"
+            description: t('metrics.fromPreviousPeriod')
         },
         {
-            title: "Total Replies",
-            value: getInsightValue('replies') || 'No data',
+            title: t('metrics.totalReplies'),
+            value: getInsightValue('replies') || t('metrics.noData'),
             change: changes?.replies?.change || 'N/A',
             changeType: changes?.replies?.changeType || 'neutral' as const,
             icon: <MessageCircle className="w-5 h-5" />,
-            description: "from previous period"
+            description: t('metrics.fromPreviousPeriod')
         },
         {
-            title: "Total Reposts",
-            value: getInsightValue('reposts') || 'No data',
+            title: t('metrics.totalReposts'),
+            value: getInsightValue('reposts') || t('metrics.noData'),
             change: changes?.reposts?.change || 'N/A',
             changeType: changes?.reposts?.changeType || 'neutral' as const,
             icon: <Repeat className="w-5 h-5" />,
-            description: "from previous period"
+            description: t('metrics.fromPreviousPeriod')
         },
         {
-            title: "Total Quotes",
-            value: getInsightValue('quotes') || 'No data',
+            title: t('metrics.totalQuotes'),
+            value: getInsightValue('quotes') || t('metrics.noData'),
             change: changes?.quotes?.change || 'N/A',
             changeType: changes?.quotes?.changeType || 'neutral' as const,
             icon: <Quote className="w-5 h-5" />,
-            description: "from previous period"
+            description: t('metrics.fromPreviousPeriod')
         },
     ];
 
@@ -317,7 +319,7 @@ export default function StatisticsPage() {
         // 실제 API 데이터를 TopPost 형태로 변환
         return topPosts.map(post => ({
             id: post.id,
-            content: post.text || 'No content available',
+            content: post.text || t('noContentAvailable'),
             username: post.username,
             avatar: '/avatars/01.png', // 기본 아바타
             viewCount: post.viewCount,
@@ -361,12 +363,12 @@ export default function StatisticsPage() {
                     <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                         <Users className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h2 className="text-xl font-semibold mb-2">계정 연결이 필요해요</h2>
+                    <h2 className="text-xl font-semibold mb-2">{t('noAccount.title')}</h2>
                     <p className="text-muted-foreground mb-4">
-                        통계를 확인하려면 먼저 Threads 계정을 연결해주세요.
+                        {t('noAccount.description')}
                     </p>
                     <Button onClick={() => window.location.href = "/api/threads/oauth"}>
-                        Threads 계정 연결하기
+                        {t('noAccount.connectButton')}
                     </Button>
                 </div>
             </div>
@@ -377,8 +379,8 @@ export default function StatisticsPage() {
         return (
             <div className="container mx-auto py-6 space-y-6">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-                    <p className="text-muted-foreground">Please sign in to view your statistics.</p>
+                    <h1 className="text-2xl font-bold mb-4">{t('noAuth.title')}</h1>
+                    <p className="text-muted-foreground">{t('noAuth.description')}</p>
                 </div>
             </div>
         );
@@ -390,7 +392,7 @@ export default function StatisticsPage() {
             <div className="sticky top-0 z-10 bg-white p-2 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl md:text-3xl font-bold">Statistics</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold">{t('title')}</h1>
                         <div className="text-muted-foreground text-sm font-semibold rounded-full bg-muted px-2 py-1 w-fit">
                             @{selectedAccount.username}
                         </div>
@@ -429,7 +431,7 @@ export default function StatisticsPage() {
                             ) : (
                                 <RefreshCw className="h-4 w-4" />
                             )}
-                            Refresh
+                            {t('refresh')}
                         </button>
                     </div>
                 </div>
@@ -532,9 +534,9 @@ export default function StatisticsPage() {
                         {/* Line Chart */}
                         <Card>
                             <CardHeader className="pb-4">
-                                <CardTitle className="text-lg">Views Performance</CardTitle>
+                                <CardTitle className="text-lg">{t('charts.viewsPerformance')}</CardTitle>
                                 <CardDescription className="text-sm text-muted-foreground">
-                                    For the last {selectedDateRange} days
+                                    {t('charts.forLastDays', { days: selectedDateRange })}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -581,9 +583,9 @@ export default function StatisticsPage() {
                         {/* Pie Chart */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Engagement Breakdown</CardTitle>
+                                <CardTitle className="text-lg">{t('charts.engagementBreakdown')}</CardTitle>
                                 <CardDescription className="text-sm text-muted-foreground">
-                                    For the last {selectedDateRange} days
+                                    {t('charts.forLastDays', { days: selectedDateRange })}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -616,9 +618,9 @@ export default function StatisticsPage() {
                     {/* Top Posts Section */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Top Posts</CardTitle>
+                            <CardTitle className="text-lg">{t('topPosts.title')}</CardTitle>
                             <p className="text-sm text-muted-foreground">
-                                지난 {selectedDateRange}일 동안 가장 높은 성과를 기록한 포스트
+                                {t('topPosts.description', { days: selectedDateRange })}
                             </p>
                         </CardHeader>
                         <CardContent>
@@ -643,7 +645,7 @@ export default function StatisticsPage() {
                             ) : (
                                 <div className="text-center py-8">
                                     <p className="text-muted-foreground">
-                                        선택된 기간에 포스트 데이터가 없습니다.
+                                        {t('topPosts.noData')}
                                     </p>
                                 </div>
                             )}

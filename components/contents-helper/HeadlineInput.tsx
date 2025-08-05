@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface HeadlineInputProps {
     value?: string;
@@ -14,9 +15,10 @@ interface HeadlineInputProps {
 }
 
 export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isSelected, onClick, onInstructionChange }: HeadlineInputProps) {
+    const t = useTranslations('pages.contents.topicFinder.headlineInput');
     const [headline, setHeadline] = useState<string>(typeof value === 'string' ? value : '');
     const [instruction, setInstruction] = useState<string>('');
-    const [placeholder, setPlaceholder] = useState('Write headline...');
+    const [placeholder, setPlaceholder] = useState(t('placeholder'));
 
     useEffect(() => {
         if (value !== undefined) setHeadline(value);
@@ -59,7 +61,7 @@ export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isS
                     type="text"
                     value={instruction}
                     onChange={e => setInstruction(e.target.value)}
-                    placeholder="Write instruction..."
+                    placeholder={t('instructionPlaceholder')}
                     className="w-full bg-transparent text-sm font-medium text-gray-500 placeholder-[#B0B0B0] outline-none px-2 py-1"
                     readOnly={readOnly}
                 />

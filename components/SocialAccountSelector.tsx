@@ -17,12 +17,14 @@ import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { OnboardingModal } from './OnboardingModal';
+import { useTranslations } from 'next-intl';
 
 interface SocialAccountSelectorProps {
   className?: string;
 }
 
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
+  const t = useTranslations('SocialAccountSelector');
   const [isLoading, setIsLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [newAccountId, setNewAccountId] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
       }
     } catch (error) {
       console.error('소셜 계정 목록 조회 오류:', error);
-      toast.error('소셜 계정 목록을 불러오는데 실패했습니다.');
+      toast.error(t('failedToLoadAccounts'));
     } finally {
       setIsLoading(false);
     }
@@ -201,13 +203,13 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
 
       if (updateError) {
         console.error('소셜 계정 선택 저장 오류:', updateError);
-        toast.error('계정 선택 정보 저장에 실패했습니다.');
+        toast.error(t('failedToSaveSelection'));
       } else {
         console.log("계정 선택 정보 저장 성공:", selectedAccount.social_id);
       }
     } catch (error) {
       console.error('소셜 계정 선택 처리 오류:', error);
-      toast.error('계정 선택 처리 중 오류가 발생했습니다.');
+      toast.error(t('accountSelectionError'));
     }
   };
 
@@ -233,7 +235,7 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
           <div className="font-medium text-base text-muted-foreground">
             {selectedAccount
               ? (selectedAccount.username || selectedAccount.social_id)
-              : '계정 선택'}
+              : t('selectAccount')}
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -243,7 +245,7 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
             onClick={addSocialAccount}
           >
             <PlusCircle className="h-4 w-4" />
-            <span className="font-medium">계정 추가</span>
+            <span className="font-medium">{t('addAccount')}</span>
           </div>
 
           {/* 구분선 추가 */}
@@ -251,10 +253,10 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
 
           {/* 계정 목록 */}
           <SelectGroup>
-            <SelectLabel>계정 목록</SelectLabel>
+            <SelectLabel>{t('accountList')}</SelectLabel>
             {accounts.length === 0 ? (
               <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                등록된 계정이 없습니다
+                {t('noAccountsRegistered')}
               </div>
             ) : (
               accounts.map((account) => (
