@@ -90,21 +90,21 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
       {/* Content */}
       <div className="space-y-6 flex-1 flex flex-col justify-center">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Tell us about your profile</h1>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground">
-            Help us understand your {accountInfo.platform} account to create better content
+            {t('description', { platform: accountInfo.platform })}
           </p>
           {accountInfo.username && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              Connected: @{accountInfo.username}
+              {t('connected', { username: accountInfo.username })}
             </div>
           )}
         </div>
 
         <Card className="border-none">
           <CardHeader>
-            <CardTitle>Profile Description</CardTitle>
+            <CardTitle>{t('profileDescriptionLabel')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4">
@@ -122,7 +122,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
                 </ul>
                 <Textarea
                   id="profile-description"
-                  placeholder="I'm a ..."
+                  placeholder={t('iAmA')}
                   value={profileDescription}
                   onChange={(e) => setProfileDescription(e.target.value)}
                   className="h-fit focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
@@ -137,7 +137,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
         {/* Example card */}
         <Card className="border-dashed">
           <CardContent className="p-4">
-            <h4 className="font-medium mb-2">💡 Example Description</h4>
+            <h4 className="font-medium mb-2">{t('exampleDescription')}</h4>
             <p className="text-sm text-muted-foreground">
               "I'm a digital marketing specialist focused on helping small businesses grow their online presence.
               I share practical tips about social media marketing, content creation, and customer engagement.

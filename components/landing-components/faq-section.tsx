@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Minus } from "lucide-react";
+import { useTranslations } from 'next-intl';
 
 interface FAQItemProps {
   question: string;
@@ -35,30 +36,32 @@ const FAQItem = ({ question, answer }: FAQItemProps) => {
 };
 
 export const FAQSection = () => {
+  const t = useTranslations('landing.faq');
+  
   const faqs = [
     {
-      question: "How long can I use Twyn for free?",
-      answer: "During the beta period, you can use Twyn for free with reasonable limits. The exact duration will be announced as we approach the end of the beta."
+      question: t('questions.q1'),
+      answer: t('questions.a1')
     },
     {
-      question: "Are there usage limits during the beta period?",
-      answer: "Yes, there are reasonable limits in place during the beta period to ensure system stability and fair usage for all users."
+      question: t('questions.q2'),
+      answer: t('questions.a2')
     },
     {
-      question: "What happens after the beta period?",
-      answer: "After the beta period ends, Twyn will transition to a paid subscription model. Beta users will receive early notice, special offers, and smooth migration support."
+      question: t('questions.q3'),
+      answer: t('questions.a3')
     },
     {
-      question: "Do I need a Threads account to use Twyn?",
-      answer: "Yes, Twyn integrates directly with Threads. You need to connect your Threads account to post, schedule, and manage content."
+      question: t('questions.q4'),
+      answer: t('questions.a4')
     },
     {
-      question: "What are AI-powered interactions in Twyn?",
-      answer: "AI-powered interactions in Twyn include automated content generation, tone optimization, smart scheduling, and context-aware comment replies—all designed to save you time and keep you consistent."
+      question: t('questions.q5'),
+      answer: t('questions.a5')
     },
     {
-      question: "Can I purchase additional AI interactions with my Twyn subscription?",
-      answer: "Additional AI interaction packages will be available after the beta period. Pricing and add-on options will be announced before the official launch."
+      question: t('questions.q6'),
+      answer: t('questions.a6')
     }
   ];
 
@@ -68,7 +71,7 @@ export const FAQSection = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-landing-text-primary mb-4">
-              Commonly asked questions
+              {t('title')}
             </h2>
           </div>
 

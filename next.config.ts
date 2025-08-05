@@ -1,6 +1,18 @@
 import { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const config: NextConfig = {
+  async rewrites() {
+    return [
+      // Ensure API routes are not affected by locale routing
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {
@@ -71,4 +83,4 @@ const config: NextConfig = {
   },
 };
 
-export default config;
+export default withNextIntl(config);

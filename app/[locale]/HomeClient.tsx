@@ -5,6 +5,7 @@ import React from "react";
 import { PricingModal } from "@/components/modals/PricingModal";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 /* New Landing Components */
 import { Navigation } from "@/components/landing-components/navigation";
@@ -15,6 +16,7 @@ import { FAQSection } from "@/components/landing-components/faq-section";
 import { HeroSection } from "@/components/landing-components/hero-section";
 
 export default function HomeClient() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
@@ -47,7 +49,7 @@ export default function HomeClient() {
       <Footer
         brand={{
           name: "Twyn",
-          description: "Minimize your time & energy to post, engage,\nand grow 10x faster on Threads.",
+          description: t('landing.description'),
         }}
         socialLinks={[
           {
@@ -65,31 +67,31 @@ export default function HomeClient() {
         ]}
         columns={[
           {
-            title: "Product",
+            title: t('navigation.product'),
             links: [
               {
-                name: "Features",
+                name: t('navigation.features'),
                 icon: "Blocks",
                 href: "#features",
               },
               {
-                name: "Pricing",
+                name: t('navigation.pricing'),
                 icon: "CreditCard",
                 href: "#pricing",
               },
             ],
           },
           {
-            title: "Legal",
+            title: t('navigation.legal'),
             links: [
               {
-                name: "Data Deletion Policy",
+                name: t('navigation.dataDeletion'),
                 icon: "Handshake",
                 href: "/data-deletion-policy",
                 openInNewTab: true,
               },
               {
-                name: "Privacy Policy",
+                name: t('navigation.privacy'),
                 icon: "Scale",
                 href: "/privacy",
                 openInNewTab: true,

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ThreadChain } from "@/components/ThreadChain";
 import { cn } from "@/lib/utils";
+import { debugFetch } from "@/lib/utils/debug-fetch";
 import useThreadChainStore from "@/stores/useThreadChainStore";
 import { TextSearch, PencilLine, FileText, PanelRightClose, PanelLeftClose, ChevronDown, FileEdit, Bookmark } from "lucide-react";
 import { createContent } from "@/app/actions/content";
@@ -17,12 +18,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
+import { useTranslations } from 'next-intl';
 
 interface RightSidebarProps {
   className?: string;
 }
 
 export function RightSidebar({ className }: RightSidebarProps) {
+  const t = useTranslations('components.rightSidebar');
+  const tNav = useTranslations('navigation');
   const [showAiInput, setShowAiInput] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number>(0);
@@ -256,29 +260,60 @@ export function RightSidebar({ className }: RightSidebarProps) {
   // user_profiles 테이블에서 publish_times를 배열로 가져와 publishTimes에 저장
   // 사용자가 설정한 선호 예약시간 가져오기
   const fetchPublishTimes = async () => {
-    const response = await fetch("/api/user/get-publish-times");
-    const data = await response.json();
-    console.log("publishTimes 함수 내 실행:", data);
-    if (data === null) {
+    console.log("[fetchPublishTimes] Current URL:", window.location.href);
+    console.log("[fetchPublishTimes] Current pathname:", window.location.pathname);
+    console.log("[fetchPublishTimes] Fetching from:", "/api/user/get-publish-times");
+    
+    try {
+      const response = await debugFetch("/api/user/get-publish-times");
+      console.log("[fetchPublishTimes] Response status:", response.status);
+      console.log("[fetchPublishTimes] Response headers:", Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        console.error("[fetchPublishTimes] Response not OK:", {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url
+        });
+      }
+      
+      const data = await response.json();
+      console.log("publishTimes 함수 내 실행:", data);
+      if (data === null) {
+        setPublishTimes([]);
+      } else {
+        setPublishTimes(data);
+      }
+    } catch (error) {
+      console.error("[fetchPublishTimes] Error:", error);
       setPublishTimes([]);
-    } else {
-      setPublishTimes(data);
     }
   };
 
   // publish_status가 scheduled인 포스트들의 시간을 전부 배열로 가져와 reservedTimes에 저장
   // 현재 예약되어있는 시간들 가져오기
   const fetchScheduledTimes = async () => {
-    const response = await fetch("/api/contents/scheduled");
-    const data = await response.json();
-    console.log("fetchScheduledTimes 함수 내 실행:", data);
-    if (data === null) {
+    console.log("[fetchScheduledTimes] Current URL:", window.location.href);
+    console.log("[fetchScheduledTimes] Fetching from:", "/api/contents/scheduled");
+    
+    try {
+      const response = await debugFetch("/api/contents/scheduled");
+      console.log("[fetchScheduledTimes] Response status:", response.status);
+      console.log("[fetchScheduledTimes] Response URL:", response.url);
+      
+      const data = await response.json();
+      console.log("fetchScheduledTimes 함수 내 실행:", data);
+      if (data === null) {
+        setReservedTimes([]);
+      } else {
+        const reservedTimes = data.map(
+          (item: { scheduled_at: string }) => item.scheduled_at
+        );
+        setReservedTimes(reservedTimes);
+      }
+    } catch (error) {
+      console.error("[fetchScheduledTimes] Error:", error);
       setReservedTimes([]);
-    } else {
-      const reservedTimes = data.map(
-        (item: { scheduled_at: string }) => item.scheduled_at
-      );
-      setReservedTimes(reservedTimes);
     }
   };
 
@@ -295,10 +330,10 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
       // DB 저장 성공 시 localStorage 초기화
       localStorage.removeItem("draftContent");
-      toast.success("임시저장 되었습니다.");
+      toast.success(t('draftSaved'));
     } catch (error) {
       console.error("Error saving draft:", error);
-      toast.error("임시저장에 실패했습니다.");
+      toast.error(t('draftSaveFailed'));
     }
   };
 
@@ -307,10 +342,10 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const checkSocialAccountConnection = () => {
     const selectedAccount = getSelectedAccount();
     if (!selectedAccount || !currentSocialId) {
-      toast.error("계정 추가가 필요해요", {
-        description: "먼저 Threads 계정을 연결해주세요.",
+      toast.error(t('accountConnectionRequired'), {
+        description: t('accountConnectionDescription'),
         action: {
-          label: "계정 연결",
+          label: t('connectAccount'),
           onClick: () => window.location.href = "/api/threads/oauth"
         }
       });
@@ -328,7 +363,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       const validThreads = threadChain.filter(thread => thread.content.trim() !== '');
       if (validThreads.length === 0 || !scheduleTime) return;
 
-      const message = validThreads.length > 1 ? "Your thread chain is scheduled" : "Your post is scheduled";
+      const message = validThreads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
       toast.success(message);
 
       const result = await scheduleThreadChain(validThreads, scheduleTime);
@@ -341,7 +376,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       fetchScheduledTimes();
     } catch (error) {
       console.error("Error scheduling:", error);
-      toast.error("Schedule failed");
+      toast.error(t('scheduleFailed'));
     }
   };
 
@@ -354,7 +389,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       const validThreads = threadChain.filter(thread => thread.content.trim() !== '');
       if (validThreads.length === 0) return;
 
-      const message = validThreads.length > 1 ? "Your thread chain is being published" : "Your post is published";
+      const message = validThreads.length > 1 ? t('threadChainPublishing') : t('postPublished');
       toast.success(message);
 
       // Reset UI immediately
@@ -530,6 +565,8 @@ function RightSidebarContent({
   updateThreadContent: (index: number, content: string) => void;
   updateThreadMedia: (index: number, media_urls: string[]) => void;
 }) {
+  const t = useTranslations('components.rightSidebar');
+  const tNav = useTranslations('navigation');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Check if any thread exceeds character limit
@@ -544,7 +581,7 @@ function RightSidebarContent({
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-background">
         <h2 className="text-sm font-medium text-muted-foreground">
-          Write or Add contents
+          {tNav('writeOrAddContents')}
         </h2>
 
         {/* 모바일에서는 아래로 내리기 버튼, 데스크톱에서는 닫기 버튼 */}
@@ -596,7 +633,7 @@ function RightSidebarContent({
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-background px-4 text-sm text-gray-400">Add contents from</span>
+              <span className="bg-background px-4 text-sm text-gray-400">{tNav('addContentsFrom')}</span>
             </div>
           </div>
 
@@ -618,7 +655,7 @@ function RightSidebarContent({
                   ? "text-gray-900"
                   : "text-muted-foreground"
               )} />
-              <span className="text-xs">Topic Finder</span>
+              <span className="text-xs">{tNav('topicFinder')}</span>
             </Link>
             <Link
               href="/contents/draft"
@@ -636,7 +673,7 @@ function RightSidebarContent({
                   ? "text-gray-900"
                   : "text-muted-foreground"
               )} />
-              <span className="text-xs">Draft</span>
+              <span className="text-xs">{tNav('draft')}</span>
             </Link>
             <Link
               href="/contents/saved"
@@ -654,7 +691,7 @@ function RightSidebarContent({
                   ? "text-gray-900"
                   : "text-muted-foreground"
               )} />
-              <span className="text-xs">Saved</span>
+              <span className="text-xs">{tNav('saved')}</span>
             </Link>
 
           </div>
@@ -673,7 +710,7 @@ function RightSidebarContent({
           }}
           disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
         >
-          Save to Draft
+          {tNav('saveToDraft')}
         </Button>
 
         <div className="flex gap-2">
@@ -686,7 +723,7 @@ function RightSidebarContent({
               disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
             >
               <div className="flex-col">
-                <div>Schedule Post</div>
+                <div>{tNav('schedulePost')}</div>
                 {scheduleTime && (
                   <div className="text-xs text-muted-foreground">
                     {formatLocalDateTime(scheduleTime, {
@@ -716,7 +753,7 @@ function RightSidebarContent({
             onClick={handlePublish}
             disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
           >
-            Post Now
+            {tNav('postNow')}
           </Button>
         </div>
       </div>

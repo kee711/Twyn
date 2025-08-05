@@ -7,16 +7,10 @@ import { cn } from "@/lib/utils";
 import { ShimmerButton } from "../ui/shimmer-button";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
+import { useTranslations } from 'next-intl';
 
-function HeroSection({
-    badge = "Beta Access - Limited Spots",
-    title1 = "Conquering the Algorithm has Never Been Easier",
-    subtitle = "Post, engage, and grow 10x faster on Threads.\nYour AI Marketing Agent does all the heavy lifting",
-}: {
-    badge?: string;
-    title1?: string;
-    subtitle?: string;
-}) {
+function HeroSection() {
+    const t = useTranslations('landing.hero');
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +30,7 @@ function HeroSection({
         e.preventDefault();
 
         if (!email.trim()) {
-            setMessage("이메일을 입력해주세요.");
+            setMessage(t('emailRequired'));
             setIsSuccess(false);
             return;
         }
@@ -60,11 +54,11 @@ function HeroSection({
                 setIsSuccess(true);
                 setEmail(""); // 성공 시 입력 초기화
             } else {
-                setMessage(data.error || "등록 중 오류가 발생했습니다.");
+                setMessage(data.error || t('registrationError'));
                 setIsSuccess(false);
             }
         } catch (error) {
-            setMessage("네트워크 오류가 발생했습니다.");
+            setMessage(t('networkError'));
             setIsSuccess(false);
         } finally {
             setIsLoading(false);
@@ -105,7 +99,7 @@ function HeroSection({
                                 >
                                     <Circle className="h-2 w-2 fill-landing-primary-600" />
                                     <span className="text-sm text-landing-primary-700 tracking-wide">
-                                        {badge}
+                                        {t('badge')}
                                     </span>
                                 </motion.div>
 
@@ -116,7 +110,7 @@ function HeroSection({
                                     transition={{ duration: 0.6, delay: 0.3 }}
                                 >
                                     <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 tracking-tight text-landing-text-primary">
-                                        {title1}
+                                        {t('title')}
                                     </h1>
                                 </motion.div>
 
@@ -127,7 +121,7 @@ function HeroSection({
                                     transition={{ duration: 0.6, delay: 0.4 }}
                                 >
                                     <p className="text-lg text-landing-text-secondary mb-8 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">
-                                        {subtitle}
+                                        {t('subtitle')}
                                     </p>
                                 </motion.div>
 
@@ -140,10 +134,10 @@ function HeroSection({
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                                         {/* 시작 버튼 임시 주석처리 */}
                                         {/* <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
-                                            Get 2 months free
+                                            {t('ctaButton')}
                                             <div className="flex items-center gap-2 opacity-80 text-landing-text-reverse">
                                                 <PartyPopper className="w-4 h-4" />
-                                                <div className="text-xs">Beta privilege</div>
+                                                <div className="text-xs">{t('betaPrivilege')}</div>
                                             </div>
                                         </Button> */}
 
@@ -154,7 +148,7 @@ function HeroSection({
                                                     type="email"
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
-                                                    placeholder="베타 테스터 이메일을 입력해주세요"
+                                                    placeholder={t('emailPlaceholder')}
                                                     disabled={isLoading}
                                                     className="flex-1 h-full px-4 py-2 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-landing-primary-500 focus:border-transparent text-landing-text-primary placeholder:text-landing-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                                                 />
@@ -163,7 +157,7 @@ function HeroSection({
                                                     disabled={isLoading}
                                                     className="px-6 py-3 h-full rounded-2xl text-base bg-landing-primary-600 hover:bg-landing-primary-700 text-white whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    {isLoading ? "등록 중..." : "등록하기"}
+                                                    {isLoading ? t('registering') : t('register')}
                                                 </Button>
                                             </form>
 
@@ -175,7 +169,7 @@ function HeroSection({
 
                                             <div className="flex items-center gap-2 text-landing-primary-600">
                                                 <PartyPopper className="w-4 h-4" />
-                                                <span className="text-sm">베타 테스터 등록하고 2개월 무료 혜택 받기</span>
+                                                <span className="text-sm">{t('registerBetaTester')}</span>
                                             </div>
                                         </div>
                                     </div>

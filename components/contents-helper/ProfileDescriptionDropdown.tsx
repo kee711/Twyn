@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { BadgeInfo, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 interface ProfileDescriptionDropdownProps {
     accountId: string;
@@ -11,6 +12,7 @@ interface ProfileDescriptionDropdownProps {
 }
 
 export function ProfileDescriptionDropdown({ accountId, initialDescription }: ProfileDescriptionDropdownProps) {
+    const t = useTranslations('pages.contents.topicFinder');
     const [open, setOpen] = useState(false);
     const [desc, setDesc] = useState(initialDescription);
     const [editing, setEditing] = useState(false);
@@ -34,7 +36,7 @@ export function ProfileDescriptionDropdown({ accountId, initialDescription }: Pr
     return (
         <div className="w-full rounded-t-2xl bg-[#F8F8F8] border-b border-[#E5E5E5] px-6 pt-4 pb-2 relative transition-all duration-300">
             <div className="flex items-center justify-between cursor-pointer" onClick={() => setOpen(v => !v)}>
-                <span className="font-semibold text-gray-500 text-lg">Profile description</span>
+                <span className="font-semibold text-gray-500 text-lg">{t('profileDescription')}</span>
                 {open ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
             <div
@@ -52,7 +54,7 @@ export function ProfileDescriptionDropdown({ accountId, initialDescription }: Pr
                 <div className="flex justify-start mt-1 items-center">
                     <div className="rounded-full py-1 text-sm text-gray-400">
                         <BadgeInfo className="inline-block mr-1 w-4 h-4" />
-                        Automatically updated as you cook contents
+                        {t('profileDescriptionDescription')}
                     </div>
                 </div>
             </div>

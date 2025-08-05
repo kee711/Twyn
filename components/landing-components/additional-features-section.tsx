@@ -2,8 +2,10 @@
 
 import { Card } from "@/components/ui/card";
 import { BarChart3, Calendar, Rocket } from "lucide-react";
+import { useTranslations } from 'next-intl';
 
 export const AdditionalFeaturesSection = () => {
+  const t = useTranslations('landing.additionalFeatures');
   return (
     <section
       id="benefits"
@@ -24,12 +26,15 @@ export const AdditionalFeaturesSection = () => {
               <Rocket className="w-12 h-12 text-landing-text-reverse" />
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-landing-text-reverse leading-tight">
-              Effortless content to
-              <br />
-              maximize reach
+              {t('title').split('\n').map((line, index) => (
+                <span key={index}>
+                  {line}
+                  {index < t('title').split('\n').length - 1 && <br />}
+                </span>
+              ))}
             </h2>
             <p className="text-lg text-landing-text-reverse opacity-70 leading-relaxed max-w-md">
-              Powerful, AI-driven social media tools to help you create engaging content, grow your audience, and boost your Threads presence.
+              {t('subtitle')}
             </p>
           </div>
 
@@ -41,10 +46,15 @@ export const AdditionalFeaturesSection = () => {
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-landing-text-primary">
-                  Save with URL
+                  {t('saveUrl.title')}
                 </h3>
                 <p className="text-sm text-landing-text-secondary">
-                  Save your thought for later, use it again seemlessly. <br /> No more manual copy-pasting.
+                  {t('saveUrl.description').split('\\n').map((line, index) => (
+                    <span key={index}>
+                      {line}
+                      {index < t('saveUrl.description').split('\\n').length - 1 && <br />}
+                    </span>
+                  ))}
                 </p>
               </div>
             </Card>
@@ -55,10 +65,10 @@ export const AdditionalFeaturesSection = () => {
                   <BarChart3 className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-landing-text-primary">
-                  Analyze your progress
+                  {t('analytics.title')}
                 </h3>
                 <p className="text-sm text-landing-text-secondary">
-                  Monitor your growth with detailed analytics. Track engagement, reach, and follower growth with actionable insights.
+                  {t('analytics.description')}
                 </p>
               </div>
             </Card>

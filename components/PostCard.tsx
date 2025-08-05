@@ -24,6 +24,7 @@ import { improvePost } from "@/app/actions/improvePost";
 import { uploadMediaFilesClient, deleteMediaFileClient } from "@/lib/utils/upload";
 import { useSession } from "next-auth/react";
 import { PRESET_PROMPTS } from "@/lib/prompts";
+import { useTranslations } from 'next-intl';
 
 interface PostCardProps {
   variant?: "default" | "writing" | "compact";
@@ -117,6 +118,7 @@ export function PostCard({
   isLastInChain = true,
   triggerHeightAdjustment,
 }: PostCardProps) {
+  const t = useTranslations('components.postCard');
   const [isAiActive, setIsAiActive] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string[]>(media);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -221,7 +223,7 @@ export function PostCard({
 
     // 세션 로딩 중일 때 대기
     if (status === "loading") {
-      toast.error("세션을 로딩 중입니다. 잠시 후 다시 시도해주세요.");
+      toast.error(t('sessionLoading'));
       return;
     }
 
@@ -230,14 +232,14 @@ export function PostCard({
     console.log("업로드 시 사용자 정보:", { session, userId, status });
 
     if (!userId) {
-      toast.error("로그인이 필요합니다.");
+      toast.error(t('loginRequired'));
       console.error("세션 정보를 찾을 수 없습니다:", { session, status });
       return;
     }
 
     try {
       // 로딩 상태 표시
-      toast.loading("미디어를 업로드 중입니다...");
+      toast.loading(t('mediaUploading'));
 
       // 클라이언트 사이드 업로드 (userId 전달)
       const { urls, error } = await uploadMediaFilesClient(Array.from(files), userId);
@@ -255,11 +257,11 @@ export function PostCard({
       }
 
       toast.dismiss();
-      toast.success(`${urls.length}개의 미디어가 업로드되었습니다.`);
+      toast.success(t('mediaUploaded', { count: urls.length }));
     } catch (error) {
       toast.dismiss();
       console.error("미디어 업로드 실패:", error);
-      toast.error("미디어 업로드에 실패했습니다.");
+      toast.error(t('mediaUploadFailed'));
     }
 
     // 파일 입력 초기화 (동일한 파일을 다시 선택할 수 있도록)
@@ -272,7 +274,7 @@ export function PostCard({
 
     // 세션 로딩 중일 때 대기
     if (status === "loading") {
-      toast.error("세션을 로딩 중입니다. 잠시 후 다시 시도해주세요.");
+      toast.error(t('sessionLoading'));
       return;
     }
 
@@ -280,7 +282,7 @@ export function PostCard({
     const userId = session?.user?.id || session?.user?.email || (session?.user as any)?.sub;
 
     if (!userId) {
-      toast.error("로그인이 필요합니다.");
+      toast.error(t('loginRequired'));
       console.error("세션 정보를 찾을 수 없습니다:", { session, status });
       return;
     }
@@ -298,10 +300,10 @@ export function PostCard({
         onMediaChange(updatedMedia);
       }
 
-      toast.success("미디어가 삭제되었습니다.");
+      toast.success(t('mediaDeleted'));
     } catch (error) {
       console.error("미디어 삭제 실패:", error);
-      toast.error("미디어 삭제에 실패했습니다.");
+      toast.error(t('mediaDeleteFailed'));
     }
   };
 
@@ -313,13 +315,13 @@ export function PostCard({
   // Improve Post 기능
   const handleImprovePost = async (prompt?: string) => {
     if (!content) {
-      toast.error("개선할 콘텐츠가 없습니다.");
+      toast.error(t('noContentToImprove'));
       return;
     }
 
     const effectivePrompt = prompt || aiPrompt;
     if (!effectivePrompt.trim()) {
-      toast.error("개선 지시사항을 입력해주세요.");
+      toast.error(t('enterImprovementInstructions'));
       return;
     }
 
@@ -338,11 +340,11 @@ export function PostCard({
         adjustTextareaHeight();
       }, 0);
 
-      toast.success("콘텐츠가 성공적으로 개선되었습니다.");
+      toast.success(t('contentImproved'));
     } catch (error) {
       console.error("Error improving content:", error);
       toast.error(
-        error instanceof Error ? error.message : "콘텐츠 개선에 실패했습니다."
+        error instanceof Error ? error.message : t('contentImprovementFailed')
       );
     } finally {
       setIsImproving(false);
@@ -353,19 +355,19 @@ export function PostCard({
   const presetButtons = [
     {
       icon: ChevronsLeftRightEllipsis,
-      text: "Expand post",
+      text: t('expandPost'),
       prompt: PRESET_PROMPTS.EXPAND_POST,
       delay: "delay-100"
     },
     {
       icon: Anchor,
-      text: "Add hooks",
+      text: t('addHooks'),
       prompt: PRESET_PROMPTS.ADD_HOOKS,
       delay: "delay-200"
     },
     {
       icon: LibraryBig,
-      text: "Add information",
+      text: t('addInformation'),
       prompt: PRESET_PROMPTS.ADD_INFORMATION,
       delay: "delay-300"
     }
@@ -429,7 +431,7 @@ export function PostCard({
                   onContentChange?.(e.target.value);
                   adjustTextareaHeight();
                 }}
-                placeholder={content.length === 0 ? "내용을 작성하세요..." : ""}
+                placeholder={content.length === 0 ? t('writeContent') : ""}
                 rows={1}
                 onFocus={onTextareaFocus}
               />
@@ -471,7 +473,7 @@ export function PostCard({
                       ) : (
                         <Image
                           src={mediaUrl}
-                          alt={`첨부 미디어 ${index + 1}`}
+                          alt={t('attachedMedia', { index: index + 1 })}
                           width={100}
                           height={100}
                           className="object-cover"
@@ -523,7 +525,7 @@ export function PostCard({
                   disabled={isSelected}
                 >
                   <Plus className="h-4 w-4" />
-                  <span>{isSelected ? "Added" : "Add"}</span>
+                  <span>{isSelected ? t('added') : t('add')}</span>
                 </Button>
               )}
             </div>
@@ -583,7 +585,7 @@ export function PostCard({
               {/* Input field with arrow-up button */}
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="What should we improve?"
+                  placeholder={t('whatToImprove')}
                   className="flex-1 h-9 rounded-full bg-muted border-gray-200 focus:border-gray-200 focus-visible:outline-none focus-visible:ring-0 placeholder:text-foreground/30"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
@@ -646,7 +648,7 @@ export function PostCard({
             ? 'text-muted-foreground hover:text-foreground/70'
             : 'text-muted-foreground/50'
             }`}>
-            Add to threads
+            {t('addThread')}
           </p>
         </div>
       )}

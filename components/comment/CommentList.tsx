@@ -18,8 +18,10 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
+import { useTranslations } from 'next-intl';
 
 export function CommentList() {
+    const t = useTranslations('comments');
     const { currentSocialId, currentUsername } = useSocialAccountStore();
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
@@ -153,7 +155,7 @@ export function CommentList() {
         onMutate: async ({ commentId, reply }) => {
             // currentSocialId 재검증
             if (!currentSocialId || currentSocialId.trim() === '') {
-                throw new Error('소셜 계정 정보가 없습니다. 페이지를 새로고침해주세요.');
+                throw new Error(t('ai.loadingAccount'));
             }
 
             await queryClient.cancelQueries({ queryKey: ['comments', currentSocialId] });
@@ -180,11 +182,11 @@ export function CommentList() {
         },
         onError: (err, variables, context) => {
             queryClient.setQueryData(['comments', currentSocialId], context?.previousComments);
-            toast.error("답글 전송에 실패했습니다.");
+            toast.error(t('actions.hideCommentFailed'));
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['comments', currentSocialId] });
-            toast.success("답글이 성공적으로 전송되었습니다!");
+            toast.success(t('ai.generated'));
         }
     });
 
@@ -215,10 +217,10 @@ export function CommentList() {
                 }
             }, 1);
 
-            toast.success("AI 답글이 생성되었습니다!");
+            toast.success(t('ai.generated'));
         } catch (error) {
             console.error('AI generation error:', error);
-            toast.error("AI 답글 생성에 실패했습니다.");
+            toast.error(t('ai.generationFailed'));
         } finally {
             setAiGenerating(prev => ({ ...prev, [commentId]: false }));
         }
@@ -228,7 +230,7 @@ export function CommentList() {
     const sendReply = async (commentId: string) => {
         // currentSocialId 검증
         if (!currentSocialId || currentSocialId.trim() === '') {
-            toast.error('소셜 계정 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+            toast.error(t('ai.loadingAccount'));
             return;
         }
 
@@ -262,17 +264,17 @@ export function CommentList() {
         const unrepliedComments = currentPostComments.filter(c => !c.is_replied);
 
         if (unrepliedComments.length === 0) {
-            toast.info("All comments have been replied to.");
+            toast.info(t('ai.allReplied'));
             return;
         }
 
-        toast.info("Drafting replies to all comments...");
+        toast.info(t('ai.draftingReplies'));
 
         for (const comment of unrepliedComments) {
             await generateAIReply(comment.text, comment.id);
         }
 
-        toast.success("Completed drafting!");
+        toast.success(t('ai.draftingCompleted'));
     };
 
     // Handle post click with dynamic positioning
@@ -295,10 +297,10 @@ export function CommentList() {
     if (!currentSocialId || currentSocialId.trim() === '') {
         return (
             <div className="h-full w-full overflow-hidden p-6 flex flex-col">
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Comments</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('title')}</h1>
                 <div className="flex-1 flex flex-col gap-3 items-center justify-center bg-muted rounded-[20px] min-h-0">
                     <Loader className="w-10 h-10 text-muted-foreground/30 animate-spin speed-50" />
-                    <div className="text-muted-foreground">소셜 계정 정보를 불러오는 중...</div>
+                    <div className="text-muted-foreground">{t('loadingAccount')}</div>
                 </div>
             </div>
         );
@@ -308,7 +310,7 @@ export function CommentList() {
         return (
             <div className="h-full w-full overflow-hidden p-6 flex flex-col">
                 {/* Header */}
-                <h1 className="text-3xl font-bold text-zinc-700 mb-6">Comments</h1>
+                <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('title')}</h1>
 
                 {/* Empty State */}
                 <div className="flex items-center justify-center flex-1">
@@ -324,10 +326,10 @@ export function CommentList() {
                             {/* Text Content */}
                             <div className="flex flex-col items-center gap-3 w-full">
                                 <h2 className="text-zinc-700 text-xl font-semibold text-center">
-                                    No comments to reply
+                                    {t('noCommentsToReply')}
                                 </h2>
                                 <p className="text-zinc-500 text-sm font-normal text-center">
-                                    Post new threads to get a comment
+                                    {t('postToGetComments')}
                                 </p>
                             </div>
 
@@ -337,7 +339,7 @@ export function CommentList() {
                                 className="bg-zinc-100 border border-muted-foreground/10 rounded-xl px-3 py-2 flex items-center justify-center gap-2.5 cursor-pointer hover:bg-zinc-200 transition-colors"
                             >
                                 <span className="text-black text-sm font-medium">
-                                    Get Ideas
+                                    {t('getIdeas')}
                                 </span>
                             </Link>
                         </div>
@@ -351,18 +353,18 @@ export function CommentList() {
         <div className="w-full overflow-hidden flex flex-col p-6" style={{ height: 'calc(100vh - 1rem)' }}>
             {/* Header */}
 
-            <h1 className="text-3xl font-bold text-zinc-700 mb-6 flex-shrink-0">Comments</h1>
+            <h1 className="text-3xl font-bold text-zinc-700 mb-6 flex-shrink-0">{t('title')}</h1>
 
             {isLoading && (
                 <div className="flex-1 flex flex-col gap-3 items-center justify-center bg-muted rounded-[20px] min-h-0">
                     <Loader className="w-10 h-10 text-muted-foreground/30 animate-spin speed-50" />
-                    <div className="text-muted-foreground">Getting comments...</div>
+                    <div className="text-muted-foreground">{t('gettingComments')}</div>
                 </div>
             )}
 
             {isError && (
                 <div className="flex-1 flex items-center justify-center min-h-0">
-                    <div className="text-red-500">데이터를 가져오는 중 오류가 발생했습니다.</div>
+                    <div className="text-red-500">{t('errorLoadingData')}</div>
                 </div>
             )}
 
@@ -374,7 +376,7 @@ export function CommentList() {
                         <div className="flex-1 bg-gray-50 rounded-[32px] p-6 flex flex-col min-h-0">
                             <div className="mb-6 flex-shrink-0">
                                 <p className="text-gray-500 text-base">
-                                    {remainingPosts} remaining posts to reply
+                                    {t('remainingPostsToReply', { count: remainingPosts })}
                                 </p>
                             </div>
 
@@ -420,7 +422,7 @@ export function CommentList() {
                             {/* Header */}
                             <div className="flex justify-between items-center mb-6 flex-shrink-0">
                                 <p className="text-gray-500 text-base">
-                                    {repliedCount} out of {currentPostComments.length} replied
+                                    {t('repliedStatus', { repliedCount, totalCount: currentPostComments.length })}
                                 </p>
                                 <Button
                                     onClick={writeAllReplies}
@@ -428,7 +430,7 @@ export function CommentList() {
                                     className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700"
                                 >
                                     <Sparkles className="w-4 h-4" />
-                                    <span className="text-base font-medium">Draft all replies</span>
+                                    <span className="text-base font-medium">{t('draftAllReplies')}</span>
                                 </Button>
                             </div>
 
@@ -501,7 +503,7 @@ export function CommentList() {
                                                                     rows={1}
                                                                     value={replyTexts[comment.id] || ''}
                                                                     onChange={(e) => handleTextareaChange(comment.id, e.target.value)}
-                                                                    placeholder="Reply to Comment..."
+                                                                    placeholder={t('replyPlaceholder')}
                                                                     className={`
                                                                     bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
                                                                     [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] focus:outline-none focus:focus-visible:ring-0

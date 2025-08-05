@@ -17,12 +17,14 @@ import { EditPostModal } from './EditPostModal'
 import { Event } from './types'
 import { deleteSchedule } from '@/app/actions/schedule'
 import { utcISOToLocalTime } from '@/lib/utils/time'
+import { useTranslations } from 'next-intl'
 
 interface CalendarProps {
   defaultView?: 'calendar' | 'list'
 }
 
 export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
+  const t = useTranslations('schedule');
   const [view, setView] = useState<'calendar' | 'list'>(defaultView)
   const [events, setEvents] = useState<Event[]>([])
   const [month, setMonth] = useState<Date>(new Date())
@@ -39,10 +41,10 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   // Check if social account is connected
   const checkSocialAccountConnection = () => {
     if (!currentSocialId) {
-      toast.error("계정 추가가 필요해요", {
-        description: "스케줄 관리를 위해 먼저 Threads 계정을 연결해주세요.",
+      toast.error(t('noAccount.title'), {
+        description: t('noAccount.description'),
         action: {
-          label: "계정 연결",
+          label: t('noAccount.connectButton'),
           onClick: () => window.location.href = "/api/threads/oauth"
         }
       });
