@@ -192,11 +192,11 @@
     "serverError": "서버 오류"
   },
   "landing": {
-    "description": "스레드에서 포스팅하고 소통하며 성장하는 데 드는 시간과 에너지를 최소화하세요.",
+    "description": "당신의 Threads 계정 성장을 쉽게",
     "hero": {
-      "badge": "베타오픈 기념 2개월 무료",
-      "title": "알고리즘 정복이 이렇게 쉬웠던 적은 없었습니다",
-      "subtitle": "스레드에서 10배 빠르게 포스팅하고, 소통하고, 성장하세요.\nAI 마케팅 에이전트가 모든 무거운 작업을 처리합니다",
+      "badge": "베타 오픈",
+      "title": "Threads 알고리즘을 정복하고,\nAI가 당신의 계정을 성장시키도록",
+      "subtitle": "Threads에서 10배 빠르게 포스팅하고, 소통하고, 성장하세요.\nAI 마케팅 에이전트가 모든 무거운 작업을 처리합니다",
       "ctaButton": "2개월 무료 체험",
       "betaPrivilege": "베타오픈 기념 혜택",
       "emailPlaceholder": "베타 테스터 이메일을 입력하세요",
@@ -208,57 +208,59 @@
       "registerBetaTester": "베타 테스터로 등록하고 2개월 무료 이용하기"
     },
     "features": {
-      "ideaTitle": "아이디어 고갈은 이제 그만",
-      "ideaDesc1": "당신에게 완벽하게 맞는 아이디어를 탐색하세요",
-      "ideaDesc2": "물론, 최신 트렌드 주제들이 여기에 있습니다",
-      "ideaDesc3": "개인 프로필 데이터로 더욱 개인화된 주제 제공",
-      "writeTitle": "10배 빠르고 좋게 작성하기",
+      "ideaTitle": "글감을 찾는것이 이렇게 간단하니까",
+      "ideaDesc1": "당신의 계정에 완벽하게 맞는 주제를 탐색하세요",
+      "ideaDesc2": "물론, 최신 Threads 트렌드 주제들로 가득하니까",
+      "ideaDesc3": "프로필 정보를 기반으로 알고리즘 최적화된 주제를",
+      "writeTitle": "클릭 몇번으로 멋진 글을 뚝딱",
       "writeDesc1": "클릭 한 번으로 바로 게시할 수 있는 초안 생성",
-      "writeDesc2": "AI로 톤과 스타일을 세밀하게 조정",
-      "scheduleTitle": "쉬는 동안 자동 게시",
-      "scheduleDesc1": "언제든지 자동으로 게시",
-      "scheduleDesc2": "드래그 앤 드롭으로 몇 초 만에 일정 변경",
-      "scheduleDesc3": "추가 노력 없이 일관성 유지",
-      "engageTitle": "10배 빠른 소통",
+      "writeDesc2": "AI가 당신 계정의 문체, 톤&매너를 세밀하게 조정합니다",
+      "scheduleTitle": "편히 주무세요, 당신의 Threads 계정은 알아서 크니까",
+      "scheduleDesc1": "잠잘때도, 언제든지 자동으로 게시",
+      "scheduleDesc2": "드래그 앤 드롭만으로 일정 변경",
+      "scheduleDesc3": "언제나 일관성있는 멋진 글까지",
+      "engageTitle": "정말 50배 정도 빠른 소통",
       "engageDesc1": "클릭 한 번으로 모든 댓글에 답글 생성",
-      "engageDesc2": "상황에 맞는 인간적인 느낌의 답글 작성"
+      "engageDesc2": "마치 당신이 직접 단 듯한 답글 작성"
     },
     "pricing": {
-      "title": "Twyn의 모든 잠재력을 활용하세요",
+      "title": "Twyn이 당신 계정의 잠재력을 일깨워줘요, 심지어 ",
       "titleHighlight": "무료로",
       "subtitle": "베타 기간 동안 모든 기능을 무료로 이용하세요.",
-      "freePlan": "TWYN FREE",
-      "proPlan": "TWYN PRO",
-      "proPlusPlan": "TWYN PRO+",
+      "freePlan": "TWYN Free",
+      "proPlan": "TWYN Pro",
+      "proPlusPlan": "TWYN Pro+",
       "monthlyUser": "/월 사용자당",
       "limitedBeta": "제한된 베타 액세스",
       "comingSoon": "곧 출시",
       "freeFeatures": {
-        "feature1": "AI 지원 콘텐츠 생성 (제한: 월 50개 게시물 또는 댓글 상호작용)",
+        "feature1": "AI 지원 콘텐츠 생성 (제한: 일 10개 AI 크레딧)",
         "feature2": "프로필 기반 기본 주제 제안",
         "feature3": "기본 일정 관리 및 자동 업로드 기능",
-        "feature4": "Discord를 통한 커뮤니티 지원 (베타 사용자만)"
+        "feature4": "1개 Threads 게정 연결",
+        "feature5": "2개 자동 포스트 스케쥴링",
+        "feature6": "강력한 계정 활성화 분석 툴",
+        "feature7": "Discord를 통한 커뮤니티 지원 (베타 사용자만)"
       },
       "proFeatures": {
         "feature1": "Twyn Free의 모든 기능 + 추가:",
-        "feature2": "AI 상호작용 한도 증가 (월 1,000개 게시물 또는 댓글 상호작용)",
-        "feature3": "최대 3개 계정",
-        "feature4": "최고 성과 게시물 추적 분석"
+        "feature2": "AI 지원 콘텐츠 생성 (제한없음)",
+        "feature3": "자동 포스트 스케쥴링 (제한없음)",
+        "feature4": "보다 정교한 계정 활성화 분석 툴"
       },
       "proPlusFeatures": {
         "feature1": "Twyn Pro의 모든 기능 + 추가:",
-        "feature2": "AI 상호작용 한도 증가 (월 3,000개 게시물 또는 댓글 상호작용)",
-        "feature3": "우선 일정 관리 및 자동 게시",
-        "feature4": "고급 콘텐츠 전략 팁 및 프리미엄 지원 독점 액세스"
+        "feature2": "3개 Threads 게정 연결",
+        "feature3": "고급 콘텐츠 전략 팁 및 프리미엄 지원 독점 액세스"
       }
     },
     "faq": {
       "title": "자주 묻는 질문",
       "questions": {
         "q1": "Twyn을 얼마나 오래 무료로 사용할 수 있나요?",
-        "a1": "베타 기간 동안에는 합리적인 제한 하에서 Twyn을 무료로 사용할 수 있습니다. 정확한 기간은 베타 종료가 가까워질 때 공지될 예정입니다.",
+        "a1": "베타 기간 동안에는 당사의 정책을 준수하는 수준 하에서 Twyn을 무료로 사용할 수 있습니다. 정확한 기간은 베타 종료가 최소 1주일 전 공지 예정입니다.",
         "q2": "베타 기간 동안 사용 제한이 있나요?",
-        "a2": "네, 시스템 안정성과 모든 사용자의 공정한 사용을 위해 베타 기간 동안 합리적인 제한이 있습니다.",
+        "a2": "네, 시스템 안정성과 모든 사용자의 공정한 사용을 위해 베타 기간 동안 합리적인 제한이 있습니다. 어뷰징 및 악성 사용자는 관용없이 사용 불가 처리 될 수 있습니다.",
         "q3": "베타 기간이 끝나면 어떻게 되나요?",
         "a3": "베타 기간이 끝나면 Twyn은 유료 구독 모델로 전환됩니다. 베타 사용자들은 사전 공지, 특별 혜택, 원활한 마이그레이션 지원을 받게 됩니다.",
         "q4": "Twyn을 사용하려면 Threads 계정이 필요한가요?",

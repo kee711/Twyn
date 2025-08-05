@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 
 export const PricingCTASection = () => {
   const t = useTranslations('landing.pricing');
-  
+
   const pricingPlans = [
     {
       name: t('freePlan'),
@@ -44,8 +44,7 @@ export const PricingCTASection = () => {
       features: [
         t('proPlusFeatures.feature1'),
         t('proPlusFeatures.feature2'),
-        t('proPlusFeatures.feature3'),
-        t('proPlusFeatures.feature4')
+        t('proPlusFeatures.feature3')
       ]
     }
   ];
