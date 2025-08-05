@@ -132,16 +132,18 @@ function HeroSection() {
                                     transition={{ duration: 0.6, delay: 0.5 }}
                                 >
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                                        {/* 시작 버튼 임시 주석처리 */}
-                                        {/* <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-700 text-white" onClick={handleGetStarted}>
-                                            {t('ctaButton')}
-                                            <div className="flex items-center gap-2 opacity-80 text-landing-text-reverse">
-                                                <PartyPopper className="w-4 h-4" />
-                                                <div className="text-xs">{t('betaPrivilege')}</div>
-                                            </div>
-                                        </Button> */}
+                                        {/* 시작하기 버튼 */}
+                                        <div className="rounded-2xl p-1 bg-landing-primary-100 hover:bg-landing-primary-200 hover:p-1.5 transition-all duration-300">
+                                            <Button className="flex flex-col px-12 py-6 text-md rounded-xl bg-landing-primary-600 hover:bg-landing-primary-600 text-white" onClick={handleGetStarted}>
+                                                {t('ctaButton')}
+                                                <div className="flex items-center gap-2 opacity-80 text-landing-text-reverse">
+                                                    <PartyPopper className="w-4 h-4" />
+                                                    <div className="text-xs">{t('betaPrivilege')}</div>
+                                                </div>
+                                            </Button>
+                                        </div>
 
-                                        {/* 베타 사용자 이메일 등록 */}
+                                        {/* 베타 사용자 이메일 등록
                                         <div className="flex flex-col items-center gap-4 w-full max-w-md">
                                             <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 w-full h-12">
                                                 <input
@@ -171,7 +173,8 @@ function HeroSection() {
                                                 <PartyPopper className="w-4 h-4" />
                                                 <span className="text-sm">{t('registerBetaTester')}</span>
                                             </div>
-                                        </div>
+                                        </div> */}
+
                                     </div>
                                 </motion.div>
                             </div>
