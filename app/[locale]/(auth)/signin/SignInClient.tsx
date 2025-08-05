@@ -91,7 +91,7 @@ export default function SignInClient() {
       {/* 블러 처리 오버레이 */}
       <div className="fixed inset-0 w-full h-full backdrop-blur-sm bg-black/30 flex items-center justify-center">
         {/* 로그인 모달 */}
-        <div className="w-full max-w-md space-y-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-background/95 shadow-2xl p-8">
+        <div className="w-full m-4 max-w-md space-y-6  rounded-2xl border border-gray-200 dark:border-gray-800 bg-background/95 shadow-2xl p-8">
           <button
             onClick={handleGoBack}
             className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-white"
