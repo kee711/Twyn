@@ -455,6 +455,28 @@
       "add": "추가",
       "whatToImprove": "무엇을 개선할까요?"
     },
+    "contentList": {
+      "loginRequired": "컨텐츠를 보려면 로그인이 필요합니다.",
+      "loadingContents": "컨텐츠를 불러오는 중...",
+      "noContentsFound": "{category}에 대한 컨텐츠가 없습니다.",
+      "addContent": "컨텐츠 추가",
+      "errorLoadingContents": "컨텐츠를 불러오는데 실패했습니다.",
+      "contentRemovedFromThread": "스레드 체인에서 컨텐츠가 제거되었습니다",
+      "contentAddedToThread": "스레드 체인에 컨텐츠가 추가되었습니다",
+      "threadChainRemoved": "스레드 체인에서 스레드 체인이 제거되었습니다",
+      "threadChainAdded": "스레드 체인에 스레드 체인이 추가되었습니다"
+    },
+    "oembedList": {
+      "loginRequired": "컨텐츠를 보려면 로그인이 필요합니다.",
+      "loading": "로딩 중...",
+      "noSavedContents": "저장된 콘텐츠가 없습니다.",
+      "selectSocialAccount": "소셜 계정을 선택해주세요",
+      "loadingFailed": "불러오기 실패",
+      "contentAddedToThread": "스레드 체인에 컨텐츠가 추가되었습니다",
+      "failedToAddContent": "컨텐츠 추가에 실패했습니다",
+      "added": "추가됨",
+      "add": "추가"
+    },
     "statistics": {
       "title": "통계",
       "dateRanges": {

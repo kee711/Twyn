@@ -8,6 +8,7 @@ import { Plus, Loader2 } from "lucide-react";
 import useThreadChainStore from '@/stores/useThreadChainStore';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface OembedContent {
   id: string;
@@ -19,6 +20,7 @@ interface OembedContent {
 }
 
 export function OembedList() {
+  const t = useTranslations('components.oembedList');
   const [contents, setContents] = useState<OembedContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -77,7 +79,7 @@ export function OembedList() {
             return;
           }
           // Store가 rehydrate되었는데도 currentSocialId가 없다면 에러 표시
-          setFetchError("소셜 계정을 선택해주세요");
+          setFetchError(t('selectSocialAccount'));
           setLoading(false);
           return;
         }
@@ -86,7 +88,7 @@ export function OembedList() {
         setContents(result);
       } catch (err) {
         console.error(err);
-        setFetchError("불러오기 실패");
+        setFetchError(t('loadingFailed'));
       } finally {
         setLoading(false);
       }
@@ -103,11 +105,11 @@ export function OembedList() {
         addContentAsThread(postData.content);
         // Map content ID to its converted content text for tracking
         setAddedContentMap(prev => new Map([...prev, [content.id, postData.content]]));
-        toast.success('Content added to thread chain');
+        toast.success(t('contentAddedToThread'));
       }
     } catch (error) {
       console.error('Error converting oembed to post:', error);
-      toast.error('Failed to add content');
+      toast.error(t('failedToAddContent'));
     } finally {
       setConvertingPosts(prev => ({ ...prev, [content.id]: false }));
     }
@@ -180,15 +182,15 @@ export function OembedList() {
     return (
       <div className="pt-6">
         <div className="text-center text-muted-foreground">
-          🔒 컨텐츠를 보려면 로그인이 필요합니다.
+          🔒 {t('loginRequired')}
         </div>
       </div>
     );
   }
 
-  if (loading) return <div className="text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="text-muted-foreground">{t('loading')}</div>;
   if (fetchError) return <p className="text-red-500">{fetchError}</p>;
-  if (contents.length === 0) return <p>저장된 콘텐츠가 없습니다.</p>;
+  if (contents.length === 0) return <p>{t('noSavedContents')}</p>;
 
   return (
     <div className="columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0">
@@ -229,10 +231,10 @@ export function OembedList() {
               )}
               <span>
                 {convertingPosts[content.id]
-                  ? "Loading..."
+                  ? t('loading')
                   : isContentAddedToThreadChain(content.id)
-                    ? "Added"
-                    : "Add"}
+                    ? t('added')
+                    : t('add')}
               </span>
             </Button>
           </div>
