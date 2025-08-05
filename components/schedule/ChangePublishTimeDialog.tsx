@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Clock, Edit, Plus, Check } from "lucide-react"
 import { DropdownTime } from "@/components/ui/dropdown-time"
 import { utcTimeToLocalTime, localTimeToUTCTime, isUTCISOString } from "@/lib/utils/time"
+import { useTranslations } from 'next-intl'
 
 interface ChangePublishTimeDialogProps {
   variant?: 'default' | 'icon'
@@ -13,6 +14,7 @@ interface ChangePublishTimeDialogProps {
 }
 
 export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChange, ondisabled }: ChangePublishTimeDialogProps) {
+  const t = useTranslations('components.rightSidebar');
   const [publishTimes, setPublishTimes] = useState<string[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [newTime, setNewTime] = useState('')
@@ -120,13 +122,11 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">게시 시간 관리</DialogTitle>
+          <DialogTitle className="text-xl">{t('publishTime')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="text-sm text-muted-foreground mb-2">
-            게시물이 자동으로 등록될 시간을 설정합니다.
-            <br />
-            가까운 시간대부터 순서대로 예약됩니다.
+            {t('publishTimeDescription')}
           </div>
 
           {publishTimes.length > 0 ? (
@@ -171,7 +171,7 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              설정된 게시 시간이 없습니다.
+              {t('noSchedule')}
             </div>
           )}
 
@@ -185,12 +185,12 @@ export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChan
             </div>
             <Button variant="outline" onClick={addTime} disabled={!newTime}>
               <Plus className="h-4 w-4 mr-2" />
-              <span>추가</span>
+              <span>{t('add')}</span>
             </Button>
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={saveToDatabase} className="w-full">저장</Button>
+          <Button onClick={saveToDatabase} className="w-full">{t('save')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

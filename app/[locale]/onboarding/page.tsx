@@ -8,8 +8,10 @@ import { UserOnboarding } from '@/components/onboarding/UserOnboarding';
 import { SocialOnboarding } from '@/components/onboarding/SocialOnboarding';
 import { PricingModal } from '@/components/modals/PricingModal';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 export default function OnboardingPage() {
+  const t = useTranslations('pages.onboarding');
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -56,7 +58,7 @@ export default function OnboardingPage() {
     step3: string | null;
   }) => {
     if (!session?.user?.id) {
-      toast.error('사용자 정보를 찾을 수 없습니다.');
+      toast.error(t('userNotFound'));
       return;
     }
 
@@ -79,13 +81,13 @@ export default function OnboardingPage() {
 
     } catch (error) {
       console.error('Error saving user onboarding:', error);
-      toast.error('Error saving user onboarding');
+      toast.error(t('errorSavingUserOnboarding'));
     }
   };
 
   const handleSocialOnboardingComplete = async (profileDescription: string) => {
     if (!socialAccountId) {
-      toast.error('Account information not found');
+      toast.error(t('accountNotFound'));
       return;
     }
 
@@ -103,7 +105,7 @@ export default function OnboardingPage() {
 
       if (error) throw error;
 
-      toast.success('Profile setup completed');
+      toast.success(t('profileSetupCompleted'));
 
       // Add pricing modal to current URL
       const newSearchParams = new URLSearchParams(searchParams.toString());
@@ -111,7 +113,7 @@ export default function OnboardingPage() {
       router.push(`${pathname}?${newSearchParams.toString()}`);
     } catch (error) {
       console.error('Error saving social onboarding:', error);
-      toast.error('Error saving social onboarding');
+      toast.error(t('errorSavingSocialOnboarding'));
     }
   };
 

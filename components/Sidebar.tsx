@@ -28,9 +28,11 @@ import { Button } from '@/components/ui/button';
 import { LucideIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { SocialAccountSelector } from '@/components/SocialAccountSelector';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { hr } from 'date-fns/locale';
+
 
 // Navigation item type definition
 interface NavItem {
@@ -53,6 +55,7 @@ interface SidebarProps {
 const STORAGE_KEY = 'sidebar-open-items';
 
 export function Sidebar({ className }: SidebarProps) {
+  const t = useTranslations('navigation');
   const pathname = usePathname();
   const { data: session } = useSession();
   const { isSidebarOpen, closeSidebar, isMobile } = useMobileSidebar();
@@ -108,33 +111,33 @@ export function Sidebar({ className }: SidebarProps) {
   // Navigation configuration
   const navigation: NavItem[] = [
     {
-      name: 'Contents Cooker',
+      name: t('contentsCooker'),
       icon: FileEdit,
       isExpandable: true,
       subItems: [
-        { name: 'Topic Finder', href: '/contents/topic-finder', icon: TrendingUp },
-        // { name: 'Post Radar', href: '/contents/post-radar', icon: Newspaper },
-        { name: 'Draft', href: '/contents/draft', icon: FileText },
-        { name: 'Saved', href: '/contents/saved', icon: Bookmark },
+        { name: t('topicFinder'), href: '/contents/topic-finder', icon: TrendingUp },
+        // { name: t('postRadar'), href: '/contents/post-radar', icon: Newspaper },
+        { name: t('draft'), href: '/contents/draft', icon: FileText },
+        { name: t('saved'), href: '/contents/saved', icon: Bookmark },
       ],
     },
     {
-      name: 'Schedule',
+      name: t('schedule'),
       href: '/schedule',
       icon: Calendar,
     },
     {
-      name: 'Statistics',
+      name: t('statistics'),
       href: '/statistics',
       icon: BarChart2,
     },
     {
-      name: 'Comments',
+      name: t('comments'),
       icon: MessageSquare,
       isExpandable: true,
       subItems: [
-        { name: 'Comments', href: '/comments', icon: MessageSquareReply },
-        { name: 'Mentions', href: '/mentions', icon: AtSign },
+        { name: t('comments'), href: '/comments', icon: MessageSquareReply },
+        { name: t('mentions'), href: '/mentions', icon: AtSign },
       ],
     },
   ];
@@ -234,6 +237,8 @@ function SidebarContent({
   onLinkClick: () => void;
   isMobile?: boolean;
 }) {
+  const t = useTranslations('navigation');
+
   return (
     <div className="flex flex-col justify-between h-full">
       {/* Top section: Logo and Navigation */}
@@ -363,7 +368,7 @@ function SidebarContent({
               {/* User Info */}
               <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium">{session.user?.name}</p>
-                <p className="text-xs text-muted-foreground">Premium Plan</p>
+                <p className="text-xs text-muted-foreground">{t('premiumPlan')}</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -376,7 +381,7 @@ function SidebarContent({
               >
                 <Link href="/settings" onClick={onLinkClick}>
                   <Settings className="h-5 w-5" />
-                  <span className="sr-only">설정</span>
+                  <span className="sr-only">{t('settings')}</span>
                 </Link>
               </Button>
             </div>
@@ -388,7 +393,7 @@ function SidebarContent({
             className="w-full"
             onClick={() => signIn()}
           >
-            로그인
+            {t('login')}
           </Button>
         )}
       </div>

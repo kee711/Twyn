@@ -3,8 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export const Navigation = () => {
+  const t = useTranslations('landing.nav');
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
 
@@ -53,25 +55,25 @@ export const Navigation = () => {
               onClick={() => scrollToSection('features')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              Features
+              {t('features')}
             </button>
             <button
               onClick={() => scrollToSection('benefits')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              Benefits
+              {t('benefits')}
             </button>
             <button
               onClick={() => scrollToSection('pricing')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              Pricing
+              {t('pricing')}
             </button>
             <button
               onClick={() => scrollToSection('faq')}
               className="text-landing-text-secondary hover:text-landing-text-primary cursor-pointer transition-colors"
             >
-              FAQ
+              {t('faq')}
             </button>
           </div>
 
@@ -82,13 +84,13 @@ export const Navigation = () => {
               onClick={handleLogin}
               className="text-landing-text-secondary hover:text-landing-text-primary hover:bg-gray-50"
             >
-              Login
+              {t('login')}
             </Button>
             <Button
               onClick={handleSignup}
               className="bg-landing-primary-600 hover:bg-landing-primary-700 text-white px-6 py-3"
             >
-              Sign up
+              {t('signup')}
             </Button>
           </div> */}
         </div>

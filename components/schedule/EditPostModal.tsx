@@ -17,6 +17,7 @@ import { Event } from './types'
 import { ThreadContent, getThreadChainByParentId } from '@/app/actions/threadChain'
 import { localTimeToUTCISO } from '@/lib/utils/time'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 interface EditPostModalProps {
   isOpen: boolean
@@ -33,6 +34,7 @@ export function EditPostModal({
   onEventUpdate,
   onEventDelete,
 }: EditPostModalProps) {
+  const t = useTranslations('editPostModal');
   const [editContent, setEditContent] = useState('')
   const [editThreads, setEditThreads] = useState<ThreadContent[]>([])
   const [editTime, setEditTime] = useState('')
@@ -192,7 +194,7 @@ export function EditPostModal({
     // 과거 시간 확인 (현재 시간보다 이전인지 체크)
     const currentTime = new Date()
     if (newDate <= currentTime) {
-      toast.error('The scheduled time must be in the future.')
+      toast.error(t('futureTimeRequired'))
       return
     }
 
@@ -205,7 +207,7 @@ export function EditPostModal({
     }
 
     onEventUpdate(updatedEvent)
-    toast.success('Schedule updated successfully!')
+    toast.success(t('scheduleUpdated'))
     onOpenChange(false)
   }
 
@@ -252,10 +254,10 @@ export function EditPostModal({
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              Edit content
+              {t('title')}
               {event.status === 'failed' && (
                 <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                  Failed - Will reschedule on save
+                  {t('failedStatus')}
                 </span>
               )}
             </DialogTitle>
@@ -264,13 +266,13 @@ export function EditPostModal({
           <div className="py-4">
             {isLoadingThreads ? (
               <div className="flex items-center justify-center py-8">
-                <div className="text-sm text-muted-foreground">Loading thread chain...</div>
+                <div className="text-sm text-muted-foreground">{t('loadingThreadChain')}</div>
               </div>
             ) : event?.is_thread_chain ? (
               <ThreadChain
                 threads={editThreads}
                 variant="writing"
-                username={currentUsername || 'Me'}
+                username={currentUsername || t('fallbackUsername')}
                 onThreadContentChange={updateThreadContent}
                 onThreadMediaChange={updateThreadMedia}
                 onAddThread={addNewThread}
@@ -279,7 +281,7 @@ export function EditPostModal({
             ) : (
               <PostCard
                 variant="writing"
-                username={currentUsername || 'Me'}
+                username={currentUsername || t('fallbackUsername')}
                 content={editContent}
                 onContentChange={setEditContent}
               />
@@ -298,7 +300,7 @@ export function EditPostModal({
                   type="button"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {editDate ? format(editDate, "PPP", { locale: ko }) : <span>날짜 선택</span>}
+                  {editDate ? format(editDate, "PPP", { locale: ko }) : <span>{t('selectDate')}</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 z-[100]" align="start">
@@ -324,15 +326,15 @@ export function EditPostModal({
             <div className="flex justify-between w-full">
               <Button variant="destructive" onClick={handleDelete}>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Schedule
+                {t('deleteSchedule')}
               </Button>
 
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => handleModalClose(false)}>
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button onClick={handleSaveChanges}>
-                  Change Schedule
+                  {t('changeSchedule')}
                 </Button>
               </div>
             </div>
@@ -343,23 +345,22 @@ export function EditPostModal({
       <Dialog open={isUnsavedChangesDialogOpen} onOpenChange={setIsUnsavedChangesDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Unsaved changes</DialogTitle>
+            <DialogTitle>{t('unsavedChanges')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              You have unsaved changes. Are you sure you want to close?
-              Your changes will not be saved.
+              {t('unsavedChangesMessage')}
             </p>
           </div>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setIsUnsavedChangesDialogOpen(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button variant="destructive" onClick={() => {
               setIsUnsavedChangesDialogOpen(false)
               onOpenChange(false)
             }}>
-              Close
+              {t('close')}
             </Button>
           </DialogFooter>
         </DialogContent>

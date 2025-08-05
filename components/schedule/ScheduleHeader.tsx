@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/popover'
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'
 import { ChangePublishTimeDialog } from './ChangePublishTimeDialog'
+import { useTranslations } from 'next-intl'
 
 interface ScheduleHeaderProps {
   view: 'calendar' | 'list'
@@ -34,6 +35,7 @@ export function ScheduleHeader({
   onMonthChange,
   onDateChange,
 }: ScheduleHeaderProps) {
+  const t = useTranslations('scheduleHeader');
   const handleListDateSelect = (date: Date | undefined) => {
     if (onDateChange) {
       onDateChange(date)
@@ -55,7 +57,7 @@ export function ScheduleHeader({
             view === 'calendar' ? 'text-primary' : 'text-muted-foreground'
           )}
         >
-          Calendar
+          {t('calendar')}
         </button>
         <span className="text-muted-foreground">|</span>
         <button
@@ -65,7 +67,7 @@ export function ScheduleHeader({
             view === 'list' ? 'text-primary' : 'text-muted-foreground'
           )}
         >
-          List
+          {t('list')}
         </button>
       </div>
 
@@ -75,12 +77,12 @@ export function ScheduleHeader({
         <div className="flex items-center gap-3 text-sm sm:text-base">
           <div className="flex items-center gap-2 text-muted-foreground">
             <CalendarIcon className="h-4 w-4" />
-            <span>{scheduledCount} Scheduled</span>
+            <span>{scheduledCount} {t('scheduled')}</span>
           </div>
 
           <div className="flex items-center gap-2 text-muted-foreground">
             <Send className="h-4 w-4" />
-            <span>{postedCount} Posted</span>
+            <span>{postedCount} {t('posted')}</span>
           </div>
         </div>
 
