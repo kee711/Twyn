@@ -26,12 +26,15 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import useSocialAccountStore from '@/stores/useSocialAccountStore'
 import { PricingModal } from '@/components/modals/PricingModal'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { useRouter, usePathname } from '@/i18n/routing'
 
 export default function SettingsPage() {
   const t = useTranslations('pages.settings');
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const { data: session, status } = useSession()
-  const [language, setLanguage] = useState('ko')
   const [showPricingModal, setShowPricingModal] = useState(false)
 
   // 유저 프로필 상태 (user_profiles 테이블)
@@ -356,7 +359,9 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex gap-4 items-center">
                 <Label>{t('appearance.language')}</Label>
-                <Select value={language} onValueChange={setLanguage}>
+                <Select value={locale} onValueChange={(newLocale) => {
+                  router.replace(pathname, { locale: newLocale });
+                }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

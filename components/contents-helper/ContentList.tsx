@@ -10,8 +10,10 @@ import { useSession } from 'next-auth/react';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export function ContentList({ category, title }: ContentListProps) {
+  const t = useTranslations('components.contentList');
   const [isExpanded, setIsExpanded] = useState(true);
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +48,7 @@ export function ContentList({ category, title }: ContentListProps) {
         setContents(data || []);
       } catch (error) {
         console.error('Error fetching contents:', error);
-        toast.error('컨텐츠를 불러오는데 실패했습니다.');
+        toast.error(t('errorLoadingContents'));
       } finally {
         setIsLoading(false);
       }
@@ -161,7 +163,7 @@ export function ContentList({ category, title }: ContentListProps) {
     return (
       <div className="pt-6">
         <div className="text-center text-muted-foreground">
-          🔒 You need to login to view contents.
+          🔒 {t('loginRequired')}
         </div>
       </div>
     );
@@ -178,17 +180,17 @@ export function ContentList({ category, title }: ContentListProps) {
             <path d="M12 2V6M12 18V22M4.93 4.93L7.76 7.76M16.24 16.24L19.07 19.07M2 12H6M18 12H22M4.93 19.07L7.76 16.24M16.24 7.76L19.07 4.93" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <div className="text-muted-foreground">Loading contents...</div>
+        <div className="text-muted-foreground">{t('loadingContents')}</div>
       </div>
     );
   }
   if (!isLoading && contents.length === 0) {
     return (
       <div className="h-full w-full flex-1 flex flex-col gap-3 items-center justify-center rounded-[20px] min-h-0">
-        <div className="text-muted-foreground">No contents found for {category}.</div>
+        <div className="text-muted-foreground">{t('noContentsFound', {category})}</div>
         <Link href="/contents/topic-finder" className="flex justify-center">
           <Button variant="outline" className="w-full bg-accent rounded-xl">
-            Add content
+            {t('addContent')}
           </Button>
         </Link>
       </div>
@@ -226,7 +228,7 @@ export function ContentList({ category, title }: ContentListProps) {
                           newMap.delete(content.my_contents_id);
                           return newMap;
                         });
-                        toast.success('Content removed from thread chain');
+                        toast.success(t('contentRemovedFromThread'));
                       }
                     } else {
                       // 선택 및 thread chain에 추가
@@ -235,7 +237,7 @@ export function ContentList({ category, title }: ContentListProps) {
                       if (!isAlreadyAdded) {
                         addContentAsThread(content.content);
                         setAddedContentMap(prev => new Map([...prev, [content.my_contents_id, content.content]]));
-                        toast.success('Content added to thread chain');
+                        toast.success(t('contentAddedToThread'));
                       }
                     }
                   }}
@@ -285,7 +287,7 @@ export function ContentList({ category, title }: ContentListProps) {
                                     return newMap;
                                   });
                                 });
-                                toast.success('Thread chain removed from thread chain');
+                                toast.success(t('threadChainRemoved'));
                               }
                             } else {
                               // 선택 및 thread chain에 추가
@@ -296,7 +298,7 @@ export function ContentList({ category, title }: ContentListProps) {
                                   addContentAsThread(c.content);
                                   setAddedContentMap(prev => new Map([...prev, [c.my_contents_id, c.content]]));
                                 });
-                                toast.success('Thread chain added to thread chain');
+                                toast.success(t('threadChainAdded'));
                               }
                             }
                           }}

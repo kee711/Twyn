@@ -455,6 +455,28 @@
       "add": "Add",
       "whatToImprove": "What should we improve?"
     },
+    "contentList": {
+      "loginRequired": "You need to login to view contents.",
+      "loadingContents": "Loading contents...",
+      "noContentsFound": "No contents found for {category}.",
+      "addContent": "Add content",
+      "errorLoadingContents": "Failed to load contents.",
+      "contentRemovedFromThread": "Content removed from thread chain",
+      "contentAddedToThread": "Content added to thread chain",
+      "threadChainRemoved": "Thread chain removed from thread chain",
+      "threadChainAdded": "Thread chain added to thread chain"
+    },
+    "oembedList": {
+      "loginRequired": "You need to login to view contents.",
+      "loading": "Loading...",
+      "noSavedContents": "No saved contents.",
+      "selectSocialAccount": "Please select a social account",
+      "loadingFailed": "Failed to load",
+      "contentAddedToThread": "Content added to thread chain",
+      "failedToAddContent": "Failed to add content",
+      "added": "Added",
+      "add": "Add"
+    },
     "statistics": {
       "title": "Statistics",
       "dateRanges": {
