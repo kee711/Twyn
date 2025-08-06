@@ -364,7 +364,8 @@
         "headlineInput": {
           "placeholder": "Write headline...",
           "instructionPlaceholder": "Write instruction..."
-        }
+        },
+        "deleteAllTopicsButton": "Delete All Topics"
       },
       "draft": {
         "title": "Draft"

@@ -46,23 +46,33 @@ export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isS
 
     return (
         <div className="w-full max-w-3xl">
-            <div className={`w-full bg-white rounded-[20px] border border-[#E5E5E5] px-4 py-3 flex flex-col gap-1 shadow-sm`}>
-                <input
-                    type="text"
+            <div className={`w-full h-fit bg-white rounded-[20px] border border-[#E5E5E5] px-3 md:px-4 py-3 flex flex-col gap-1 shadow-sm`}>
+                <textarea
                     value={headline}
                     onChange={e => handleChange(e.target.value)}
                     placeholder={placeholder}
-                    // 텍스트 줄바꿈 처리, 높이 자동으로 늘어나게 처리
-                    className="w-full h-fit bg-transparent text-lg font-medium placeholder-[#B0B0B0] outline-none px-2 py-1 whitespace-pre-wrap"
+                    className="w-full min-h-[32px] resize-none overflow-hidden bg-transparent text-lg font-medium placeholder-[#B0B0B0] outline-none px-1 md:px-2"
                     readOnly={readOnly}
                     onClick={onClick}
+                    rows={1}
+                    ref={(textarea) => {
+                        if (textarea) {
+                            textarea.style.height = 'auto';
+                            textarea.style.height = `${textarea.scrollHeight}px`;
+                        }
+                    }}
+                    onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = `${target.scrollHeight}px`;
+                    }}
                 />
                 <input
                     type="text"
                     value={instruction}
                     onChange={e => setInstruction(e.target.value)}
                     placeholder={t('instructionPlaceholder')}
-                    className="w-full bg-transparent text-sm font-medium text-gray-500 placeholder-[#B0B0B0] outline-none px-2 py-1"
+                    className="w-full bg-transparent text-sm font-medium text-gray-500 placeholder-[#B0B0B0] outline-none px-1 md:px-2"
                     readOnly={readOnly}
                 />
 

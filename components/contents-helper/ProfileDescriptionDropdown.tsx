@@ -34,9 +34,9 @@ export function ProfileDescriptionDropdown({ accountId, initialDescription }: Pr
     };
 
     return (
-        <div className="w-full rounded-t-2xl bg-[#F8F8F8] border-b border-[#E5E5E5] px-6 pt-4 pb-2 relative transition-all duration-300">
+        <div className="w-full rounded-t-2xl bg-[#F8F8F8] border-b border-[#E5E5E5] px-5 md:px-6 pt-3 pb-1 md:pt-4 md:pb-2 relative transition-all duration-300">
             <div className="flex items-center justify-between cursor-pointer" onClick={() => setOpen(v => !v)}>
-                <span className="font-semibold text-gray-500 text-lg">{t('profileDescription')}</span>
+                <span className="font-semibold text-gray-500 text-md">{t('profileDescription')}</span>
                 {open ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
             <div

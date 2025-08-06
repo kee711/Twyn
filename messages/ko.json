@@ -364,9 +364,10 @@
         "profileDescription": "프로필 설명",
         "profileDescriptionDescription": "더 정확한 AI 콘텐츠 생성에 사용됩니다",
         "headlineInput": {
-          "placeholder": "제목을 작성하세요...",
-          "instructionPlaceholder": "설명을 작성하세요..."
-        }
+          "placeholder": "주제를 작성해주세요...",
+          "instructionPlaceholder": "추가 설명이 있다면 작성해주세요..."
+        },
+        "deleteAllTopicsButton": "모두 삭제하기"
       },
       "draft": {
         "title": "초안"
