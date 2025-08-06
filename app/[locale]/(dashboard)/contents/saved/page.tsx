@@ -48,14 +48,14 @@ export default function SavedPage() {
     };
 
     return (
-        <div className="h-full w-full overflow-hidden flex flex-col p-6">
+        <div className="h-full w-full overflow-hidden flex flex-col p-4">
             <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('title')}</h1>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col bg-gray-50 rounded-[32px] p-6 overflow-hidden">
+            <div className="flex-1 flex flex-col bg-gray-50 rounded-[32px] p-4 md:p-6 overflow-hidden">
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="flex flex-col gap-4 mb-6 bg-white p-4 rounded-[20px]">
-                        <div className="flex gap-2 items-center">
+                    <div className="flex flex-col gap-4 mb-4 md:mb-6 bg-white p-4 rounded-[20px]">
+                        <div className="flex flex-col md:flex-row md:gap-2 items-start md:items-center">
                             <div className="text-lg font-bold">{t('addByUrl')}</div>
                             <p className="text-sm text-muted-foreground">
                                 {t('addThreadsContentByUrl')}
@@ -69,7 +69,7 @@ export default function SavedPage() {
                                 onChange={(e) => setUrl(e.target.value)}
                             />
                             <Button onClick={handleAddUrl} disabled={isPending}>
-                                {isPending ? t('saving') : t('addByUrl')}
+                                {isPending ? t('saving') : t('addByUrlButton')}
                             </Button>
                         </div>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
