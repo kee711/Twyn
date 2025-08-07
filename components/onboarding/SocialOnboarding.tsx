@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface SocialOnboardingProps {
   socialAccountId: string;
@@ -15,6 +16,7 @@ interface SocialOnboardingProps {
 }
 
 export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardingProps) {
+  const t = useTranslations('SocialOnboarding');
   const [profileDescription, setProfileDescription] = useState('');
   const [accountInfo, setAccountInfo] = useState<{
     username?: string;
@@ -92,7 +94,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground">
-            {t('description', { platform: accountInfo.platform })}
+            {t('description', { platform: accountInfo.platform || 'Threads' })}
           </p>
           {accountInfo.username && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -110,19 +112,19 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
             <div className="space-y-4">
               <div>
                 <Label htmlFor="profile-description">
-                  Tell us about your profile in detail
+                  {t('profileDescriptionLabel')}
                 </Label>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Include information about:
+                  {t('profileDescriptionHint')}
                 </p>
                 <ul className="text-sm text-muted-foreground mb-4 space-y-1 ml-4">
-                  <li>• What is your profile about?</li>
-                  <li>• Who's your target audience?</li>
-                  <li>• What is your unique point?</li>
+                  <li>• {t('profileDescriptionAbout')}</li>
+                  <li>• {t('profileDescriptionTarget')}</li>
+                  <li>• {t('profileDescriptionUnique')}</li>
                 </ul>
                 <Textarea
                   id="profile-description"
-                  placeholder={t('iAmA')}
+                  placeholder={t('profileDescriptionPlaceholder')}
                   value={profileDescription}
                   onChange={(e) => setProfileDescription(e.target.value)}
                   className="h-fit focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
@@ -139,10 +141,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
           <CardContent className="p-4">
             <h4 className="font-medium mb-2">{t('exampleDescription')}</h4>
             <p className="text-sm text-muted-foreground">
-              "I'm a digital marketing specialist focused on helping small businesses grow their online presence.
-              I share practical tips about social media marketing, content creation, and customer engagement.
-              My audience includes small business owners, marketers, and entrepreneurs looking to build their brand online.
-              What makes me unique is my focus on budget-friendly strategies that deliver real results."
+              {t('exampleDescriptionContent')}
             </p>
           </CardContent>
         </Card>
@@ -155,7 +154,7 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
             onClick={handleSubmit}
             disabled={!profileDescription.trim()}
           >
-            Complete Setup
+            {t('complete')}
           </Button>
 
           {/* <button

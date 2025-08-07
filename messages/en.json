@@ -84,13 +84,16 @@
     "profileDescriptionLabel": "Profile Description",
     "profileDescriptionPlaceholder": "Tell us about your account, your target audience, the type of content you create, and what makes your profile unique...",
     "profileDescriptionHint": "The more details you provide, the better we can help you create engaging content.",
-    "complete": "Complete Setup",
+    "complete": "Start Twyn",
     "skip": "Skip for now",
     "errors": {
       "loadingAccountInfo": "Error loading account info"
     },
-    "iAmA": "I'm a ...",
-    "exampleDescription": "💡 Example Description"
+    "profileDescriptionAbout": "What is your profile about?",
+    "profileDescriptionTarget": "Who's your target audience?",
+    "profileDescriptionUnique": "What is your unique point?",
+    "exampleDescription": "💡 Example Description",
+    "exampleDescriptionContent": "I'm a digital marketing specialist focused on helping small businesses grow their online presence. I share practical tips about social media marketing, content creation, and customer engagement. My audience includes small business owners, marketers, and entrepreneurs looking to build their brand online. What makes me unique is my focus on budget-friendly strategies that deliver real results."
   },
   "navigation": {
     "dashboard": "Dashboard",
