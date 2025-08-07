@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { ErrorUI } from "@/components/ui/error-ui";
 import { ContentItem } from "../contents-helper/types";
 import {
     getAllMentionsWithRootPosts,
@@ -48,7 +49,6 @@ export function MentionList() {
         data,
         isLoading,
         isError,
-        error,
     } = useQuery<{
         mentions: Comment[];
         hiddenMentions: string[];
@@ -243,11 +243,7 @@ export function MentionList() {
         return (
             <div className="h-full w-full overflow-hidden flex flex-col p-6">
                 <h1 className="text-3xl font-bold text-zinc-700 mb-6">{t('title')}</h1>
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-red-500">
-                        {error instanceof Error ? error.message : t('errorLoadingData')}
-                    </div>
-                </div>
+                <ErrorUI />
             </div>
         );
     }

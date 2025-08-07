@@ -68,7 +68,7 @@
     "engagementDescription": "Your posts aren't getting the interaction you want",
     "connectThreads": "Connect Threads Account",
     "connectThreadsDescription": "Link your Threads account to start creating amazing content",
-    "connectThreadsTitle": "Connect your first account",
+    "connectThreadsTitle": "Connect your account",
     "connectLater": "Connect later",
     "skip": "Skip",
     "continue": "Continue",
@@ -189,7 +189,8 @@
     "accessDenied": "Access denied",
     "networkError": "Network error",
     "validationError": "Validation error",
-    "serverError": "Server error"
+    "serverError": "Server error occurred",
+    "serverErrorDescription": "Please contact the administrator,\nand we'll fix it as soon as possible"
   },
   "landing": {
     "description": "Minimize your time & energy to post, engage, and grow on Threads.",
@@ -359,6 +360,12 @@
         "delete": "Delete",
         "ideas": "Get Ideas",
         "createDetails": "Create Post",
+        "generationSettings": "Generation Settings",
+        "postType": "Post Type",
+        "single": "Single",
+        "thread": "Thread",
+        "language": "Language",
+        "selectLanguage": "Select language",
         "profileDescription": "Profile Description",
         "profileDescriptionDescription": "Used for more accurate AI content generation",
         "profileDescriptionSaveFailed": "Failed to save profile description",

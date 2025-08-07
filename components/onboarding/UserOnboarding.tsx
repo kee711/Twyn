@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Users, Lightbulb, User, Building, Zap, Target, MessageSquare, TrendingUp, AlertCircle, Clock, BarChart3 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface UserOnboardingProps {
   onComplete: (responses: {
@@ -15,43 +16,90 @@ interface UserOnboardingProps {
 
 type Step = 1 | 2 | 3 | 4;
 
-const stepData = {
-  1: {
-    title: 'What inspired you to start creating content?',
-    description: 'Tell us about your motivation for content creation',
-    options: [
-      { id: 'followers', title: 'I want to grow my followers', description: 'I want to grow my followers', icon: TrendingUp },
-      { id: 'brand', title: 'I want to build brand awareness', description: 'I want to build brand awareness', icon: Target },
-      { id: 'product', title: 'I\'m promoting a product', description: 'I\'m promoting a product', icon: BarChart3 },
-    ]
-  },
-  2: {
-    title: 'How are you currently working on your content?',
-    description: 'Help us understand your current setup',
-    options: [
-      { id: 'solo', title: 'I\'m doing it solo', description: 'I\'m doing it solo', icon: User },
-      { id: 'marketer', title: 'I\'m a marketer at a company', description: 'I\'m a marketer at a company', icon: Building },
-      { id: 'agency', title: 'I manage it for my clients', description: 'I manage it for my clients', icon: Zap },
-    ]
-  },
-  3: {
-    title: 'What is the hardest part about creating content?',
-    description: 'Let us know your biggest challenge',
-    options: [
-      { id: 'ideas', title: 'I\'m running out of ideas', description: 'I\'m running out of ideas', icon: Lightbulb },
-      { id: 'consistent', title: 'It\'s hard to stay consistent', description: 'It\'s hard to stay consistent', icon: Clock },
-      { id: 'engagement', title: 'I\'m not getting much engagement', description: 'I\'m not getting much engagement', icon: TrendingUp },
-    ]
-  }
-};
-
 export function UserOnboarding({ onComplete }: UserOnboardingProps) {
+  const t = useTranslations('UserOnboarding');
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [responses, setResponses] = useState({
     step1: null as string | null,
     step2: null as string | null,
     step3: null as string | null,
   });
+
+  // Define step data with translations
+  const stepData = {
+    1: {
+      title: t('step1Title'),
+      description: t('step1Description'),
+      options: [
+        {
+          id: 'followers',
+          title: t('step1Options.followers'),
+          description: t('followersDescription'),
+          icon: TrendingUp
+        },
+        {
+          id: 'brand',
+          title: t('step1Options.brand'),
+          description: t('brandDescription'),
+          icon: Target
+        },
+        {
+          id: 'product',
+          title: t('step1Options.product'),
+          description: t('productDescription'),
+          icon: BarChart3
+        },
+      ]
+    },
+    2: {
+      title: t('step2Title'),
+      description: t('step2Description'),
+      options: [
+        {
+          id: 'solo',
+          title: t('step2Options.solo'),
+          description: t('soloDescription'),
+          icon: User
+        },
+        {
+          id: 'marketer',
+          title: t('step2Options.marketer'),
+          description: t('marketerDescription'),
+          icon: Building
+        },
+        {
+          id: 'agency',
+          title: t('step2Options.agency'),
+          description: t('agencyDescription'),
+          icon: Zap
+        },
+      ]
+    },
+    3: {
+      title: t('step3Title'),
+      description: t('step3Description'),
+      options: [
+        {
+          id: 'ideas',
+          title: t('step3Options.ideas'),
+          description: t('ideasDescription'),
+          icon: Lightbulb
+        },
+        {
+          id: 'consistent',
+          title: t('step3Options.consistent'),
+          description: t('consistentDescription'),
+          icon: Clock
+        },
+        {
+          id: 'engagement',
+          title: t('step3Options.engagement'),
+          description: t('engagementDescription'),
+          icon: TrendingUp
+        },
+      ]
+    }
+  };
 
   const handleOptionSelect = (optionId: string) => {
     if (currentStep <= 3) {
@@ -101,17 +149,17 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Progress bar - full width at top */}
         <div className="w-full bg-gray-200 h-1">
-          <div className="bg-blue-500 h-1 w-full" />
+          <div className="bg-black h-1" style={{ width: `${(4 / 5) * 100}%` }} />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-8 gap-10">
-          <div className="flex flex-col items-center">
+        <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-4 gap-6 md:gap-10">
+          <div className="flex flex-col items-center text-center">
             <img src="/twyn-logo-blk.svg" alt="Threads" className="w-32 h-fit mb-4" />
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Connect your first account
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+              {t('connectThreadsTitle')}
             </h1>
-            <p className="text-lg text-gray-600">
-              Link your Threads account to start creating amazing content
+            <p className="text-lg text-gray-600 whitespace-pre-line">
+              {t('connectThreadsDescription')}
             </p>
           </div>
           <div className="text-center space-y-4 flex flex-col items-center">
@@ -121,13 +169,13 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
               onClick={handleConnectThreads}
             >
               <img src="/threads.svg" alt="Threads" className="w-6 h-6 mr-2" />
-              Connect Threads Account
+              {t('connectThreads')}
             </Button>
             {/* <button
               onClick={handleConnectLater}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Connect later
+              {t('connectLater')}
             </button> */}
           </div>
         </div>
@@ -144,15 +192,15 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
       {/* Progress bar - full width at top */}
       <div className="w-full bg-gray-200 h-1">
         <div
-          className="bg-blue-500 h-1 transition-all duration-300"
-          style={{ width: `${(currentStep / 4) * 100}%` }}
+          className="bg-black h-1 transition-all duration-300"
+          style={{ width: `${(currentStep / 5) * 100}%` }}
         />
       </div>
 
-      <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-8">
+      <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-4">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
             {currentData.title}
           </h1>
           <p className="text-lg text-gray-600">
@@ -161,7 +209,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
         </div>
 
         {/* Options */}
-        <div className="space-y-4 mb-12">
+        <div className="space-y-4 mb-6 md:mb-12">
           {currentData.options.map((option: any) => {
             const IconComponent = option.icon;
             const isSelected = currentSelectedOption === option.title;
@@ -169,15 +217,15 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
             return (
               <Card
                 key={option.id}
-                className={`cursor-pointer transition-all shadow-sm hover:shadow-lg${isSelected
-                  ? 'focus:ring-2 focus:ring-blue-500 bg-blue-50 border-blue-200'
+                className={`cursor-pointer p-5 md:p-6 transition-all shadow-sm hover:shadow-lg${isSelected
+                  ? 'focus:ring-2 focus:ring-gray-500 bg-gray-100 border-gray-500'
                   : 'border-gray-200 hover:border-gray-300'
                   }`}
                 onClick={() => handleOptionSelect(option.id)}
               >
-                <CardContent className="p-1">
-                  <div className="flex gap-4 items-center">
-                    <div className={`p-3 rounded-xl ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                <CardContent>
+                  <div className="flex gap-4 items-start">
+                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'
                       }`}>
                       <IconComponent className="w-6 h-6" />
                     </div>
@@ -204,14 +252,14 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
             onClick={handleContinue}
             disabled={!currentSelectedOption}
           >
-            Continue
+            {t('continue')}
           </Button>
           {currentStep !== 3 && (
             <button
               onClick={handleSkip}
               className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
-              skip
+              {t('skip')}
             </button>
           )}
         </div>
