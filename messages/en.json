@@ -189,7 +189,8 @@
     "accessDenied": "Access denied",
     "networkError": "Network error",
     "validationError": "Validation error",
-    "serverError": "Server error"
+    "serverError": "Server error occurred",
+    "serverErrorDescription": "Please contact the administrator,\nand we'll fix it as soon as possible"
   },
   "landing": {
     "description": "Minimize your time & energy to post, engage, and grow on Threads.",

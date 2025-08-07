@@ -189,7 +189,8 @@
     "accessDenied": "접근이 거부되었습니다",
     "networkError": "네트워크 오류",
     "validationError": "유효성 검사 오류",
-    "serverError": "서버 오류"
+    "serverError": "서버 쪽 문제가 발생했어요",
+    "serverErrorDescription": "운영진 측에 알려주시면 빠르게 복구하도록 하겠습니다"
   },
   "landing": {
     "description": "당신의 Threads 계정 성장을 쉽게",

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { ErrorUI } from "@/components/ui/error-ui";
 import {
     Dialog,
     DialogContent,
@@ -376,8 +377,8 @@ export function CommentList() {
             )}
 
             {isError && (
-                <div className="flex-1 flex items-center justify-center min-h-0">
-                    <div className="text-red-500">{t('errorLoadingData')}</div>
+                <div className="flex-1 min-h-0">
+                    <ErrorUI />
                 </div>
             )}
 
