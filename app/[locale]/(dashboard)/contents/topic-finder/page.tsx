@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Trash } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogTitle, AlertDialogContent, AlertDialogHeader, AlertDialogTrigger, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useContentGenerationStore } from '@/lib/stores/content-generation';
 
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
@@ -35,6 +36,7 @@ export default function TopicFinderPage() {
     const [profileDescription, setProfileDescription] = useState('')
     const [selectedHeadline, setSelectedHeadline] = useState<string>('');
     const [givenInstruction, setGivenInstruction] = useState<string>('');
+    const { postType, language } = useContentGenerationStore();
 
     // Memoize Supabase client to prevent creating new instances
     const supabase = useMemo(() => createClient(), []);
@@ -91,7 +93,13 @@ export default function TopicFinderPage() {
             const res = await fetch('/api/generate-detail', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profileDescription, topic: selectedHeadline, instruction: givenInstruction })
+                body: JSON.stringify({ 
+                    accountInfo: profileDescription, 
+                    topic: selectedHeadline, 
+                    instruction: givenInstruction,
+                    postType,
+                    language
+                })
             });
             if (!res.ok) throw new Error('API error');
             const data = await res.json();
@@ -282,7 +290,7 @@ export default function TopicFinderPage() {
             const res = await fetch('/api/generate-topics', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profileDescription })
+                body: JSON.stringify({ profileDescription, language })
             });
             if (!res.ok) throw new Error('API error');
             const data = await res.json();
