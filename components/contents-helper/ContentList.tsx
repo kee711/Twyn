@@ -187,7 +187,7 @@ export function ContentList({ category, title }: ContentListProps) {
   if (!isLoading && contents.length === 0) {
     return (
       <div className="h-full w-full flex-1 flex flex-col gap-3 items-center justify-center rounded-[20px] min-h-0">
-        <div className="text-muted-foreground">{t('noContentsFound', {category})}</div>
+        <div className="text-muted-foreground">{t('noContentsFound', { category })}</div>
         <Link href="/contents/topic-finder" className="flex justify-center">
           <Button variant="outline" className="w-full bg-accent rounded-xl">
             {t('addContent')}
@@ -200,14 +200,14 @@ export function ContentList({ category, title }: ContentListProps) {
     <div className="h-full w-full overflow-hidden flex flex-col">
       {/* 컨텐츠 목록 */}
       {isExpanded && (
-        <div className="columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0">
+        <div className="columns-1 md:columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0">
           {contents.length > 0 && (
             <>
               {/* 단일 포스트 렌더링 */}
               {singlePosts.map((content) => (
                 <div
                   key={content.my_contents_id}
-                  className={`rounded-[20px] p-5 flex flex-col h-fit mb-6 break-inside-avoid cursor-pointer transition-colors ${selectedItems.has(content.my_contents_id) ? "bg-accent border-muted-foreground" : "bg-white"}`}
+                  className={`rounded-[20px] p-5 flex flex-col h-fit mb-4 md:mb-6 break-inside-avoid cursor-pointer transition-colors ${selectedItems.has(content.my_contents_id) ? "bg-accent border-muted-foreground" : "bg-white"}`}
                   onClick={() => {
                     const isCurrentlySelected = selectedItems.has(content.my_contents_id);
                     const isAlreadyAdded = isContentAddedToThreadChain(content.my_contents_id, content.content);

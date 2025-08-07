@@ -9,58 +9,20 @@ import { Alert } from '../ui/alert';
 import { useTranslations } from 'next-intl';
 
 interface HeadlineButtonsProps {
-  tags: string[];
   onCreateDetails: () => void;
   onGenerateTopics: () => void;
-  onClickTag: (v: string) => void;
   IsIdeasLoading?: boolean;
   IsCreateDetailsLoading?: boolean;
   hasHeadline?: boolean;
-  hasTopics?: boolean;
-  onTopicDelete?: () => void;
 }
 
-export function HeadlineButtons({ tags, onCreateDetails, onGenerateTopics, onClickTag, IsIdeasLoading, IsCreateDetailsLoading, hasHeadline, hasTopics, onTopicDelete }: HeadlineButtonsProps) {
+export function HeadlineButtons({ onCreateDetails, onGenerateTopics, IsIdeasLoading, IsCreateDetailsLoading, hasHeadline }: HeadlineButtonsProps) {
   const t = useTranslations('pages.contents.topicFinder');
-  
+
   return (
     <div className="w-full max-w-3xl flex justify-between items-center mt-3 flex-wrap">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {tags.map((tag, idx) => (
-          <span
-            key={tag}
-            className="bg-[#F2F2F2] text-gray-500 rounded-full px-3 py-2 text-sm font-semibold cursor-pointer flex items-center gap-1"
-            onClick={() => onClickTag(tag)}
-          >
-            {tag}
-          </span>
-        ))}
-        <div className="flex-1" />
-      </div>
       <div className="flex gap-2">
-        {hasTopics && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                className='rounded-full'
-              >
-                <Trash className="w-4 h-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('deleteAllTopics')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('deleteAllTopicsDescription')}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={onTopicDelete}>{t('delete')}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+
         <Button
           onClick={onGenerateTopics}
           disabled={IsIdeasLoading}

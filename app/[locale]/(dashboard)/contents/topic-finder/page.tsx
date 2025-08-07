@@ -1,6 +1,5 @@
 'use client';
 
-import { CookingPot, LoaderCircle, Sparkles } from 'lucide-react';
 import { ProfileDescriptionDropdown } from '@/components/contents-helper/ProfileDescriptionDropdown';
 import { HeadlineInput } from '@/components/contents-helper/HeadlineInput';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
@@ -9,23 +8,7 @@ import { startTransition, useEffect, useState, useMemo, useCallback } from 'reac
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
-import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { PricingModal } from '@/components/modals/PricingModal';
-import {
-    AlertDialog,
-    AlertDialogTrigger,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogFooter,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogAction,
-    AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import useThreadChainStore from '@/stores/useThreadChainStore';
 import { ThreadContent } from '@/components/contents-helper/types';
 import { HeadlineButtons } from '@/components/contents-helper/HeadlineButtons';
@@ -34,6 +17,10 @@ import { fetchAndSaveComments, fetchAndSaveMentions } from '@/app/actions/fetchC
 import { getAllCommentsWithRootPosts, getAllMentionsWithRootPosts } from '@/app/actions/comment';
 import { statisticsKeys } from '@/lib/queries/statisticsKeys';
 import { fetchUserInsights, fetchTopPosts } from '@/lib/queries/statisticsQueries';
+import { Button } from '@/components/ui/button';
+import { Trash } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogTitle, AlertDialogContent, AlertDialogHeader, AlertDialogTrigger, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
@@ -42,13 +29,10 @@ export default function TopicFinderPage() {
     const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
     const [mounted, setMounted] = useState(false);
     const { setPendingThreadChain } = useThreadChainStore();
-    const searchParams = useSearchParams();
     const queryClient = useQueryClient();
 
-    const { accounts, currentSocialId, currentUsername } = useSocialAccountStore()
+    const { currentSocialId, currentUsername } = useSocialAccountStore()
     const [accountInfo, setAccountInfo] = useState('')
-    const [accountTags, setAccountTags] = useState<string[]>([])
-    const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedHeadline, setSelectedHeadline] = useState<string>('');
     const [givenInstruction, setGivenInstruction] = useState<string>('');
 
@@ -58,14 +42,11 @@ export default function TopicFinderPage() {
     // topicResults zustand store
     const {
         topicResults,
-        setTopicResults,
         addTopicResults,
         updateTopicResult,
         setTopicLoading,
         setTopicDetail,
-        setDialogOpen: setDialogOpenStore,
         removeTopicResult,
-        clearTopicResults
     } = useTopicResultsStore();
 
     // Mount 상태 설정 - hydration 오류 방지
@@ -173,16 +154,14 @@ export default function TopicFinderPage() {
             try {
                 const { data: accountData, error: accountError } = await supabase
                     .from('social_accounts')
-                    .select('account_type, account_info, account_tags')
+                    .select('account_type, account_info')
                     .eq('social_id', currentSocialId)
                     .single()
 
                 if (!accountError && accountData) {
                     setAccountInfo(accountData.account_info || '')
-                    setAccountTags(accountData.account_tags || [])
                 } else {
                     setAccountInfo('')
-                    setAccountTags([])
                 }
             } catch (error) {
                 toast.error('계정 정보를 불러오는 중 오류가 발생했습니다.')
@@ -338,47 +317,43 @@ export default function TopicFinderPage() {
     return (
         <div className="p-4 md:p-6 h-screen">
             <div className="flex flex-col items-center justify-center h-full">
-                <div className="w-full mx-auto pb-48 flex flex-col items-center overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                <div className="w-full mx-auto pt-32 pb-48 flex flex-col items-center overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {/* 중앙 정렬 인사말 */}
-                    <div className="">
-                        <div className="flex flex-row items-center gap-2 mb-1">
+                    <div className="px-6 md:px-4 text-center md:text-left">
+                        <div className="flex flex-col md:flex-row items-center gap-2 mb-1">
                             {/* 프로필 이미지 - 동적으로 가져오기 */}
                             {mounted && (
-                                <ThreadsProfilePicture 
-                                    socialId={currentSocialId} 
+                                <ThreadsProfilePicture
+                                    socialId={currentSocialId}
                                     alt="Profile picture"
-                                    className="w-8 h-8 rounded-full" 
+                                    className="w-8 h-8 rounded-full"
                                 />
                             )}
-                            <h2 className="text-2xl font-semibold text-left">
+                            <h2 className="text-xl md:text-2xl font-semibold text-center md:text-left">
                                 {t('greeting', { username: mounted ? (currentUsername || t('defaultUser')) : t('defaultUser') })}
                             </h2>
                         </div>
-                        <h2 className="text-2xl font-semibold text-left">{t('question')}</h2>
+                        <h2 className="text-xl md:text-2xl font-semibold text-center md:text-left whitespace-normal break-keep">{t('question')}</h2>
                     </div>
-                    {/* Profile Description Dropdown */}
-                    {mounted && currentSocialId && (
-                        <div className="w-full mt-3 flex justify-between max-w-80 transition-all duration-300 xs:max-w-xs sm:max-w-xl">
-                            <ProfileDescriptionDropdown accountId={currentSocialId} initialDescription={accountInfo || ''} />
-                        </div>
-                    )}
                     {/* Headline 입력 및 태그 */}
                     <div className="w-full max-w-3xl">
+                        {/* Profile Description Dropdown */}
+                        {mounted && currentSocialId && (
+                            <div className="w-full px-4 md:px-6 mt-3 flex justify-between transition-all duration-300">
+                                <ProfileDescriptionDropdown accountId={currentSocialId} initialDescription={accountInfo || ''} />
+                            </div>
+                        )}
                         <HeadlineInput value={selectedHeadline} onChange={setSelectedHeadline} />
                     </div>
 
                     {/* Headline Buttons */}
                     <div className="w-full max-w-3xl flex-1">
                         <HeadlineButtons
-                            tags={accountTags}
-                            onClickTag={v => setSelectedHeadline(v)}
                             onCreateDetails={handleGenerateDetail}
                             onGenerateTopics={generateTopics}
                             IsIdeasLoading={isGeneratingTopics}
                             IsCreateDetailsLoading={isGeneratingDetails}
                             hasHeadline={!!selectedHeadline}
-                            hasTopics={topicResults.length > 0}
-                            onTopicDelete={removeTopicResult} // Clear all topics
                         />
                     </div>
 
@@ -405,6 +380,30 @@ export default function TopicFinderPage() {
                                         <div className="w-3/4 h-[48px] rounded-[20px] bg-gray-300 animate-pulse" />
                                         <div className="w-1/2 h-[48px] rounded-[20px] bg-gray-300 animate-pulse" />
                                     </div>
+                                )}
+                                {topicResults.length > 0 && (
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                className='text-muted-foreground'
+                                            >
+                                                {t('deleteAllTopicsButton')}
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>{t('deleteAllTopics')}</DialogTitle>
+                                                <DialogDescription>
+                                                    {t('deleteAllTopicsDescription')}
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <DialogFooter className='gap-2'>
+                                                <DialogClose className='text-muted-foreground mb-[-8px]'>{t('cancel')}</DialogClose>
+                                                <Button variant="destructive" onClick={() => removeTopicResult()}>{t('delete')}</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
                                 )}
                             </div>
 

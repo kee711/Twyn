@@ -6,7 +6,7 @@ import { ThreadChain } from "@/components/ThreadChain";
 import { cn } from "@/lib/utils";
 import { debugFetch } from "@/lib/utils/debug-fetch";
 import useThreadChainStore from "@/stores/useThreadChainStore";
-import { TextSearch, PencilLine, FileText, PanelRightClose, PanelLeftClose, ChevronDown, FileEdit, Bookmark } from "lucide-react";
+import { TextSearch, PencilLine, FileText, PanelRightClose, PanelLeftClose, ChevronDown, FileEdit, Bookmark, Plus } from "lucide-react";
 import { createContent } from "@/app/actions/content";
 import { toast } from "sonner";
 import { postThreadChain, scheduleThreadChain, ThreadContent } from "@/app/actions/threadChain";
@@ -263,12 +263,12 @@ export function RightSidebar({ className }: RightSidebarProps) {
     console.log("[fetchPublishTimes] Current URL:", window.location.href);
     console.log("[fetchPublishTimes] Current pathname:", window.location.pathname);
     console.log("[fetchPublishTimes] Fetching from:", "/api/user/get-publish-times");
-    
+
     try {
       const response = await debugFetch("/api/user/get-publish-times");
       console.log("[fetchPublishTimes] Response status:", response.status);
       console.log("[fetchPublishTimes] Response headers:", Object.fromEntries(response.headers.entries()));
-      
+
       if (!response.ok) {
         console.error("[fetchPublishTimes] Response not OK:", {
           status: response.status,
@@ -276,7 +276,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
           url: response.url
         });
       }
-      
+
       const data = await response.json();
       console.log("publishTimes 함수 내 실행:", data);
       if (data === null) {
@@ -295,12 +295,12 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const fetchScheduledTimes = async () => {
     console.log("[fetchScheduledTimes] Current URL:", window.location.href);
     console.log("[fetchScheduledTimes] Fetching from:", "/api/contents/scheduled");
-    
+
     try {
       const response = await debugFetch("/api/contents/scheduled");
       console.log("[fetchScheduledTimes] Response status:", response.status);
       console.log("[fetchScheduledTimes] Response URL:", response.url);
-      
+
       const data = await response.json();
       console.log("fetchScheduledTimes 함수 내 실행:", data);
       if (data === null) {
@@ -506,15 +506,10 @@ export function RightSidebar({ className }: RightSidebarProps) {
               variant="default"
               size="icon"
               onClick={openRightSidebar}
-              className="fixed bottom-4 right-4 z-30 h-14 w-14 rounded-full shadow-lg"
+              className="fixed bottom-5 text-md right-4 z-30 h-fit w-fit py-3.5 px-4 rounded-full shadow-lg flex items-center gap-1.5"
             >
-              <NextImage
-                src="/avatars/01.png"
-                alt="Profile"
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
+              <Plus className="h-6 w-6 text-white" />
+              <span className="text-white">New Post</span>
             </Button>
           )}
         </>

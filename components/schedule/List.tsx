@@ -113,7 +113,7 @@ export function List({
             ref={(el) => { dateRefs.current[dateStr] = el }}
             id={dateStr}
             className={cn(
-              "p-4 rounded-xl border border-transparent",
+              "rounded-xl border border-transparent",
               dropTargetDate && isSameDay(date, dropTargetDate) && "border-primary bg-primary/10"
             )}
             onDragOver={(e) => handleDragOver(e, date)}
