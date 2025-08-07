@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
     // 기존 계정 확인
     const { data: existingAccount, error: checkError } = await supabase
       .from("social_accounts")
-      .select("id")
+      .select("id, onboarding_completed")
       .eq("owner", session.user.id)
       .eq("social_id", threadsUserId)
       .maybeSingle();
@@ -100,12 +100,13 @@ export async function GET(req: NextRequest) {
     }
 
     let accountId;
-    let isNewAccount = false;
+    let needsOnboarding = false;
 
     // social_accounts 테이블에 계정 정보 저장
     if (existingAccount) {
       // 기존 계정 업데이트
       accountId = existingAccount.id;
+      needsOnboarding = !existingAccount.onboarding_completed;
       const encryptedToken = encryptToken(accessToken);
       const { error: dbError } = await supabase
         .from("social_accounts")
@@ -124,7 +125,7 @@ export async function GET(req: NextRequest) {
       }
     } else {
       // 새 계정 생성
-      isNewAccount = true;
+      needsOnboarding = true;
       const encryptedToken = encryptToken(accessToken);
       const { data: newAccount, error: dbError } = await supabase
         .from("social_accounts")
@@ -165,8 +166,8 @@ export async function GET(req: NextRequest) {
 
     console.log("Threads 계정 연동 완료");
 
-    // 새 계정이면 소셜 온보딩으로 리다이렉트
-    if (isNewAccount) {
+    // 온보딩이 필요한 경우 소셜 온보딩으로 리다이렉트
+    if (needsOnboarding) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/onboarding?type=social&account_id=${accountId}`);
     } else {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/contents/topic-finder`);

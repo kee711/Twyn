@@ -456,10 +456,6 @@ export function CommentList() {
                                         {/* Comment Header */}
                                         <div className="flex justify-between items-center">
                                             <div className="flex gap-3 w-full">
-                                                {/* Profile Image */}
-                                                <ThreadsProfilePicture
-                                                    socialId={comment.social_id}
-                                                />
                                                 <div className="w-full">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <div className="flex flex-row items-center gap-2">
