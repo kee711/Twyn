@@ -107,10 +107,8 @@ export default function OnboardingPage() {
 
       toast.success(t('profileSetupCompleted'));
 
-      // Add pricing modal to current URL
-      const newSearchParams = new URLSearchParams(searchParams.toString());
-      newSearchParams.set('modal', 'pricing');
-      router.push(`${pathname}?${newSearchParams.toString()}`);
+      // Redirect to topic-finder with pricing modal parameter
+      router.push('/contents/topic-finder?modal=pricing');
     } catch (error) {
       console.error('Error saving social onboarding:', error);
       toast.error(t('errorSavingSocialOnboarding'));
