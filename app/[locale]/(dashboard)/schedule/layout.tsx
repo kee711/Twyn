@@ -6,7 +6,7 @@ export default function ScheduleLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-xl px-6 pt-6 h-full">
+    <div className="bg-white rounded-xl px-4 md:px-6 pt-4 md:pt-6 h-full">
       {children}
     </div>
   );

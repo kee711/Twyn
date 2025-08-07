@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { ContentItem } from "../contents-helper/types";
 import {
     getAllMentionsWithRootPosts,
@@ -318,22 +319,22 @@ export function MentionList() {
     }
 
     return (
-        <div className="h-full w-full overflow-hidden flex flex-col p-6">
-            <h1 className="text-3xl font-bold text-zinc-700 mb-6">Mentions</h1>
+        <div className="h-full w-full overflow-hidden flex flex-col p-4">
+            <h1 className="text-2xl md:text-3xl mt-1 md:mt-0 mb-4 md:mb-6 font-bold text-zinc-700">{t('title')}</h1>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col bg-gray-50 rounded-[32px] p-6 overflow-hidden">
-                <div className="mb-6 flex justify-between items-center">
-                    <p className="text-gray-500 text-base">
+            <div className="flex-1 flex flex-col bg-gray-50 rounded-2xl p-4 md:p-6 overflow-hidden">
+                <div className="mb-3 md:mb-6 flex justify-between items-center">
+                    <p className="ml-1 text-gray-500 text-[13px] md:text-[17px]">
                         {t('remainingMentionsToReply', { count: remainingMentions })}
                     </p>
                     <Button
                         onClick={writeAllReplies}
                         variant="ghost"
-                        className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700"
+                        className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl px-2.5 py-1"
                     >
                         <Sparkles className="w-4 h-4" />
-                        <span className="text-base font-medium">{t('draftAllReplies')}</span>
+                        <span className="text-sm md:text-base font-medium">{t('draftAllReplies')}</span>
                     </Button>
                 </div>
 
@@ -362,9 +363,10 @@ export function MentionList() {
                                             <p className="text-black text-[17px] leading-relaxed line-clamp-3">
                                                 {mention.root_post_content.content}
                                             </p>
-                                            <p className="text-sm text-gray-400">
-                                                {new Date(mention.root_post_content.created_at || '').toLocaleString()}
-                                            </p>
+                                            <RelativeTime 
+                                                timestamp={mention.root_post_content.created_at || ''} 
+                                                className="text-sm text-gray-400"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -378,9 +380,10 @@ export function MentionList() {
                                         <h4 className="font-semibold text-black text-[17px]">
                                             {mention.username}
                                         </h4>
-                                        <p className="text-sm text-gray-400">
-                                            {new Date(mention.timestamp).toLocaleString()}
-                                        </p>
+                                        <RelativeTime 
+                                            timestamp={mention.timestamp} 
+                                            className="text-sm text-gray-400"
+                                        />
                                     </div>
                                     <p className="text-black text-base leading-relaxed mb-5">
                                         {mention.text}

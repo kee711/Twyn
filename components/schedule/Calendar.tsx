@@ -337,10 +337,10 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
       />
 
       {view === 'calendar' ? (
-        <div className="bg-card pb-4">
-          <div className="rounded-xl py-1 px-3 grid grid-cols-7 gap-px mb-2 bg-muted text-muted-foreground">
+        <div className="">
+          <div className="rounded-xl py-1 px-2 md:px-3 grid grid-cols-7 md:gap-px mb-2 bg-muted text-muted-foreground">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-              <div key={day} className="p-2 text-md font-medium">
+              <div key={day} className="py-2 pl-1 md:pl-0 text-md font-medium">
                 {day}
               </div>
             ))}
@@ -348,7 +348,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
 
           <div className="rounded-xl">
             {Array.from({ length: weeksCount }).map((_, rowIndex) => (
-              <div key={rowIndex} className="rounded-xl grid grid-cols-7 gap-px bg-muted mb-2 py-1 px-3">
+              <div key={rowIndex} className="rounded-xl grid grid-cols-7 gap-1 md:gap-px bg-muted mb-2 py-1 px-2">
                 {Array.from({ length: 7 }).map((_, colIndex) => {
                   const dayOffset = rowIndex * 7 + colIndex
                   const currentDate = new Date(startDate)
@@ -379,7 +379,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
                           <div
                             key={event.id}
                             className={cn(
-                              'relative rounded-xl px-1 py-2 md:p-3 text-sm transition-colors',
+                              'relative rounded-xl px-1 py-2 md:p-3 transition-colors',
                               event.status === 'scheduled'
                                 ? 'bg-white border-gray-200 text-foreground cursor-grab hover:bg-gray-50'
                                 : event.status === 'failed'
@@ -405,7 +405,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
                                     : ""
                               )}
                             />
-                            <div className="font-semibold text-xs mb-1">{event.time}</div>
+                            <div className="font-medium md:font-semibold text-xs mb-1">{event.time}</div>
                             <div className="flex items-center gap-1">
                               <div className="flex-shrink-0 mt-0.5 hidden md:block">
                                 {event.media_type === 'IMAGE' && <Image className="w-3 h-3" />}

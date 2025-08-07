@@ -36,6 +36,16 @@ export function OembedList() {
   function getSrcDocWithAutoResize(html: string, id: string) {
     // id로 구분(여러 개 있을 때)
     return `
+      <style>
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        body > * {
+          margin-top: 0 !important;
+          border: none !important;
+        }
+      </style>
       ${html}
       <script>
         function sendHeight() {
@@ -193,13 +203,13 @@ export function OembedList() {
   if (contents.length === 0) return <p>{t('noSavedContents')}</p>;
 
   return (
-    <div className="columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0">
+    <div className="columns-1 md:columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0">
       {contents.map((content) => (
         <div
           key={content.id}
-          className={`break-inside-avoid mb-6 ${isContentAddedToThreadChain(content.id)
-            ? "bg-white rounded-[20px] p-5 border-muted border"
-            : "bg-white rounded-[20px] p-5"
+          className={`rounded-[20px] break-inside-avoid mb-4 md:mb-6 md:p-5 ${isContentAddedToThreadChain(content.id)
+            ? "border-muted border"
+            : ""
             }`}
         >
           <iframe
@@ -210,13 +220,14 @@ export function OembedList() {
             style={{
               width: "100%",
               border: "none",
+              borderRadius: "20px",
               height: iframeHeights[content.id] ? `${iframeHeights[content.id] + 40}px` : "300px",
               transition: "height 0.2s",
             }}
             sandbox="allow-scripts allow-same-origin"
             loading="lazy"
           />
-          <div className="flex justify-end items-end -mt-4">
+          <div className="flex justify-end items-end -mt-8">
             <Button
               variant="outline"
               size="default"

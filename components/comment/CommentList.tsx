@@ -5,6 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { RelativeTime } from "@/components/ui/relative-time";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { ContentItem, Comment, PostComment } from "../contents-helper/types";
 import {
     getAllCommentsWithRootPosts,
@@ -19,6 +28,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
 import { useTranslations } from 'next-intl';
+import Image from "next/image";
+import { ThreadsProfilePicture } from "../ThreadsProfilePicture";
 
 export function CommentList() {
     const t = useTranslations('comments');
@@ -26,6 +37,8 @@ export function CommentList() {
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
+    const [hideDialogOpen, setHideDialogOpen] = useState(false);
+    const [commentToHide, setCommentToHide] = useState<string | null>(null);
 
     const {
         data,
@@ -350,10 +363,10 @@ export function CommentList() {
     }
 
     return (
-        <div className="w-full overflow-hidden flex flex-col p-6" style={{ height: 'calc(100vh - 1rem)' }}>
+        <div className="w-full overflow-hidden flex flex-col p-4" style={{ height: 'calc(100vh - 1rem)' }}>
             {/* Header */}
 
-            <h1 className="text-3xl font-bold text-zinc-700 mb-6 flex-shrink-0">{t('title')}</h1>
+            <h1 className="text-2xl md:text-3xl mt-1 md:mt-0 mb-4 md:mb-6 font-bold text-zinc-700">{t('title')}</h1>
 
             {isLoading && (
                 <div className="flex-1 flex flex-col gap-3 items-center justify-center bg-muted rounded-[20px] min-h-0">
@@ -371,18 +384,18 @@ export function CommentList() {
             {!isLoading && !isError && (
                 <>
                     {/* Main Content */}
-                    <div className="flex-1 flex gap-6 min-h-0">
+                    <div className="flex flex-col md:flex-row gap-6 min-h-0">
                         {/* Left Panel - Posts List */}
-                        <div className="flex-1 bg-gray-50 rounded-[32px] p-6 flex flex-col min-h-0">
-                            <div className="mb-6 flex-shrink-0">
-                                <p className="text-gray-500 text-base">
+                        <div className="flex-1 bg-gray-50 rounded-2xl p-4 md:p-6 flex flex-col min-h-0 overflow-hidden">
+                            <div className="ml-1 md:ml-0 mb-3 md:mb-6 flex-shrink-0">
+                                <p className="text-gray-500 text-[13px] md:text-[17px]">
                                     {t('remainingPostsToReply', { count: remainingPosts })}
                                 </p>
                             </div>
 
                             <div
                                 ref={leftPanelRef}
-                                className="flex-1 overflow-y-scroll space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pb-96 scroll-pb-96 min-h-0"
+                                className="flex-1 overflow-y-auto space-y-3 md:space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pb-96 scroll-pb-96 min-h-0"
                                 style={{ scrollSnapType: 'y mandatory' }}
                             >
                                 {postsWithUnrepliedComments.map((post, index) => (
@@ -390,7 +403,7 @@ export function CommentList() {
                                         key={post.my_contents_id}
                                         data-post-index={index}
                                         className={`
-                                        rounded-[20px] p-5 min-h-[200px] cursor-pointer transition-all duration-200 flex-shrink-0
+                                        rounded-2xl p-5 min-h-[200px] cursor-pointer transition-all duration-200 flex-shrink-0
                                         ${index === currentIndex
                                                 ? 'bg-white shadow-sm'
                                                 : 'opacity-40'
@@ -400,14 +413,13 @@ export function CommentList() {
                                         onClick={() => handlePostClick(index)}
                                     >
                                         <div className="flex gap-3">
-                                            <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
                                             <div className="flex-1 min-w-0">
                                                 <div className="mb-2">
-                                                    <h3 className="font-semibold text-black text-[17px]">
-                                                        {currentUsername || 'You'}
+                                                    <h3 className="font-semibold text-black text-[15px] md:text-[17px] break-words">
+                                                        {currentUsername || t('me')}
                                                     </h3>
                                                 </div>
-                                                <p className="text-black text-[17px] leading-relaxed">
+                                                <p className="text-black text-[15px] md:text-[17px] leading-relaxed break-words">
                                                     {post.content}
                                                 </p>
                                             </div>
@@ -418,19 +430,19 @@ export function CommentList() {
                         </div>
 
                         {/* Right Panel - Comments */}
-                        <div className="flex-1 bg-gray-50 rounded-[20px] p-6 flex flex-col min-h-0">
+                        <div className="flex-1 bg-transparent md:bg-gray-50 rounded-2xl p-0 md:p-6 flex flex-col min-h-0">
                             {/* Header */}
-                            <div className="flex justify-between items-center mb-6 flex-shrink-0">
-                                <p className="text-gray-500 text-base">
+                            <div className="flex justify-between items-center mb-3 md:mb-6 flex-shrink-0">
+                                <p className="ml-1 text-gray-500 text-[13px] md:text-[17px]">
                                     {t('repliedStatus', { repliedCount, totalCount: currentPostComments.length })}
                                 </p>
                                 <Button
                                     onClick={writeAllReplies}
                                     variant="ghost"
-                                    className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700"
+                                    className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl px-2.5 py-1"
                                 >
                                     <Sparkles className="w-4 h-4" />
-                                    <span className="text-base font-medium">{t('draftAllReplies')}</span>
+                                    <span className="text-sm md:text-base font-medium">{t('draftAllReplies')}</span>
                                 </Button>
                             </div>
 
@@ -439,46 +451,42 @@ export function CommentList() {
                                 {currentPostComments.map((comment) => (
                                     <div
                                         key={comment.id}
-                                        className="bg-white rounded-[20px] p-5 flex-shrink-0"
+                                        className="bg-white rounded-2xl p-0 md:p-5 flex-shrink-0"
                                     >
                                         {/* Comment Header */}
                                         <div className="flex justify-between items-center">
                                             <div className="flex gap-3 w-full">
-                                                <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
+                                                {/* Profile Image */}
+                                                <ThreadsProfilePicture
+                                                    socialId={comment.social_id}
+                                                />
                                                 <div className="w-full">
-                                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                                        <span className="flex-1 font-semibold text-black text-base">
-                                                            {comment.username}
-                                                        </span>
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="flex flex-row items-center gap-2">
+                                                            <span className="flex-1 font-semibold text-black text-[15px] md:text-[17px]">
+                                                                {comment.username}
+                                                            </span>
+                                                            <RelativeTime
+                                                                timestamp={comment.timestamp}
+                                                                className="text-gray-400 text-[15px] md:text-[17px]"
+                                                            />
+                                                        </div>
                                                         <div className="flex items-center gap-1.5">
-                                                            <div className="rounded-full px-2.5 py-1">
-                                                                <span className="text-gray-400 text-sm">
-                                                                    {new Date(comment.timestamp).toLocaleString()}
-                                                                </span>
-                                                            </div>
                                                             <button
-                                                                onClick={async () => {
-                                                                    if (window.confirm("댓글을 숨기시겠습니까?")) {
-                                                                        try {
-                                                                            await hideComment(comment.id);
-                                                                            toast.success("댓글이 숨김 처리되었습니다!");
-                                                                            queryClient.invalidateQueries({ queryKey: ['comments', currentSocialId] });
-                                                                        } catch (e) {
-                                                                            toast.error("댓글 숨김에 실패했습니다.");
-                                                                        }
-                                                                    }
+                                                                onClick={() => {
+                                                                    setCommentToHide(comment.id);
+                                                                    setHideDialogOpen(true);
                                                                 }}
-                                                                className="bg-gray-100 rounded-full px-2.5 py-1 flex items-center gap-1.5 hover:bg-gray-200 transition-colors"
+                                                                className="rounded-full p-2 mt-[-4px] flex items-center gap-1.5 bg-transparent hover:bg-gray-100 transition-colors"
                                                             >
-                                                                <EyeOff className="w-3 h-3 text-gray-400" />
-                                                                <span className="text-gray-400 text-base">Hide</span>
+                                                                <EyeOff className="w-4 h-4 text-gray-400" />
                                                             </button>
                                                         </div>
                                                     </div>
 
 
                                                     {/* Comment Text */}
-                                                    <p className="text-black text-base leading-relaxed  mb-5">
+                                                    <p className="text-black text-[15px] md:text-[17px] leading-relaxed mb-3 md:mb-5">
                                                         {comment.text}
                                                     </p>
 
@@ -486,7 +494,7 @@ export function CommentList() {
                                                     {comment.is_replied && comment.replies.length > 0 && (
                                                         <div className="bg-gray-100 rounded-[16px] p-3 mb-5">
                                                             <p className="text-gray-500 text-xs font-bold mb-1.5">Me</p>
-                                                            <p className="text-black text-base">
+                                                            <p className="text-black text-[15px] md:text-[17px]">
                                                                 {comment.replies[0]?.text}
                                                             </p>
                                                         </div>
@@ -505,7 +513,7 @@ export function CommentList() {
                                                                     onChange={(e) => handleTextareaChange(comment.id, e.target.value)}
                                                                     placeholder={t('replyPlaceholder')}
                                                                     className={`
-                                                                    bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
+                                                                    bg-gray-100 border-gray-200 rounded-full text-sm placeholder:text-gray-400 resize-none py-2 px-4
                                                                     [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] focus:outline-none focus:focus-visible:ring-0
                                                                     min-h-[34px]
                                                                 `}
@@ -541,6 +549,42 @@ export function CommentList() {
                             </div>
                         </div>
                     </div>
+                    {/* Hide Comment Dialog */}
+                    <Dialog open={hideDialogOpen} onOpenChange={setHideDialogOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{t('actions.hideCommentTitle')}</DialogTitle>
+                                <DialogDescription>
+                                    {t('actions.hideCommentConfirm')}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="flex justify-end gap-1">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setHideDialogOpen(false)}
+                                >
+                                    {t('actions.cancel')}
+                                </Button>
+                                <Button
+                                    onClick={async () => {
+                                        if (commentToHide) {
+                                            try {
+                                                await hideComment(commentToHide);
+                                                toast.success(t('actions.commentHidden'));
+                                                queryClient.invalidateQueries({ queryKey: ['comments', currentSocialId] });
+                                                setHideDialogOpen(false);
+                                                setCommentToHide(null);
+                                            } catch (e) {
+                                                toast.error(t('actions.hideCommentFailed'));
+                                            }
+                                        }
+                                    }}
+                                >
+                                    {t('actions.confirm')}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </>
             )}
         </div>

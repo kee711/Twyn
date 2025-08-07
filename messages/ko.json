@@ -364,21 +364,22 @@
         "profileDescription": "프로필 설명",
         "profileDescriptionDescription": "더 정확한 AI 콘텐츠 생성에 사용됩니다",
         "headlineInput": {
-          "placeholder": "제목을 작성하세요...",
-          "instructionPlaceholder": "설명을 작성하세요..."
-        }
+          "placeholder": "주제를 작성해주세요...",
+          "instructionPlaceholder": "추가 설명이 있다면 작성해주세요..."
+        },
+        "deleteAllTopicsButton": "모두 삭제하기"
       },
       "draft": {
         "title": "초안"
       },
       "saved": {
         "title": "저장됨",
-        "addByUrl": "URL로 추가",
+        "addByUrl": "URL로 저장하기",
         "addByUrlDescription": "URL로 스레드 콘텐츠를 추가합니다.",
         "addThreadsContentByUrl": "URL로 스레드 콘텐츠를 추가합니다.",
         "urlPlaceholder": "https://threads.net/...",
         "saving": "저장 중...",
-        "addByUrlButton": "URL로 추가",
+        "addByUrlButton": "저장하기",
         "invalidUrl": "유효한 Threads URL을 입력해주세요. (예: https://www.threads.net/@username/post/shortcode)",
         "selectSocialAccount": "소셜 계정을 선택해주세요",
         "savedSuccessfully": "성공적으로 저장되었습니다.",
@@ -532,7 +533,8 @@
   "comments": {
     "title": "댓글",
     "loadingAccount": "소셜 계정을 불러오는 중...",
-    "noCommentsToReply": "답변할 댓글이 없습니다.",
+    "noCommentsToReply": "답변할 댓글이 없습니다",
+    "postToGetComments": "새로운 글을 발행해보세요",
     "repliedStatus": "{totalCount}개 중 {repliedCount}개 답변 완료",
     "draftAllReplies": "모든 답글 초안 작성",
     "me": "나",
@@ -549,7 +551,11 @@
     },
     "actions": {
       "commentHidden": "댓글이 숨김 처리되었습니다!",
-      "hideCommentFailed": "댓글 숨김에 실패했습니다."
+      "hideCommentFailed": "댓글 숨김에 실패했습니다.",
+      "hideCommentConfirm": "댓글을 숨기시겠습니까?",
+      "hideCommentTitle": "댓글 숨기기",
+      "confirm": "숨기기",
+      "cancel": "취소"
     },
     "noCommentsToReplyDescription": "댓글을 달면 새로운 스레드를 생성할 수 있습니다.",
     "getIdeas": "아이디어 얻기",
