@@ -531,7 +531,8 @@
   "comments": {
     "title": "Comments",
     "loadingAccount": "Loading social account...",
-    "noCommentsToReply": "No comments to reply to.",
+    "noCommentsToReply": "No comments to reply to",
+    "postToGetComments": "Post new threads to get comments",
     "repliedStatus": "{repliedCount} out of {totalCount} replied",
     "draftAllReplies": "Draft all replies",
     "me": "Me",
@@ -548,7 +549,11 @@
     },
     "actions": {
       "commentHidden": "Comment has been hidden!",
-      "hideCommentFailed": "Failed to hide comment."
+      "hideCommentFailed": "Failed to hide comment.",
+      "hideCommentConfirm": "Are you sure you want to hide this comment?",
+      "hideCommentTitle": "Hide Comment",
+      "confirm": "Hide",
+      "cancel": "Cancel"
     },
     "noCommentsToReplyDescription": "You can create new threads by commenting.",
     "getIdeas": "Get Ideas",

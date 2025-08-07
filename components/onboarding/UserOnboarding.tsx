@@ -106,7 +106,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
 
         <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-8 gap-10">
           <div className="flex flex-col items-center">
-            <img src="/logo.svg" alt="Threads" className="w-52 h-fit mb-4" />
+            <img src="/twyn-logo-blk.svg" alt="Threads" className="w-32 h-fit mb-4" />
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Connect your first account
             </h1>
