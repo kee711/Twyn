@@ -30,16 +30,16 @@ interface Plan {
 interface PricingModalProps {
   open: boolean;
   onClose: () => void;
-  currentUserPlan?: string;
 }
 
-export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: PricingModalProps) {
+export function PricingModal({ open, onClose }: PricingModalProps) {
   const { data: session } = useSession();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isAnnual, setIsAnnual] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isNewUser, setIsNewUser] = useState<boolean>(false);
+  const [currentUserPlan, setCurrentUserPlan] = useState<string>('Free');
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -102,9 +102,42 @@ export function PricingModal({ open, onClose, currentUserPlan = 'Free' }: Pricin
       }
     };
 
+    const fetchCurrentUserPlan = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const supabase = createClient();
+
+        // Get current plan from user_plan table
+        const { data: userPlan, error: planError } = await supabase
+          .from('user_plan')
+          .select('plan_type')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!planError && userPlan) {
+          setCurrentUserPlan(userPlan.plan_type);
+        } else {
+          // Fallback to user_profiles if user_plan doesn't exist
+          const { data: userProfile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('plan_type')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (!profileError && userProfile && userProfile.plan_type) {
+            setCurrentUserPlan(userProfile.plan_type);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching current user plan:', error);
+      }
+    };
+
     if (open) {
       fetchPlans();
       checkIsNewUser();
+      fetchCurrentUserPlan();
     }
   }, [open, session?.user?.id]);
 
