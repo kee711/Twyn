@@ -5,11 +5,12 @@ import { handleOptions, handleCors } from '@/lib/utils/cors';
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
-    const { accountInfo } = await req.json();
+    const { profileDescription } = await req.json();
+    console.log('profileDescription', profileDescription);
 
     const prompt = [
         COMMON_SETTINGS,
-        USER_SETTINGS(accountInfo),
+        USER_SETTINGS(profileDescription),
         INSTRUCTIONS
     ].join('\n\n');
 
