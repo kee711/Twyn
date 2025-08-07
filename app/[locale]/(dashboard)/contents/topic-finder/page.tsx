@@ -32,7 +32,7 @@ export default function TopicFinderPage() {
     const queryClient = useQueryClient();
 
     const { currentSocialId, currentUsername } = useSocialAccountStore()
-    const [accountInfo, setAccountInfo] = useState('')
+    const [profileDescription, setProfileDescription] = useState('')
     const [selectedHeadline, setSelectedHeadline] = useState<string>('');
     const [givenInstruction, setGivenInstruction] = useState<string>('');
 
@@ -91,7 +91,7 @@ export default function TopicFinderPage() {
             const res = await fetch('/api/generate-detail', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountInfo, topic: selectedHeadline, instruction: givenInstruction })
+                body: JSON.stringify({ profileDescription, topic: selectedHeadline, instruction: givenInstruction })
             });
             if (!res.ok) throw new Error('API error');
             const data = await res.json();
@@ -154,14 +154,14 @@ export default function TopicFinderPage() {
             try {
                 const { data: accountData, error: accountError } = await supabase
                     .from('social_accounts')
-                    .select('account_type, account_info')
+                    .select('account_type, profile_description')
                     .eq('social_id', currentSocialId)
                     .single()
 
                 if (!accountError && accountData) {
-                    setAccountInfo(accountData.account_info || '')
+                    setProfileDescription(accountData.profile_description || '')
                 } else {
-                    setAccountInfo('')
+                    setProfileDescription('')
                 }
             } catch (error) {
                 toast.error('계정 정보를 불러오는 중 오류가 발생했습니다.')
@@ -272,8 +272,8 @@ export default function TopicFinderPage() {
 
     // 토픽 생성 함수
     const generateTopics = async () => {
-        if (!accountInfo) {
-            toast.error(t('noAccountInfo'));
+        if (!profileDescription) {
+            toast.error(t('noProfileDescription'));
             return;
         }
         setIsGeneratingTopics(true);
@@ -282,7 +282,7 @@ export default function TopicFinderPage() {
             const res = await fetch('/api/generate-topics', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountInfo })
+                body: JSON.stringify({ profileDescription })
             });
             if (!res.ok) throw new Error('API error');
             const data = await res.json();
@@ -340,7 +340,12 @@ export default function TopicFinderPage() {
                         {/* Profile Description Dropdown */}
                         {mounted && currentSocialId && (
                             <div className="w-full px-4 md:px-6 mt-3 flex justify-between transition-all duration-300">
-                                <ProfileDescriptionDropdown accountId={currentSocialId} initialDescription={accountInfo || ''} />
+                                <ProfileDescriptionDropdown
+                                    accountId={currentSocialId}
+                                    initialDescription={profileDescription || ''}
+                                    // profileDescription 업데이트 핸들러 전달
+                                    onSave={(newDescription) => setProfileDescription(newDescription)}
+                                />
                             </div>
                         )}
                         <HeadlineInput value={selectedHeadline} onChange={setSelectedHeadline} />

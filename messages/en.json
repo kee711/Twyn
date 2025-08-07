@@ -86,9 +86,6 @@
     "profileDescriptionHint": "The more details you provide, the better we can help you create engaging content.",
     "complete": "Start Twyn",
     "skip": "Skip for now",
-    "errors": {
-      "loadingAccountInfo": "Error loading account info"
-    },
     "profileDescriptionAbout": "What is your profile about?",
     "profileDescriptionTarget": "Who's your target audience?",
     "profileDescriptionUnique": "What is your unique point?",
@@ -364,6 +361,9 @@
         "createDetails": "Create Post",
         "profileDescription": "Profile Description",
         "profileDescriptionDescription": "Used for more accurate AI content generation",
+        "profileDescriptionSaveFailed": "Failed to save profile description",
+        "profileDescriptionSaved": "Profile description saved",
+        "save": "Save",
         "headlineInput": {
           "placeholder": "Write headline...",
           "instructionPlaceholder": "Write instruction..."
