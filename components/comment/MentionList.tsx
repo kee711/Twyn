@@ -336,7 +336,7 @@ export function MentionList() {
 
                 {/* 2-Column Grid Layout */}
                 <div
-                    className="columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0"
+                    className="columns-1 md:columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0"
                     ref={scrollContainerRef}
                 >
                     {visibleMentions.map((mention, index) => (
@@ -349,7 +349,6 @@ export function MentionList() {
                             {mention.root_post_content && (
                                 <div className="mb-4 pb-4 border-b border-gray-200">
                                     <div className="flex gap-3">
-                                        <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <div className="mb-2">
                                                 <h3 className="font-semibold text-black text-[17px]">
@@ -359,8 +358,8 @@ export function MentionList() {
                                             <p className="text-black text-[17px] leading-relaxed line-clamp-3">
                                                 {mention.root_post_content.content}
                                             </p>
-                                            <RelativeTime 
-                                                timestamp={mention.root_post_content.created_at || ''} 
+                                            <RelativeTime
+                                                timestamp={mention.root_post_content.created_at || ''}
                                                 className="text-sm text-gray-400"
                                             />
                                         </div>
@@ -376,8 +375,8 @@ export function MentionList() {
                                         <h4 className="font-semibold text-black text-[17px]">
                                             {mention.username}
                                         </h4>
-                                        <RelativeTime 
-                                            timestamp={mention.timestamp} 
+                                        <RelativeTime
+                                            timestamp={mention.timestamp}
                                             className="text-sm text-gray-400"
                                         />
                                     </div>

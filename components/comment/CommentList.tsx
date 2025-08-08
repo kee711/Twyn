@@ -387,8 +387,8 @@ export function CommentList() {
                     {/* Main Content */}
                     <div className="flex flex-col md:flex-row gap-6 min-h-0">
                         {/* Left Panel - Posts List */}
-                        <div className="flex-1 bg-gray-50 rounded-2xl p-4 md:p-6 flex flex-col min-h-0 overflow-hidden">
-                            <div className="ml-1 md:ml-0 mb-3 md:mb-6 flex-shrink-0">
+                        <div className="h-2/5 md:h-auto md:flex-1 bg-gray-50 rounded-2xl p-4 md:p-6 flex flex-col min-h-0 overflow-hidden">
+                            <div className="md:h-9 flex items-center ml-1 md:ml-0 mb-3 md:mb-6 flex-shrink-0">
                                 <p className="text-gray-500 text-[13px] md:text-[17px]">
                                     {t('remainingPostsToReply', { count: remainingPosts })}
                                 </p>
@@ -404,7 +404,7 @@ export function CommentList() {
                                         key={post.my_contents_id}
                                         data-post-index={index}
                                         className={`
-                                        rounded-2xl p-5 min-h-[200px] cursor-pointer transition-all duration-200 flex-shrink-0
+                                        rounded-2xl p-5 md:min-h-[200px] min-h-[100px] cursor-pointer transition-all duration-200 flex-shrink-0
                                         ${index === currentIndex
                                                 ? 'bg-white shadow-sm'
                                                 : 'opacity-40'
@@ -448,11 +448,11 @@ export function CommentList() {
                             </div>
 
                             {/* Comments List */}
-                            <div className="flex-1 overflow-y-auto space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pb-6 min-h-0">
+                            <div className="flex-1 overflow-y-auto space-y-2 md:space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pb-6 min-h-0">
                                 {currentPostComments.map((comment) => (
                                     <div
                                         key={comment.id}
-                                        className="bg-white rounded-2xl p-0 md:p-5 flex-shrink-0"
+                                        className="bg-white md:rounded-2xl p-2 pb-4 md:p-5 flex-shrink-0 border-b border-gray-200 md:border-none"
                                     >
                                         {/* Comment Header */}
                                         <div className="flex justify-between items-center">
