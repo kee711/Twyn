@@ -510,7 +510,7 @@ export function CommentList() {
                                                                     onChange={(e) => handleTextareaChange(comment.id, e.target.value)}
                                                                     placeholder={t('replyPlaceholder')}
                                                                     className={`
-                                                                    bg-gray-100 border-gray-200 rounded-full text-sm placeholder:text-gray-400 resize-none py-2 px-4
+                                                                    bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
                                                                     [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] focus:outline-none focus:focus-visible:ring-0
                                                                     min-h-[34px]
                                                                 `}

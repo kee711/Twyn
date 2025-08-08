@@ -319,7 +319,7 @@ export function MentionList() {
             <h1 className="text-2xl md:text-3xl mt-1 md:mt-0 mb-4 md:mb-6 font-bold text-zinc-700">{t('title')}</h1>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col bg-gray-50 rounded-2xl p-4 md:p-6 overflow-hidden">
+            <div className="flex-1 flex flex-col bg-white md:bg-gray-50 rounded-2xl md:p-6 overflow-hidden">
                 <div className="mb-3 md:mb-6 flex justify-between items-center">
                     <p className="ml-1 text-gray-500 text-[13px] md:text-[17px]">
                         {t('remainingMentionsToReply', { count: remainingMentions })}
@@ -336,14 +336,14 @@ export function MentionList() {
 
                 {/* 2-Column Grid Layout */}
                 <div
-                    className="columns-1 md:columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0"
+                    className="columns-1 md:columns-2 space-y-2 md:space-y-4 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0"
                     ref={scrollContainerRef}
                 >
                     {visibleMentions.map((mention, index) => (
                         <div
                             key={mention.id}
                             data-mention-index={index}
-                            className="bg-white rounded-[20px] p-5 flex flex-col h-fit mb-6 break-inside-avoid"
+                            className="bg-white md:rounded-[20px] p-2 pb-4 md:p-5 border-b border-gray-200 md:border-none flex flex-col h-fit break-inside-avoid"
                         >
                             {/* Original Post */}
                             {mention.root_post_content && (
@@ -369,7 +369,6 @@ export function MentionList() {
 
                             {/* Mention */}
                             <div className="flex gap-3">
-                                <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-semibold text-black text-[17px]">
