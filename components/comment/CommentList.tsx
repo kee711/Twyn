@@ -31,6 +31,7 @@ import Link from "next/link";
 import { useTranslations } from 'next-intl';
 import Image from "next/image";
 import { ThreadsProfilePicture } from "../ThreadsProfilePicture";
+import { useMobileKeyboardScroll } from "@/hooks/useMobileKeyboardScroll";
 
 export function CommentList() {
     const t = useTranslations('comments');
@@ -38,6 +39,8 @@ export function CommentList() {
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
+    const commentsScrollRef = useRef<HTMLDivElement>(null);
+    const ensureVisible = useMobileKeyboardScroll(commentsScrollRef as unknown as { current: HTMLElement | null });
     const [hideDialogOpen, setHideDialogOpen] = useState(false);
     const [commentToHide, setCommentToHide] = useState<string | null>(null);
 
@@ -448,7 +451,7 @@ export function CommentList() {
                             </div>
 
                             {/* Comments List */}
-                            <div className="flex-1 overflow-y-auto space-y-2 md:space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pb-6 min-h-0">
+                            <div ref={commentsScrollRef} className="flex-1 overflow-y-auto space-y-2 md:space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pb-6 min-h-0">
                                 {currentPostComments.map((comment) => (
                                     <div
                                         key={comment.id}
@@ -508,6 +511,7 @@ export function CommentList() {
                                                                     rows={1}
                                                                     value={replyTexts[comment.id] || ''}
                                                                     onChange={(e) => handleTextareaChange(comment.id, e.target.value)}
+                                                                    onFocus={(e) => ensureVisible(e.currentTarget)}
                                                                     placeholder={t('replyPlaceholder')}
                                                                     className={`
                                                                     bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4

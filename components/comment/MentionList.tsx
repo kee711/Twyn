@@ -20,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
 import { useTranslations } from 'next-intl';
+import { useMobileKeyboardScroll } from "@/hooks/useMobileKeyboardScroll";
 
 interface Comment {
     id: string;
@@ -44,6 +45,7 @@ export function MentionList() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
+    const ensureVisible = useMobileKeyboardScroll(scrollContainerRef as unknown as { current: HTMLElement | null });
 
     const {
         data,
@@ -393,6 +395,7 @@ export function MentionList() {
                                                 rows={1}
                                                 value={replyTexts[mention.id] || ''}
                                                 onChange={(e) => handleTextareaChange(mention.id, e.target.value)}
+                                                onFocus={(e) => ensureVisible(e.currentTarget)}
                                                 placeholder={t('replyPlaceholder')}
                                                 className={`
                                                     bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
