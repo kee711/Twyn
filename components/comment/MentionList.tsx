@@ -20,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import Link from "next/link";
 import { useTranslations } from 'next-intl';
+import { useMobileKeyboardScroll } from "@/hooks/useMobileKeyboardScroll";
 
 interface Comment {
     id: string;
@@ -44,6 +45,7 @@ export function MentionList() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
+    const ensureVisible = useMobileKeyboardScroll(scrollContainerRef as unknown as { current: HTMLElement | null });
 
     const {
         data,
@@ -319,7 +321,7 @@ export function MentionList() {
             <h1 className="text-2xl md:text-3xl mt-1 md:mt-0 mb-4 md:mb-6 font-bold text-zinc-700">{t('title')}</h1>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col bg-gray-50 rounded-2xl p-4 md:p-6 overflow-hidden">
+            <div className="flex-1 flex flex-col bg-white md:bg-gray-50 rounded-2xl md:p-6 overflow-hidden">
                 <div className="mb-3 md:mb-6 flex justify-between items-center">
                     <p className="ml-1 text-gray-500 text-[13px] md:text-[17px]">
                         {t('remainingMentionsToReply', { count: remainingMentions })}
@@ -336,20 +338,19 @@ export function MentionList() {
 
                 {/* 2-Column Grid Layout */}
                 <div
-                    className="columns-2 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0"
+                    className="columns-1 md:columns-2 space-y-2 md:space-y-4 gap-6 flex-1 overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] scroll-pb-96 min-h-0"
                     ref={scrollContainerRef}
                 >
                     {visibleMentions.map((mention, index) => (
                         <div
                             key={mention.id}
                             data-mention-index={index}
-                            className="bg-white rounded-[20px] p-5 flex flex-col h-fit mb-6 break-inside-avoid"
+                            className="bg-white md:rounded-[20px] p-2 pb-4 md:p-5 border-b border-gray-200 md:border-none flex flex-col h-fit break-inside-avoid"
                         >
                             {/* Original Post */}
                             {mention.root_post_content && (
                                 <div className="mb-4 pb-4 border-b border-gray-200">
                                     <div className="flex gap-3">
-                                        <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <div className="mb-2">
                                                 <h3 className="font-semibold text-black text-[17px]">
@@ -359,8 +360,8 @@ export function MentionList() {
                                             <p className="text-black text-[17px] leading-relaxed line-clamp-3">
                                                 {mention.root_post_content.content}
                                             </p>
-                                            <RelativeTime 
-                                                timestamp={mention.root_post_content.created_at || ''} 
+                                            <RelativeTime
+                                                timestamp={mention.root_post_content.created_at || ''}
                                                 className="text-sm text-gray-400"
                                             />
                                         </div>
@@ -370,14 +371,13 @@ export function MentionList() {
 
                             {/* Mention */}
                             <div className="flex gap-3">
-                                <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-semibold text-black text-[17px]">
                                             {mention.username}
                                         </h4>
-                                        <RelativeTime 
-                                            timestamp={mention.timestamp} 
+                                        <RelativeTime
+                                            timestamp={mention.timestamp}
                                             className="text-sm text-gray-400"
                                         />
                                     </div>
@@ -395,6 +395,7 @@ export function MentionList() {
                                                 rows={1}
                                                 value={replyTexts[mention.id] || ''}
                                                 onChange={(e) => handleTextareaChange(mention.id, e.target.value)}
+                                                onFocus={(e) => ensureVisible(e.currentTarget)}
                                                 placeholder={t('replyPlaceholder')}
                                                 className={`
                                                     bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
