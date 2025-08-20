@@ -11,6 +11,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.16",
     "@auth/core": "^0.34.2",
     "@auth/supabase-adapter": "^1.8.0",
     "@floating-ui/dom": "^1.6.13",
@@ -37,6 +38,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.3",
     "@tanstack/react-query": "^5.81.5",
+    "ai": "^5.0.0",
     "bullmq": "^4.15.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -62,6 +64,7 @@
     "tailwindcss-animate": "^1.0.7",
     "threads-api": "^1.6.3",
     "tw-animate-css": "^1.2.4",
+    "zod": "^3.23.8",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
