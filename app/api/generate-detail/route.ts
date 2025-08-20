@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { COMMON_DETAIL_SETTINGS, USER_SETTINGS, GIVEN_TOPIC, GIVEN_INSTRUCTIONS, THREAD_CHAIN_SETTINGS } from '@/lib/prompts';
+import { USER_SETTINGS, GIVEN_TOPIC, GIVEN_INSTRUCTIONS, THREAD_CHAIN_SETTINGS, THREAD_CHAIN_EXAMPLES, SINGLE_THREAD_SETTINGS } from '@/lib/prompts';
 import { handleOptions, handleCors } from '@/lib/utils/cors';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export const runtime = 'edge';
 
+const ai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 export async function POST(req: NextRequest) {
-    const { accountInfo, topic, instruction, postType = 'thread', language = 'en' }: { 
-        accountInfo?: string; 
-        topic: string; 
-        instruction?: string; 
-        postType?: string; 
-        language?: string 
+    const { accountInfo, topic, instruction, postType = 'thread', language = 'en' }: {
+        accountInfo?: string;
+        topic: string;
+        instruction?: string;
+        postType?: string;
+        language?: string
     } = await req.json();
 
     // Language mapping for prompts
@@ -25,60 +30,51 @@ export async function POST(req: NextRequest) {
     };
 
     // Generate based on postType - single post or thread chain
-    const promptSettings = postType === 'single' ? COMMON_DETAIL_SETTINGS : THREAD_CHAIN_SETTINGS;
-    
+    const promptSettings = postType === 'single' ? SINGLE_THREAD_SETTINGS : THREAD_CHAIN_SETTINGS;
+    const promptExamples = postType === 'single' ? '' : THREAD_CHAIN_EXAMPLES.map(example => `Example: ${example}`).join('\n');
+
     const promptParts = [
         promptSettings,
         accountInfo ? USER_SETTINGS(accountInfo) : '',
         GIVEN_TOPIC(topic),
         instruction ? GIVEN_INSTRUCTIONS(instruction) : '',
-        languageInstruction[language] || languageInstruction['en']
+        languageInstruction[language] || languageInstruction['en'],
+        promptExamples
     ].filter(Boolean).join('\n\n');
 
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-            model: 'gpt-4-1106-preview',
-            messages: [
-                { role: 'system', content: promptParts }
-            ],
-            max_tokens: 800, // Increased for multiple threads
+    if (postType === 'single') {
+        const { text } = await generateText({
+            model: ai('gpt-5-nano-2025-08-07') as any,
+            prompt: promptParts,
             temperature: 0.7,
-        })
-    });
-
-    if (!openaiRes.ok) {
-        return NextResponse.json({ error: 'OpenAI API error' }, { status: 500 });
+            maxTokens: 800,
+        } as any);
+        const response = NextResponse.json({ threads: [text] });
+        return handleCors(response);
     }
 
-    const data = await openaiRes.json();
-    const text = data.choices?.[0]?.message?.content || '';
-
     try {
-        if (postType === 'single') {
-            // For single post, return as is
-            const response = NextResponse.json({ threads: [text] });
-            return handleCors(response);
-        } else {
-            // Parse the JSON response to get thread chain
+        const { text } = await generateText({
+            model: ai('gpt-5') as any,
+            prompt: promptParts + '\n\nReturn your response strictly as a JSON array of strings only.',
+            temperature: 0.7,
+            maxTokens: 1200,
+        } as any);
+        try {
             const parsedThreads = JSON.parse(text);
-
-            // Ensure it's an array
-            const threads = Array.isArray(parsedThreads) ? parsedThreads : [parsedThreads];
-
+            const threads = Array.isArray(parsedThreads) ? parsedThreads : [String(parsedThreads)];
+            const response = NextResponse.json({ threads });
+            return handleCors(response);
+        } catch {
+            const threads = text
+                .split('\n\n')
+                .map(t => t.trim())
+                .filter(t => t.length > 0);
             const response = NextResponse.json({ threads });
             return handleCors(response);
         }
     } catch (error) {
-        // Fallback: split the text into threads if JSON parsing fails
-        const threads = postType === 'single' 
-            ? [text]
-            : text.split('\n\n').filter((t: string) => t.trim()).map((t: string) => t.trim());
-        const response = NextResponse.json({ threads });
+        const response = NextResponse.json({ error: 'Failed to generate threads' }, { status: 500 });
         return handleCors(response);
     }
 }
