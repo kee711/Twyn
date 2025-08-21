@@ -10,7 +10,11 @@ export interface ThreadContent {
 interface ThreadChainState {
   // Main thread chain
   threadChain: ThreadContent[]
-  
+
+  // Generation UI state
+  generationStatus: string | null
+  generationPreview: string
+
   // Core actions
   setThreadChain: (threads: ThreadContent[]) => void
   updateThreadContent: (index: number, content: string) => void
@@ -18,11 +22,18 @@ interface ThreadChainState {
   addThread: () => void
   removeThread: (index: number) => void
   clearThreadChain: () => void
-  
+  setGenerationStatus: (status: string | null) => void
+  setGenerationPreview: (content: string) => void
+  clearGenerationPreview: () => void
+
+  // Safe helpers (functional updates to avoid race conditions during streaming)
+  ensureThreadCount: (count: number) => void
+  setThreadContentAt: (index: number, content: string) => void
+
   // Add content from external sources
   addContentAsThread: (content: string) => void
   removeContentFromThread: (content: string) => void
-  
+
   // Pending thread chain (from topic finder)
   pendingThreadChain: ThreadContent[] | null
   setPendingThreadChain: (threads: ThreadContent[] | null) => void
@@ -36,6 +47,8 @@ const useThreadChainStore = create<ThreadChainState>()(
       // Initial state
       threadChain: [{ content: '', media_urls: [], media_type: 'TEXT' }],
       pendingThreadChain: null,
+      generationStatus: null,
+      generationPreview: '',
 
       // Core actions
       setThreadChain: (threads) => set({ threadChain: threads }),
@@ -63,7 +76,7 @@ const useThreadChainStore = create<ThreadChainState>()(
       removeThread: (index) => set((state) => {
         // Don't allow removing the last thread
         if (state.threadChain.length <= 1) return state;
-        
+
         return {
           threadChain: state.threadChain.filter((_, i) => i !== index)
         };
@@ -71,6 +84,23 @@ const useThreadChainStore = create<ThreadChainState>()(
 
       clearThreadChain: () => set({
         threadChain: [{ content: '', media_urls: [], media_type: 'TEXT' }]
+      }),
+
+      setGenerationStatus: (status) => set({ generationStatus: status }),
+      setGenerationPreview: (content) => set({ generationPreview: content }),
+      clearGenerationPreview: () => set({ generationPreview: '' }),
+
+      ensureThreadCount: (count) => set((state) => {
+        const next = [...state.threadChain];
+        while (next.length < count) {
+          next.push({ content: '', media_urls: [], media_type: 'TEXT' });
+        }
+        return { threadChain: next };
+      }),
+
+      setThreadContentAt: (index, content) => set((state) => {
+        const next = state.threadChain.map((t, i) => (i === index ? { ...t, content } : t));
+        return { threadChain: next };
       }),
 
       // Add content from external sources (like ContentList)
@@ -81,7 +111,7 @@ const useThreadChainStore = create<ThreadChainState>()(
             threadChain: [{ content, media_urls: [], media_type: 'TEXT' }]
           };
         }
-        
+
         // Otherwise add as new thread
         return {
           threadChain: [...state.threadChain, { content, media_urls: [], media_type: 'TEXT' }]
@@ -93,14 +123,14 @@ const useThreadChainStore = create<ThreadChainState>()(
         const updatedThreadChain = state.threadChain.filter(thread =>
           thread.content.trim() !== content.trim()
         );
-        
+
         // If we removed all content, ensure at least one empty thread remains
         if (updatedThreadChain.length === 0) {
           return {
             threadChain: [{ content: '', media_urls: [], media_type: 'TEXT' }]
           };
         }
-        
+
         return { threadChain: updatedThreadChain };
       }),
 
