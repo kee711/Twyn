@@ -20,6 +20,11 @@ import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
 import { useTranslations } from 'next-intl';
 
+// 문자열이 아닐 수도 있는 content를 안전하게 문자열로 변환
+function getContentString(value: unknown): string {
+  return typeof value === 'string' ? value : String(value ?? '');
+}
+
 interface RightSidebarProps {
   className?: string;
 }
@@ -44,7 +49,8 @@ export function RightSidebar({ className }: RightSidebarProps) {
     removeThread,
     clearThreadChain,
     pendingThreadChain,
-    applyPendingThreadChain
+    applyPendingThreadChain,
+    generationStatus
   } = useThreadChainStore();
 
   // Schedule data
@@ -59,15 +65,15 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
   // threadChain이 추가될때만 사이드바 펼치기
   useEffect(() => {
-    const hasContent = threadChain.some(thread => thread.content.trim() !== '');
+    const hasContent = threadChain.some(thread => getContentString(thread.content).trim() !== '');
     if (isMobile) {
-      if (hasContent && !isRightSidebarOpen) {
+      if ((hasContent || generationStatus) && !isRightSidebarOpen) {
         toggleSidebar();
       }
-    } else if (hasContent && isCollapsed) {
+    } else if ((hasContent || generationStatus) && isCollapsed) {
       toggleSidebar();
     }
-  }, [threadChain.length, threadChain]);
+  }, [threadChain.length, threadChain, generationStatus]);
 
   // 모바일에서 오버레이 클릭 시 사이드바 닫기
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -94,7 +100,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const content = threadChain[0]?.content || '';
+    const content = getContentString(threadChain[0]?.content) || '';
     try {
       if (content) {
         localStorage.setItem("draftContent", content);
@@ -321,7 +327,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const handleSaveToDraft = async () => {
     try {
       const { error } = await createContent({
-        content: threadChain[0]?.content || '',
+        content: getContentString(threadChain[0]?.content) || '',
         publish_status: "draft",
         social_id: currentSocialId,
       });
@@ -360,7 +366,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
     if (!checkSocialAccountConnection()) return;
 
     try {
-      const validThreads = threadChain.filter(thread => thread.content.trim() !== '');
+      const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
       if (validThreads.length === 0 || !scheduleTime) return;
 
       const message = validThreads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
@@ -386,7 +392,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
     if (!checkSocialAccountConnection()) return;
 
     try {
-      const validThreads = threadChain.filter(thread => thread.content.trim() !== '');
+      const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
       if (validThreads.length === 0) return;
 
       const message = validThreads.length > 1 ? t('threadChainPublishing') : t('postPublished');
@@ -563,10 +569,48 @@ function RightSidebarContent({
   const t = useTranslations('components.rightSidebar');
   const tNav = useTranslations('navigation');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { generationStatus } = useThreadChainStore();
+
+  // Animated thinking status (cycles every 3s) and dots
+  const [animatedStatus, setAnimatedStatus] = useState<string | null>(null);
+  const [dots, setDots] = useState<string>('');
+
+  useEffect(() => {
+    const isThinking = typeof generationStatus === 'string' && generationStatus.toLowerCase().includes('thinking');
+    let phraseTimer: ReturnType<typeof setInterval> | null = null;
+    let dotsTimer: ReturnType<typeof setInterval> | null = null;
+
+    if (isThinking) {
+      const phrases = [
+        t('thinkingHowToWrite'),
+        t('researchingAngles'),
+        t('findingRightHook'),
+        t('structuringIdeas'),
+        t('choosingTheTone'),
+      ];
+      let idx = 0;
+      setAnimatedStatus(phrases[idx]);
+      phraseTimer = setInterval(() => {
+        idx = (idx + 1) % phrases.length;
+        setAnimatedStatus(phrases[idx]);
+      }, 5000);
+      dotsTimer = setInterval(() => {
+        setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
+      }, 500);
+    } else {
+      setAnimatedStatus(null);
+      setDots('');
+    }
+
+    return () => {
+      if (phraseTimer) clearInterval(phraseTimer);
+      if (dotsTimer) clearInterval(dotsTimer);
+    };
+  }, [generationStatus]);
 
   // Check if any thread exceeds character limit
   const hasCharacterLimitViolation = () => {
-    return threadChain.some(thread => thread.content.length > 500);
+    return threadChain.some(thread => getContentString(thread.content).length > 500);
   };
 
   const { profilePictureUrl } = useThreadsProfilePicture(currentSocialId);
@@ -575,8 +619,17 @@ function RightSidebarContent({
     <div className="flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 shadow-lg">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-background">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          {tNav('writeOrAddContents')}
+        <h2 className="text-sm font-medium">
+          {animatedStatus ? (
+            <span className="bg-gradient-to-r from-gray-300 via-gray-500 to-gray-900 bg-clip-text text-transparent animate-pulse select-none">
+              {animatedStatus}
+              {dots}
+            </span>
+          ) : generationStatus ? (
+            <span className="text-muted-foreground select-none">{generationStatus}</span>
+          ) : (
+            <span className="text-muted-foreground select-none">{tNav('writeOrAddContents')}</span>
+          )}
         </h2>
 
         {/* 모바일에서는 아래로 내리기 버튼, 데스크톱에서는 닫기 버튼 */}
@@ -703,7 +756,7 @@ function RightSidebarContent({
             handleSaveToDraft();
             toggleSidebar();
           }}
-          disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
+          disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
         >
           {tNav('saveToDraft')}
         </Button>
@@ -715,7 +768,7 @@ function RightSidebarContent({
               size="xl"
               className="!p-0 w-full rounded-r-sm mr-8 border-r border-dotted border-r-white bg-black text-white hover:bg-black/90"
               onClick={handleSchedule}
-              disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
+              disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
             >
               <div className="flex-col">
                 <div>{tNav('schedulePost')}</div>
@@ -737,7 +790,7 @@ function RightSidebarContent({
               <ChangePublishTimeDialog
                 variant="icon"
                 onPublishTimeChange={() => fetchPublishTimes()}
-                ondisabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
+                ondisabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
               />
             </div>
           </div>
@@ -746,7 +799,7 @@ function RightSidebarContent({
             size="xl"
             className="bg-black text-white hover:bg-black/90"
             onClick={handlePublish}
-            disabled={!threadChain.some(thread => thread.content.trim() !== '') || hasCharacterLimitViolation()}
+            disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
           >
             {tNav('postNow')}
           </Button>

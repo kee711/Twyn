@@ -16,7 +16,7 @@ import {
   Anchor,
   LibraryBig,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import Image from "next/image";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
@@ -161,14 +161,15 @@ export function PostCard({
   // textarea 높이 자동 조절
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
-    }
+    if (!textarea) return;
+    // Force reflow for reliable measurement after programmatic content updates
+    textarea.style.height = "0px";
+    const next = textarea.scrollHeight;
+    textarea.style.height = next + "px";
   };
 
   // 컨텐츠가 변경될 때마다 높이 조절
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isWriting && textareaRef.current) {
       // 포커스는 처음에만 설정
       if (content.length === 0) {
@@ -196,18 +197,14 @@ export function PostCard({
 
     // 콘텐츠 변경시 항상 높이 조정 (AI 생성이나 외부 변경 포함)
     if (isWriting) {
-      setTimeout(() => {
-        adjustTextareaHeight();
-      }, 1); // 약간의 지연으로 DOM 업데이트 보장
+      adjustTextareaHeight();
     }
   }, [content, isWriting, onTextareaFocus]);
 
   // 외부에서 높이 조정을 트리거할 때
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (triggerHeightAdjustment && isWriting) {
-      setTimeout(() => {
-        adjustTextareaHeight();
-      }, 1);
+      adjustTextareaHeight();
     }
   }, [triggerHeightAdjustment, isWriting]);
 
@@ -566,10 +563,10 @@ export function PostCard({
                 <Vote className="h-4 w-4" />
               </Button>
               <Button
-                variant="toggle"
+                // variant="toggle"
                 size="sm"
                 data-state={isAiActive ? "on" : "off"}
-                className={`flex items-center gap-1 rounded-full px-3 pr-4 text-sm font-[400] ${showAiInput ? "bg-black text-white hover:bg-black/80" : "bg-gray-200 text-gray-400"}`}
+                className={`flex items-center gap-1 rounded-full px-3 pr-4 text-sm font-[400] ${showAiInput ? "bg-black text-white hover:bg-black/40" : "bg-gray-200 text-gray-400"}`}
                 onClick={() => setShowAiInput(!showAiInput)} // Toggle AI Input Dropdown
               >
                 <Sparkles className="h-4 w-4" />
