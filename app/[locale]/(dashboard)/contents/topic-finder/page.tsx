@@ -162,7 +162,7 @@ export default function TopicFinderPage() {
                                     // 상태 메시지를 헤더 자리에 반영
                                     const lower = msg.toLowerCase();
                                     if (lower.includes('preparing')) setGenerationStatus('thinking how to write...');
-                                    else if (lower.includes('generating')) setGenerationStatus('writing draft...');
+                                    else if (lower.includes('generating')) setGenerationStatus(t('writingDraft'));
                                     else if (lower.includes('completed')) setGenerationStatus('finalizing...');
                                     else setGenerationStatus(msg);
                                 }

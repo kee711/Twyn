@@ -582,18 +582,18 @@ function RightSidebarContent({
 
     if (isThinking) {
       const phrases = [
-        'thinking how to write',
-        'researching angles',
-        'finding the right hook',
-        'structuring ideas',
-        'choosing the tone',
+        t('thinkingHowToWrite'),
+        t('researchingAngles'),
+        t('findingRightHook'),
+        t('structuringIdeas'),
+        t('choosingTheTone'),
       ];
       let idx = 0;
       setAnimatedStatus(phrases[idx]);
       phraseTimer = setInterval(() => {
         idx = (idx + 1) % phrases.length;
         setAnimatedStatus(phrases[idx]);
-      }, 3000);
+      }, 5000);
       dotsTimer = setInterval(() => {
         setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
       }, 500);

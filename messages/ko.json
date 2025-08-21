@@ -429,6 +429,12 @@
   },
   "components": {
     "rightSidebar": {
+      "thinkingHowToWrite": "어떻게 쓸지 생각 중",
+      "researchingAngles": "어떤 각도로 접근할지 탐색 중",
+      "findingRightHook": "효과적인 훅을 생각하는 중",
+      "structuringIdeas": "아이디어를 구조화하는 중",
+      "choosingTheTone": "어울리는 톤을 정하는 중",
+      "writingDraft": "초안 작성 중...",
       "schedulePost": "포스트 예약",
       "noSchedule": "설정된 게시 시간이 없습니다.",
       "add": "추가",
