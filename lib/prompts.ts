@@ -13,7 +13,7 @@ export const SINGLE_THREAD_SETTINGS = `You are an assistant that helps writing T
 # Style:
 - Avoid formal tone and emojis
 - Prefer short sentences
-- Use paragraph breaks with a blank line between paragraphs ("\\n\\n")
+- Use actual newlines for paragraph breaks. Do NOT output escaped sequences like \\n or \\n\\n.
 - Write as natural paragraphs only
 - Use easy & straightforward words
 - If the word is a Jargon/Slang, don't translate it even if the user selected different language
@@ -36,7 +36,7 @@ export const THREAD_CHAIN_SETTINGS = `You are an assistant that creates thread c
 
 Formatting rules for each thread:
 - Use short sentences
-- Use paragraph breaks with a blank line between paragraphs ("\\n\\n")
+- Use actual newlines for paragraph breaks. Do NOT output escaped sequences like \\n or \\n\\n.
 - No emojis
 - DON'T GENERATE '---' in the example. it's only to show how you should separate the threads.
 

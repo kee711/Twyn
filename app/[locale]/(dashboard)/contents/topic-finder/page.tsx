@@ -22,6 +22,8 @@ import { Trash } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogTitle, AlertDialogContent, AlertDialogHeader, AlertDialogTrigger, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useContentGenerationStore } from '@/lib/stores/content-generation';
+// removed duplicate import
+import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
@@ -29,7 +31,8 @@ export default function TopicFinderPage() {
     const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
     const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const { setPendingThreadChain } = useThreadChainStore();
+    const { setPendingThreadChain, setGenerationStatus, setGenerationPreview, clearGenerationPreview, threadChain, setThreadChain, ensureThreadCount, setThreadContentAt } = useThreadChainStore();
+    const { openRightSidebar, isRightSidebarOpen } = useMobileSidebar();
     const queryClient = useQueryClient();
 
     const { currentSocialId, currentUsername } = useSocialAccountStore()
@@ -81,46 +84,212 @@ export default function TopicFinderPage() {
         });
     }, [currentSocialId, queryClient]);
 
-    // 디테일 생성 핸들러 - Generate thread chain instead of single post
+    // 디테일 생성 핸들러 - Stream UI Message Protocol 소비로 전환
     const handleGenerateDetail = async () => {
         if (!selectedHeadline) {
             toast.error(t('writeOrAddTopic'));
             return;
         }
-        setTopicLoading(selectedHeadline, true);
+        const headline = selectedHeadline;
+        setTopicLoading(headline, true);
         setIsGeneratingDetails(true);
+        // 사이드바 열기 및 초기화
+        if (!isRightSidebarOpen) openRightSidebar();
+        setGenerationStatus('thinking how to write...');
+        clearGenerationPreview();
+        // 첫 번째 스레드가 없다면 초기화
+        if (threadChain.length === 0) {
+            setThreadChain([{ content: '', media_urls: [], media_type: 'TEXT' }]);
+        }
         try {
             const res = await fetch('/api/generate-detail', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    accountInfo: profileDescription, 
-                    topic: selectedHeadline, 
+                body: JSON.stringify({
+                    accountInfo: profileDescription,
+                    topic: headline,
                     instruction: givenInstruction,
                     postType,
                     language
                 })
             });
             if (!res.ok) throw new Error('API error');
-            const data = await res.json();
 
-            // Convert generated threads to ThreadContent format
-            const threadChain: ThreadContent[] = data.threads.map((content: string) => ({
-                content,
-                media_urls: [],
-                media_type: 'TEXT' as const
-            }));
+            const isUIStream = res.headers.get('x-vercel-ai-ui-message-stream') === 'v1';
+            const contentType = res.headers.get('content-type') || '';
 
-            // Set pending thread chain in store
-            setPendingThreadChain(threadChain);
+            // 스트림 소비 (권장 경로)
+            if (isUIStream || contentType.includes('text/event-stream')) {
+                const reader = res.body?.getReader();
+                if (!reader) throw new Error('No readable stream');
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let finalThreads: string[] | null = null;
+                // single-post 누적 버퍼
+                let singleBuffer = '';
+                // thread(JSON array) 인크리멘탈 파서 상태
+                let arrayStarted = false;
+                let insideString = false;
+                let escapeNext = false;
+                let builtItems: string[] = [];
+                let currentItem = '';
 
-            // Store detail for UI feedback
-            setTopicDetail(selectedHeadline, data.threads.join('\n\n'));
+                // 진행상황을 토스트로 안내
+                setGenerationStatus('thinking how to write...');
 
-            toast.success(t('threadsGenerated', { count: threadChain.length }));
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    // 이벤트 경계 처리: \n\n 로 분리
+                    const events = buffer.split('\n\n');
+                    buffer = events.pop() || '';
+
+                    for (const evt of events) {
+                        const lines = evt.split('\n');
+                        for (const line of lines) {
+                            if (!line.startsWith('data: ')) continue;
+                            const jsonStr = line.slice(6).trim();
+                            if (jsonStr === '' || jsonStr === '[DONE]') continue;
+                            let dataPart: any;
+                            try { dataPart = JSON.parse(jsonStr); } catch { continue; }
+
+                            // 데이터 파트 처리
+                            if (dataPart.type === 'data-status') {
+                                const msg = dataPart.data?.message || '';
+                                if (typeof msg === 'string' && msg) {
+                                    // 상태 메시지를 헤더 자리에 반영
+                                    const lower = msg.toLowerCase();
+                                    if (lower.includes('preparing')) setGenerationStatus('thinking how to write...');
+                                    else if (lower.includes('generating')) setGenerationStatus('writing draft...');
+                                    else if (lower.includes('completed')) setGenerationStatus('finalizing...');
+                                    else setGenerationStatus(msg);
+                                }
+                            }
+                            if (dataPart.type === 'data-threads') {
+                                const threads = (dataPart.data?.threads || []) as string[];
+                                if (Array.isArray(threads) && threads.length > 0) {
+                                    finalThreads = threads;
+                                }
+                            }
+                            // 텍스트 델타 처리: postType 별 분기
+                            if (dataPart.type === 'text-delta' && typeof dataPart.delta === 'string') {
+                                const delta: string = dataPart.delta;
+                                if (postType === 'single') {
+                                    // 단일 포스트: 토큰 그대로 1개 카드에만 스트리밍
+                                    singleBuffer += delta;
+                                    const normalized = singleBuffer.replace(/\\n/g, '\n');
+                                    ensureThreadCount(1);
+                                    setThreadContentAt(0, normalized);
+                                } else {
+                                    // 스레드 체인: JSON 배열을 인크리멘탈 파싱하여 즉시 카드 분할
+                                    for (let i = 0; i < delta.length; i++) {
+                                        const ch = delta[i];
+                                        if (!arrayStarted) {
+                                            if (ch === '[') arrayStarted = true;
+                                            continue; // '[' 이전 토큰 무시
+                                        }
+                                        if (!insideString) {
+                                            if (ch === '"') {
+                                                insideString = true;
+                                                escapeNext = false;
+                                                currentItem = '';
+                                                // 새 카드 시작 보장
+                                                ensureThreadCount(builtItems.length + 1);
+                                            } else if (ch === ']') {
+                                                // 배열 종료
+                                                arrayStarted = false;
+                                            } else {
+                                                // 콤마/공백 등 무시
+                                            }
+                                        } else {
+                                            // inside string
+                                            if (escapeNext) {
+                                                // Handle common JSON escapes so UI shows real newlines instead of 'n'
+                                                if (ch === 'n') currentItem += '\n';
+                                                else if (ch === 'r') currentItem += '\r';
+                                                else if (ch === 't') currentItem += '\t';
+                                                else if (ch === '"') currentItem += '"';
+                                                else if (ch === '\\') currentItem += '\\';
+                                                else if (ch === '/') currentItem += '/';
+                                                else currentItem += ch; // fallback
+                                                escapeNext = false;
+                                            } else if (ch === '\\') {
+                                                escapeNext = true;
+                                            } else if (ch === '"') {
+                                                // 문자열 종료 → 아이템 확정
+                                                builtItems.push(currentItem);
+                                                // 확정된 아이템을 해당 카드에 반영
+                                                const normalized = currentItem;
+                                                ensureThreadCount(builtItems.length);
+                                                setThreadContentAt(builtItems.length - 1, normalized);
+                                                insideString = false;
+                                                currentItem = '';
+                                            } else {
+                                                currentItem += ch;
+                                                // 진행 중 아이템 내용을 현재 카드에 스트리밍 반영
+                                                const normalized = currentItem;
+                                                ensureThreadCount(builtItems.length + 1);
+                                                setThreadContentAt(builtItems.length, normalized);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // 스트림 종료 시점 처리 (백업 경로 최소화)
+                            if (dataPart.type === 'finish' && !finalThreads) {
+                                if (postType === 'single') {
+                                    finalThreads = [singleBuffer.replace(/\\n/g, '\n').trim()];
+                                } else {
+                                    // 남아있는 진행 중 아이템 마무리
+                                    if (insideString && currentItem.trim().length > 0) {
+                                        builtItems.push(currentItem);
+                                        const normalized = currentItem.replace(/\\n/g, '\n');
+                                        ensureThreadCount(builtItems.length);
+                                        setThreadContentAt(builtItems.length - 1, normalized);
+                                    }
+                                    finalThreads = builtItems.length > 0 ? builtItems.map(s => s.replace(/\\n/g, '\n')) : null;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 최종 결과 적용
+                if (finalThreads && finalThreads.length > 0) {
+                    const threadChain: ThreadContent[] = finalThreads.map((content: string) => ({
+                        content,
+                        media_urls: [],
+                        media_type: 'TEXT' as const
+                    }));
+                    setPendingThreadChain(threadChain);
+                    setTopicDetail(headline, finalThreads.join('\n\n'));
+                    setGenerationStatus(null);
+                    clearGenerationPreview();
+                    toast.success(t('threadsGenerated', { count: threadChain.length }));
+                } else {
+                    throw new Error('No threads received');
+                }
+            } else {
+                // 하위 호환: JSON 경로
+                const data = await res.json();
+                const threadChain: ThreadContent[] = data.threads.map((content: string) => ({
+                    content,
+                    media_urls: [],
+                    media_type: 'TEXT' as const
+                }));
+                setPendingThreadChain(threadChain);
+                setTopicDetail(headline, data.threads.join('\n\n'));
+                setGenerationStatus(null);
+                clearGenerationPreview();
+                toast.success(t('threadsGenerated', { count: threadChain.length }));
+            }
         } catch (e) {
             toast.error(t('failedToGenerateChain'));
-            setTopicLoading(selectedHeadline, false);
+            setTopicLoading(headline, false);
+            setGenerationStatus(null);
+            clearGenerationPreview();
         } finally {
             setIsGeneratingDetails(false);
         }
