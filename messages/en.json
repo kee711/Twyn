@@ -344,6 +344,7 @@
     },
     "contents": {
       "topicFinder": {
+        "writingDraft": "Writing draft...",
         "greeting": "Hi {username},",
         "defaultUser": "User",
         "question": "What would you like to write about?",
@@ -432,7 +433,6 @@
       "findingRightHook": "Finding the right hook",
       "structuringIdeas": "Structuring ideas",
       "choosingTheTone": "Choosing the tone",
-      "writingDraft": "Writing draft...",
       "schedulePost": "Schedule Post",
       "noSchedule": "No scheduled time",
       "add": "Add",

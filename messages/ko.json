@@ -346,6 +346,7 @@
     },
     "contents": {
       "topicFinder": {
+        "writingDraft": "초안 작성 중...",
         "greeting": "안녕하세요 {username}님,",
         "defaultUser": "사용자",
         "question": "어떤 주제로 글을 작성하고 싶으신가요?",
@@ -434,7 +435,6 @@
       "findingRightHook": "효과적인 훅을 생각하는 중",
       "structuringIdeas": "아이디어를 구조화하는 중",
       "choosingTheTone": "어울리는 톤을 정하는 중",
-      "writingDraft": "초안 작성 중...",
       "schedulePost": "포스트 예약",
       "noSchedule": "설정된 게시 시간이 없습니다.",
       "add": "추가",
