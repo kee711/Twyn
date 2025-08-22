@@ -54,10 +54,10 @@ export default function PrivacyPolicy() {
                   <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                     <li><strong>threads_basic</strong>: Access and display your Threads profile information (e.g., profile image, name, ID) and posts within Twyn (visible only to you).</li>
                     <li><strong>threads_content_publish</strong>: Create and schedule/publish Threads posts on your behalf.</li>
-                    <li><strong>threads_manage_replies</strong>: Manage who can reply to your posts, and control reply visibility or write replies on your behalf.</li>
+                    <li><strong>threads_manage_replies</strong>: Write replies on your behalf and hide replies.</li>
                     <li><strong>threads_manage_insights</strong>: Access analytics for your Threads profile and individual posts to display performance metrics.</li>
-                    <li><strong>threads_read_replies</strong>: Read replies to your Threads posts for engagement tracking.</li>
-                    <li><strong>threads_manage_mentions</strong>: Access content where you're mentioned and respond to mentions.</li>
+                    <li><strong>threads_read_replies</strong>: Get replies to your Threads posts.</li>
+                    <li><strong>threads_manage_mentions</strong>: Get content where you're mentioned.</li>
                   </ul>
                   <p className="text-muted-foreground leading-relaxed">
                     All Threads-related data is accessed solely to support Twyn's core functionalities, and only with your explicit consent.
