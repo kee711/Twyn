@@ -551,6 +551,7 @@
     "postToGetComments": "Post new threads to get comments",
     "repliedStatus": "{repliedCount} out of {totalCount} replied",
     "draftAllReplies": "Draft all replies",
+    "hiddenNotice": "The comment has been hidden",
     "me": "Me",
     "replyPlaceholder": "Reply to Comment...",
     "hide": "Hide",
