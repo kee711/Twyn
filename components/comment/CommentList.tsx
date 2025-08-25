@@ -43,6 +43,7 @@ export function CommentList() {
     const ensureVisible = useMobileKeyboardScroll(commentsScrollRef as unknown as { current: HTMLElement | null });
     const [hideDialogOpen, setHideDialogOpen] = useState(false);
     const [commentToHide, setCommentToHide] = useState<string | null>(null);
+    const [locallyHidden, setLocallyHidden] = useState<Record<string, boolean>>({});
 
     const {
         data,
@@ -452,101 +453,111 @@ export function CommentList() {
 
                             {/* Comments List */}
                             <div ref={commentsScrollRef} className="flex-1 overflow-y-auto space-y-2 md:space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pb-6 min-h-0">
-                                {currentPostComments.map((comment) => (
-                                    <div
-                                        key={comment.id}
-                                        className="bg-white md:rounded-2xl p-2 pb-4 md:p-5 flex-shrink-0 border-b border-gray-200 md:border-none"
-                                    >
-                                        {/* Comment Header */}
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex gap-3 w-full">
-                                                <div className="w-full">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="flex flex-row items-center gap-2">
-                                                            <span className="flex-1 font-semibold text-black text-[15px] md:text-[17px]">
-                                                                {comment.username}
-                                                            </span>
-                                                            <RelativeTime
-                                                                timestamp={comment.timestamp}
-                                                                className="text-gray-400 text-[15px] md:text-[17px]"
-                                                            />
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setCommentToHide(comment.id);
-                                                                    setHideDialogOpen(true);
-                                                                }}
-                                                                className="rounded-full p-2 mt-[-4px] flex items-center gap-1.5 bg-transparent hover:bg-gray-100 transition-colors"
-                                                            >
-                                                                <EyeOff className="w-4 h-4 text-gray-400" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-
-                                                    {/* Comment Text */}
-                                                    <p className="text-black text-[15px] md:text-[17px] leading-relaxed mb-3 md:mb-5">
-                                                        {comment.text}
-                                                    </p>
-
-                                                    {/* My Reply (if exists) */}
-                                                    {comment.is_replied && comment.replies.length > 0 && (
-                                                        <div className="bg-gray-100 rounded-[16px] p-3 mb-5">
-                                                            <p className="text-gray-500 text-xs font-bold mb-1.5">Me</p>
-                                                            <p className="text-black text-[15px] md:text-[17px]">
-                                                                {comment.replies[0]?.text}
-                                                            </p>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Reply Input - Only show if not replied */}
-                                                    {!comment.is_replied && (
-                                                        <div className="flex items-start gap-2">
-                                                            <div className="flex-1 relative">
-                                                                <Textarea
-                                                                    ref={(el) => {
-                                                                        if (el) textareaRefs.current[comment.id] = el;
-                                                                    }}
-                                                                    rows={1}
-                                                                    value={replyTexts[comment.id] || ''}
-                                                                    onChange={(e) => handleTextareaChange(comment.id, e.target.value)}
-                                                                    onFocus={(e) => ensureVisible(e.currentTarget)}
-                                                                    placeholder={t('replyPlaceholder')}
-                                                                    className={`
-                                                                    bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
-                                                                    [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] focus:outline-none focus:focus-visible:ring-0
-                                                                    min-h-[34px]
-                                                                `}
+                                {currentPostComments.map((comment) => {
+                                    const isHidden = (locallyHidden[comment.id] === true) || hiddenComments.includes(comment.id);
+                                    return (
+                                        <div
+                                            key={comment.id}
+                                            className="bg-white md:rounded-2xl p-2 pb-4 md:p-5 flex-shrink-0 border-b border-gray-200 md:border-none"
+                                        >
+                                            {/* Comment Header */}
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex gap-3 w-full">
+                                                    <div className="w-full">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div className="flex flex-row items-center gap-2">
+                                                                <span className="flex-1 font-semibold text-black text-[15px] md:text-[17px]">
+                                                                    {comment.username}
+                                                                </span>
+                                                                <RelativeTime
+                                                                    timestamp={comment.timestamp}
+                                                                    className="text-gray-400 text-[15px] md:text-[17px]"
                                                                 />
                                                             </div>
-
-                                                            <Button
-                                                                onClick={() => generateAIReply(comment.text, comment.id)}
-                                                                disabled={aiGenerating[comment.id]}
-                                                                className={`bg-black hover:bg-gray-800 text-white rounded-full h-[34px] px-2.5 flex items-center gap-1 flex-shrink-0 ${aiGenerating[comment.id] ? 'animate-pulse' : ''}`}
-                                                            >
-                                                                <Sparkles className="w-4 h-4" />
-                                                            </Button>
-
-                                                            <Button
-                                                                onClick={() => sendReply(comment.id)}
-                                                                disabled={!replyTexts[comment.id]?.trim() || sending[comment.id]}
-                                                                className={`bg-black hover:bg-gray-800 text-white rounded-full w-[34px] h-[34px] p-0 flex items-center justify-center flex-shrink-0 ${sending[comment.id] ? 'animate-pulse' : ''}`}
-                                                            >
-                                                                {sending[comment.id] ? (
-                                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                                                ) : (
-                                                                    <ArrowUp className="w-4 h-4" />
-                                                                )}
-                                                            </Button>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setCommentToHide(comment.id);
+                                                                        setHideDialogOpen(true);
+                                                                    }}
+                                                                    className="rounded-full p-2 mt-[-4px] flex items-center gap-1.5 bg-transparent hover:bg-gray-100 transition-colors"
+                                                                >
+                                                                    <EyeOff className="w-4 h-4 text-gray-400" />
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    )}
+
+
+                                                        {/* Comment Text */}
+                                                        <p className="text-black text-[15px] md:text-[17px] leading-relaxed mb-3 md:mb-5">
+                                                            {comment.text}
+                                                        </p>
+
+                                                        {/* Hidden Notice */}
+                                                        {isHidden && (
+                                                            <div className="bg-gray-100 rounded-[16px] p-3 mb-5">
+                                                                <p className="text-gray-500 text-[15px] md:text-[17px]">{t('hiddenNotice')}</p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* My Reply (if exists) */}
+                                                        {comment.is_replied && comment.replies.length > 0 && (
+                                                            <div className="bg-gray-100 rounded-[16px] p-3 mb-5">
+                                                                <p className="text-gray-500 text-xs font-bold mb-1.5">{t('me')}</p>
+                                                                <p className="text-black text-[15px] md:text-[17px]">
+                                                                    {comment.replies[0]?.text}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Reply Input - Only show if not replied and not hidden */}
+                                                        {!comment.is_replied && !isHidden && (
+                                                            <div className="flex items-start gap-2">
+                                                                <div className="flex-1 relative">
+                                                                    <Textarea
+                                                                        ref={(el) => {
+                                                                            if (el) textareaRefs.current[comment.id] = el;
+                                                                        }}
+                                                                        rows={1}
+                                                                        value={replyTexts[comment.id] || ''}
+                                                                        onChange={(e) => handleTextareaChange(comment.id, e.target.value)}
+                                                                        onFocus={(e) => ensureVisible(e.currentTarget)}
+                                                                        placeholder={t('replyPlaceholder')}
+                                                                        className={`
+                                                                        bg-gray-100 border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 resize-none py-2 px-4
+                                                                        [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] focus:outline-none focus:focus-visible:ring-0
+                                                                        min-h-[34px]
+                                                                    `}
+                                                                    />
+                                                                </div>
+
+                                                                <Button
+                                                                    onClick={() => generateAIReply(comment.text, comment.id)}
+                                                                    disabled={aiGenerating[comment.id]}
+                                                                    className={`bg-black hover:bg-gray-800 text-white rounded-full h-[34px] px-2.5 flex items-center gap-1 flex-shrink-0 ${aiGenerating[comment.id] ? 'animate-pulse' : ''}`}
+                                                                >
+                                                                    <Sparkles className="w-4 h-4" />
+                                                                </Button>
+
+                                                                <Button
+                                                                    onClick={() => sendReply(comment.id)}
+                                                                    disabled={!replyTexts[comment.id]?.trim() || sending[comment.id]}
+                                                                    className={`bg-black hover:bg-gray-800 text-white rounded-full w-[34px] h-[34px] p-0 flex items-center justify-center flex-shrink-0 ${sending[comment.id] ? 'animate-pulse' : ''}`}
+                                                                >
+                                                                    {sending[comment.id] ? (
+                                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                                    ) : (
+                                                                        <ArrowUp className="w-4 h-4" />
+                                                                    )}
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -567,18 +578,27 @@ export function CommentList() {
                                     {t('actions.cancel')}
                                 </Button>
                                 <Button
-                                    onClick={async () => {
-                                        if (commentToHide) {
-                                            try {
-                                                await hideComment(commentToHide);
+                                    onClick={() => {
+                                        if (!commentToHide) return;
+                                        const id = commentToHide;
+                                        // 즉시 다이얼로그 닫고 로컬로 숨김 처리
+                                        setHideDialogOpen(false);
+                                        setCommentToHide(null);
+                                        setLocallyHidden(prev => ({ ...prev, [id]: true }));
+
+                                        hideComment(id)
+                                            .then(() => {
                                                 toast.success(t('actions.commentHidden'));
                                                 queryClient.invalidateQueries({ queryKey: ['comments', currentSocialId] });
-                                                setHideDialogOpen(false);
-                                                setCommentToHide(null);
-                                            } catch (e) {
+                                            })
+                                            .catch(() => {
+                                                // 실패 시 로컬 숨김 상태 롤백
+                                                setLocallyHidden(prev => {
+                                                    const { [id]: _removed, ...rest } = prev;
+                                                    return rest;
+                                                });
                                                 toast.error(t('actions.hideCommentFailed'));
-                                            }
-                                        }
+                                            });
                                     }}
                                 >
                                     {t('actions.confirm')}

@@ -553,6 +553,7 @@
     "postToGetComments": "새로운 글을 발행해보세요",
     "repliedStatus": "{totalCount}개 중 {repliedCount}개 답변 완료",
     "draftAllReplies": "모든 답글 작성",
+    "hiddenNotice": "이 댓글은 숨김 처리되었습니다",
     "me": "나",
     "replyPlaceholder": "댓글에 답글 달기...",
     "hide": "숨기기",
