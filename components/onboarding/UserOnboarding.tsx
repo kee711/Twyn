@@ -152,7 +152,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
           <div className="bg-black h-1" style={{ width: `${(4 / 5) * 100}%` }} />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-4 gap-6 md:gap-10">
+        <div className="flex-1 flex flex-col justify-center max-w-2xl w-full mx-auto p-4 gap-6 md:gap-10">
           <div className="flex flex-col items-center text-center">
             <img src="/twyn-logo-blk.svg" alt="Threads" className="w-32 h-fit mb-4" />
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
@@ -197,7 +197,7 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
         />
       </div>
 
-      <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto p-4">
+      <div className="flex-1 flex flex-col justify-center max-w-2xl w-full mx-auto p-4">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
@@ -254,14 +254,12 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
           >
             {t('continue')}
           </Button>
-          {currentStep !== 3 && (
-            <button
-              onClick={handleSkip}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              {t('skip')}
-            </button>
-          )}
+          <button
+            onClick={currentStep !== 3 ? handleSkip : undefined}
+            className={`text-sm underline ${currentStep !== 3 ? 'text-gray-500 hover:text-gray-700' : 'invisible'}`}
+          >
+            {t('skip')}
+          </button>
         </div>
       </div>
     </div>
