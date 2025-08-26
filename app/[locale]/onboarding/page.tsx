@@ -24,11 +24,6 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (status === 'loading') return;
 
-    if (!session) {
-      router.push('/signin');
-      return;
-    }
-
     const type = searchParams.get('type');
     const accountId = searchParams.get('account_id');
     const modal = searchParams.get('modal');
@@ -50,7 +45,7 @@ export default function OnboardingPage() {
     }
 
     setLoading(false);
-  }, [session, status, searchParams, router]);
+  }, [status, searchParams, router]);
 
   const handleUserOnboardingComplete = async (responses: {
     step1: string | null;

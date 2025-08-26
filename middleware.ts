@@ -3,7 +3,7 @@ import createIntlMiddleware from 'next-intl/middleware'
 import { NextRequest } from 'next/server'
 import { routing } from './i18n/routing'
 
-const publicPages = ['/', '/signin', '/privacy', '/data-deletion-policy']
+const publicPages = ['/', '/signin', '/privacy', '/data-deletion-policy', '/onboarding']
 
 const intlMiddleware = createIntlMiddleware(routing)
 

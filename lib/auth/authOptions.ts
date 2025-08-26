@@ -92,8 +92,6 @@ export const authOptions: AuthOptions = {
             console.error('Error restoring user:', restoreError)
             return false
           }
-
-          return true
         }
 
         if (!existingUser) {
@@ -131,6 +129,31 @@ export const authOptions: AuthOptions = {
             console.error('Error updating user:', updateError)
             return false
           }
+        }
+
+        // 로그인 성공 후 온보딩 완료 여부 확인하여 미완료 시 온보딩 페이지로 리다이렉트
+        try {
+          const { data: onboardingData, error: onboardingError } = await supabase
+            .from('user_onboarding')
+            .select('is_completed')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+
+          // PGRST116: No rows returned → 온보딩 레코드 없음
+          if (onboardingError && onboardingError.code !== 'PGRST116') {
+            console.error('Error checking onboarding:', onboardingError)
+          }
+
+          const needsOnboarding = !onboardingData || onboardingData.is_completed !== true
+
+          if (needsOnboarding) {
+            const baseUrl = process.env.NEXTAUTH_URL || ''
+            return `${baseUrl}/onboarding?type=user`
+          }
+        } catch (onboardingCheckError) {
+          console.error('Unexpected error checking onboarding:', onboardingCheckError)
         }
 
         return true
