@@ -13,7 +13,7 @@ interface ChangePublishTimeDialogProps {
   ondisabled?: boolean
 }
 
-export function ChangePublishTimeDialog({ variant = 'default', onPublishTimeChange, ondisabled }: ChangePublishTimeDialogProps) {
+export function AutoPublishTimeDialog({ variant = 'default', onPublishTimeChange, ondisabled }: ChangePublishTimeDialogProps) {
   const t = useTranslations('components.rightSidebar');
   const [publishTimes, setPublishTimes] = useState<string[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
