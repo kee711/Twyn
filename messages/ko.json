@@ -429,6 +429,13 @@
     }
   },
   "components": {
+    "socialConnectRequired": {
+      "title": "계정 연결이 필요합니다",
+      "noAccount": {
+        "description": "먼저 Threads 계정을 연결해주세요.",
+        "connectButton": "계정 연결하기"
+      }
+    },
     "rightSidebar": {
       "thinkingHowToWrite": "어떻게 쓸지 생각 중",
       "researchingAngles": "어떤 각도로 접근할지 탐색 중",
