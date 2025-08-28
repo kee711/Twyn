@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -24,8 +25,10 @@ export function DropdownDate({
   disabled = false,
   disabledDates
 }: DropdownDateProps) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <Popover modal={true}>
+    <Popover modal={true} open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -52,6 +55,7 @@ export function DropdownDate({
           onSelect={(date) => {
             if (date) {
               onValueChange(format(date, 'yyyy-MM-dd'))
+              setOpen(false) // Close the popover after selection
             }
           }}
           disabled={disabledDates}

@@ -18,6 +18,7 @@ import { ThreadContent, getThreadChainByParentId } from '@/app/actions/threadCha
 import { localTimeToUTCISO } from '@/lib/utils/time'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { DropdownDate } from '../ui/dropdown-date'
 
 interface EditPostModalProps {
   isOpen: boolean
@@ -288,38 +289,26 @@ export function EditPostModal({
             )}
           </div>
 
-          <div ref={timeSectionRef} className="flex items-center justify-end gap-4 pb-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[180px] justify-start text-left font-normal",
-                    !editDate && "text-muted-foreground"
-                  )}
-                  type="button"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {editDate ? format(editDate, "PPP", { locale: ko }) : <span>{t('selectDate')}</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-[100]" align="start">
-                <Calendar
-                  mode="single"
-                  selected={editDate}
-                  onSelect={(date) => {
-                    console.log('Calendar date selected:', date);
-                    if (date) {
-                      setEditDate(date);
-                    }
-                  }}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+          {/* Preview */}
+          <div className="p-4 bg-muted rounded-xl">
+            <p className="text-sm text-muted-foreground mb-3">{t('scheduledFor')}</p>
+            <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+              <DropdownDate
+                className="w-full"
+                value={editDate ? format(editDate, 'yyyy-MM-dd') : undefined}
+                onValueChange={(date) => setEditDate(date ? new Date(date) : undefined)}
+                placeholder={t('selectDate')}
+                disabledDates={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+              />
 
-            <DropdownTime value={editTime} onValueChange={setEditTime} />
+              <span className="text-muted-foreground">at</span>
+
+              <DropdownTime
+                value={editTime}
+                onValueChange={setEditTime}
+                placeholder={t('timePlaceholder')}
+              />
+            </div>
           </div>
 
           <DialogFooter className="flex justify-between items-center pt-4 border-t">

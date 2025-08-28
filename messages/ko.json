@@ -643,7 +643,9 @@
     "unsavedChangesMessage": "저장되지 않은 변경사항이 있습니다. 정말 닫으시겠습니까? 변경사항이 저장되지 않습니다.",
     "close": "닫기",
     "futureTimeRequired": "예약 시간은 미래 시간이어야 합니다.",
-    "scheduleUpdated": "일정이 성공적으로 업데이트되었습니다!"
+    "scheduleUpdated": "일정이 성공적으로 업데이트되었습니다!",
+    "scheduledFor": "예약 시간",
+    "timePlaceholder": "시간 선택"
   },
   "contentList": {
     "loginRequired": "🔒 콘텐츠를 보려면 로그인이 필요합니다.",

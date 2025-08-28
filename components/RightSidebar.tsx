@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { postThreadChain, scheduleThreadChain, ThreadContent } from "@/app/actions/threadChain";
 import { formatLocalDateTime } from "@/lib/utils/time";
 import { AutoPublishTimeDialog } from "./schedule/AutoPublishTimeDialog";
-import { SelectPublishTimeDialog } from "./SelectPublishTimeDialog";
+import { SelectPublishTimeDialog } from "./schedule/SelectPublishTimeDialog";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import NextImage from 'next/image';
 import Link from 'next/link';
