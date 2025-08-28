@@ -427,6 +427,13 @@
     }
   },
   "components": {
+    "socialConnectRequired": {
+      "title": "Account connection required",
+      "noAccount": {
+        "description": "Please connect your Threads account first.",
+        "connectButton": "Connect Account"
+      }
+    },
     "rightSidebar": {
       "thinkingHowToWrite": "Thinking how to write",
       "researchingAngles": "Researching angles",
