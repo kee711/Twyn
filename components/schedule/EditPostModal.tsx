@@ -252,8 +252,8 @@ export function EditPostModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleModalClose}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-xl flex items-center gap-2">
               {t('title')}
               {event.status === 'failed' && (
@@ -264,54 +264,56 @@ export function EditPostModal({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="py-4">
-            {isLoadingThreads ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-sm text-muted-foreground">{t('loadingThreadChain')}</div>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="py-4">
+              {isLoadingThreads ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-muted-foreground">{t('loadingThreadChain')}</div>
+                </div>
+              ) : event?.is_thread_chain ? (
+                <ThreadChain
+                  threads={editThreads}
+                  variant="writing"
+                  username={currentUsername || t('fallbackUsername')}
+                  onThreadContentChange={updateThreadContent}
+                  onThreadMediaChange={updateThreadMedia}
+                  onAddThread={addNewThread}
+                  onRemoveThread={removeThread}
+                />
+              ) : (
+                <PostCard
+                  variant="writing"
+                  username={currentUsername || t('fallbackUsername')}
+                  content={editContent}
+                  onContentChange={setEditContent}
+                />
+              )}
+            </div>
+
+            {/* Preview */}
+            <div className="p-4 bg-muted rounded-xl">
+              <p className="text-sm text-muted-foreground mb-3">{t('scheduledFor')}</p>
+              <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+                <DropdownDate
+                  className="w-full"
+                  value={editDate ? format(editDate, 'yyyy-MM-dd') : undefined}
+                  onValueChange={(date) => setEditDate(date ? new Date(date) : undefined)}
+                  placeholder={t('selectDate')}
+                  disabledDates={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                />
+
+                <span className="text-muted-foreground">at</span>
+
+                <DropdownTime
+                  value={editTime}
+                  onValueChange={setEditTime}
+                  placeholder={t('timePlaceholder')}
+                />
               </div>
-            ) : event?.is_thread_chain ? (
-              <ThreadChain
-                threads={editThreads}
-                variant="writing"
-                username={currentUsername || t('fallbackUsername')}
-                onThreadContentChange={updateThreadContent}
-                onThreadMediaChange={updateThreadMedia}
-                onAddThread={addNewThread}
-                onRemoveThread={removeThread}
-              />
-            ) : (
-              <PostCard
-                variant="writing"
-                username={currentUsername || t('fallbackUsername')}
-                content={editContent}
-                onContentChange={setEditContent}
-              />
-            )}
-          </div>
-
-          {/* Preview */}
-          <div className="p-4 bg-muted rounded-xl">
-            <p className="text-sm text-muted-foreground mb-3">{t('scheduledFor')}</p>
-            <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
-              <DropdownDate
-                className="w-full"
-                value={editDate ? format(editDate, 'yyyy-MM-dd') : undefined}
-                onValueChange={(date) => setEditDate(date ? new Date(date) : undefined)}
-                placeholder={t('selectDate')}
-                disabledDates={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-              />
-
-              <span className="text-muted-foreground">at</span>
-
-              <DropdownTime
-                value={editTime}
-                onValueChange={setEditTime}
-                placeholder={t('timePlaceholder')}
-              />
             </div>
           </div>
 
-          <DialogFooter className="flex justify-between items-center pt-4 border-t">
+          <DialogFooter className="flex justify-between items-center pt-4 border-t flex-shrink-0">
             <div className="flex justify-between w-full">
               <Button variant="destructive" onClick={handleDelete}>
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -323,7 +325,7 @@ export function EditPostModal({
                   {t('cancel')}
                 </Button>
                 <Button onClick={handleSaveChanges}>
-                  {t('changeSchedule')}
+                  {t('saveChanges')}
                 </Button>
               </div>
             </div>

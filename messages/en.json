@@ -636,7 +636,7 @@
     "selectDate": "Pick a date",
     "deleteSchedule": "Delete Schedule",
     "cancel": "Cancel",
-    "changeSchedule": "Change Schedule",
+    "saveChanges": "Save",
     "unsavedChanges": "Unsaved changes",
     "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to close? Your changes will not be saved.",
     "close": "Close",
