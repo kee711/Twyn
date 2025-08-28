@@ -450,7 +450,21 @@
       "postScheduled": "포스트가 예약되었습니다",
       "scheduleFailed": "예약에 실패했습니다",
       "threadChainPublishing": "스레드 체인을 게시하는 중입니다",
-      "postPublished": "포스트가 게시되었습니다"
+      "postPublished": "포스트가 게시되었습니다",
+      "noContentToSchedule": "예약할 컨텐츠가 없습니다"
+    },
+    "selectPublishTime": {
+      "selectPublishTime": "게시 시간 선택",
+      "popularTimes": "추천 시간대",
+      "morningTime": "오전 9시",
+      "lunchTime": "오후 12시",
+      "eveningTime": "오후 7시",
+      "selectDate": "날짜 선택",
+      "selectTime": "시간 선택",
+      "timePlaceholder": "시간 선택",
+      "scheduledFor": "예약 시간",
+      "cancel": "취소",
+      "confirm": "예약하기"
     },
     "postCard": {
       "writeContent": "내용을 작성하세요...",

@@ -448,7 +448,21 @@
       "postScheduled": "Your post is scheduled",
       "scheduleFailed": "Schedule failed",
       "threadChainPublishing": "Your thread chain is being published",
-      "postPublished": "Your post is published"
+      "postPublished": "Your post is published",
+      "noContentToSchedule": "No content to schedule"
+    },
+    "selectPublishTime": {
+      "selectPublishTime": "Select Publish Time",
+      "popularTimes": "Popular times",
+      "morningTime": "9:00 AM",
+      "lunchTime": "12:00 PM",
+      "eveningTime": "7:00 PM",
+      "selectDate": "Select Date",
+      "selectTime": "Select Time",
+      "timePlaceholder": "Select time",
+      "scheduledFor": "Scheduled for",
+      "cancel": "Cancel",
+      "confirm": "Schedule"
     },
     "postCard": {
       "writeContent": "Write content...",

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { postThreadChain, scheduleThreadChain, ThreadContent } from "@/app/actions/threadChain";
 import { formatLocalDateTime } from "@/lib/utils/time";
 import { ChangePublishTimeDialog } from "./schedule/ChangePublishTimeDialog";
+import { SelectPublishTimeDialog } from "./SelectPublishTimeDialog";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import NextImage from 'next/image';
 import Link from 'next/link';
@@ -57,6 +58,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const [publishTimes, setPublishTimes] = useState<string[]>([]);
   const [reservedTimes, setReservedTimes] = useState<string[]>([]);
   const [scheduleTime, setScheduleTime] = useState<string | null>(null);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
   // 모바일에서는 isRightSidebarOpen 상태 사용, 데스크톱에서는 기존 isCollapsed 사용
   const toggleSidebar = isMobile ?
@@ -360,19 +362,30 @@ export function RightSidebar({ className }: RightSidebarProps) {
     return true;
   };
 
-  // Post 예약발행
-  const handleSchedule = async () => {
+  // Post 예약발행 - Open modal instead of direct scheduling
+  const handleSchedule = () => {
     // Check social account connection
     if (!checkSocialAccountConnection()) return;
 
+    const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
+    if (validThreads.length === 0) {
+      toast.error(t('noContentToSchedule'));
+      return;
+    }
+
+    setShowScheduleDialog(true);
+  };
+
+  // Handle actual scheduling when time is selected
+  const handleConfirmSchedule = async (selectedDateTime: string) => {
     try {
       const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
-      if (validThreads.length === 0 || !scheduleTime) return;
+      if (validThreads.length === 0) return;
 
       const message = validThreads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
       toast.success(message);
 
-      const result = await scheduleThreadChain(validThreads, scheduleTime);
+      const result = await scheduleThreadChain(validThreads, selectedDateTime);
 
       if (!result.success) throw new Error(result.error);
 
@@ -380,6 +393,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       clearThreadChain();
       localStorage.removeItem("draftContent");
       fetchScheduledTimes();
+      setScheduleTime(null); // Reset schedule time after successful scheduling
     } catch (error) {
       console.error("Error scheduling:", error);
       toast.error(t('scheduleFailed'));
@@ -520,6 +534,14 @@ export function RightSidebar({ className }: RightSidebarProps) {
           )}
         </>
       )}
+      
+      {/* Schedule Time Selection Dialog */}
+      <SelectPublishTimeDialog
+        open={showScheduleDialog}
+        onOpenChange={setShowScheduleDialog}
+        onConfirm={handleConfirmSchedule}
+        currentScheduledTime={scheduleTime}
+      />
     </>
   );
 }
