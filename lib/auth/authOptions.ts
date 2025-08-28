@@ -22,6 +22,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     userId: string
     provider: string
+    needsOnboarding?: boolean
   }
 }
 
@@ -43,13 +44,52 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt', // JWT 세션
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
   },
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile, trigger }) {
       if (account && profile) {
         token.userId = profile.sub ?? ''
         token.provider = account.provider ?? ''
+
+        // Check onboarding status for new sign-ins
+        const { data: onboardingData } = await supabase
+          .from('user_onboarding')
+          .select('is_completed')
+          .eq('user_id', profile.sub)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        // User needs onboarding only if no record exists at all
+        token.needsOnboarding = !onboardingData
       }
+
+      // Re-check onboarding status on session updates
+      if (trigger === 'update' && token.userId) {
+        const { data: onboardingData } = await supabase
+          .from('user_onboarding')
+          .select('is_completed')
+          .eq('user_id', token.userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        // User needs onboarding only if no record exists at all
+        token.needsOnboarding = !onboardingData
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -59,7 +99,7 @@ export const authOptions: AuthOptions = {
       }
       return session
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
 
       try {
         // 사용자가 존재하는지 확인하고 deleted_at 필드 체크
@@ -146,11 +186,13 @@ export const authOptions: AuthOptions = {
             console.error('Error checking onboarding:', onboardingError)
           }
 
-          const needsOnboarding = !onboardingData || onboardingData.is_completed !== true
+          // User needs onboarding only if no record exists at all
+          const needsOnboarding = !onboardingData
 
           if (needsOnboarding) {
-            const baseUrl = process.env.NEXTAUTH_URL || ''
-            return `${baseUrl}/onboarding?type=user`
+            // Store onboarding flag in token for redirect after session creation
+            // Returning true here ensures session is properly created
+            return true
           }
         } catch (onboardingCheckError) {
           console.error('Unexpected error checking onboarding:', onboardingCheckError)
@@ -163,9 +205,15 @@ export const authOptions: AuthOptions = {
       }
     },
   },
+  events: {
+    async signOut(message) {
+      // Additional cleanup can be performed here if needed
+      console.log('User signed out:', message)
+    }
+  },
   pages: {
     signIn: '/signin',
     error: '/error',
   },
-  debug: false,
+  debug: true,
 }
