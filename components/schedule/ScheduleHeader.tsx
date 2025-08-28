@@ -88,9 +88,6 @@ export function ScheduleHeader({
 
         {/* Controls */}
         <div className="flex gap-2 sm:items-center sm:gap-3">
-          {/* Change Publish Time */}
-          <AutoPublishTimeDialog />
-
           {/* Month/Date Selector */}
           <Popover>
             <PopoverTrigger asChild>
