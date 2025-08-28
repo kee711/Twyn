@@ -11,7 +11,7 @@ import { createContent } from "@/app/actions/content";
 import { toast } from "sonner";
 import { postThreadChain, scheduleThreadChain, ThreadContent } from "@/app/actions/threadChain";
 import { formatLocalDateTime } from "@/lib/utils/time";
-import { ChangePublishTimeDialog } from "./schedule/ChangePublishTimeDialog";
+import { AutoPublishTimeDialog } from "./schedule/AutoPublishTimeDialog";
 import { SelectPublishTimeDialog } from "./SelectPublishTimeDialog";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import NextImage from 'next/image';
@@ -534,7 +534,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
           )}
         </>
       )}
-      
+
       {/* Schedule Time Selection Dialog */}
       <SelectPublishTimeDialog
         open={showScheduleDialog}
@@ -788,33 +788,21 @@ function RightSidebarContent({
             <Button
               variant="default"
               size="xl"
-              className="!p-0 w-full rounded-r-sm mr-8 border-r border-dotted border-r-white bg-black text-white hover:bg-black/90"
+              className="!p-0 w-full bg-black text-white hover:bg-black/90 rounded-xl"
               onClick={handleSchedule}
               disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
             >
               <div className="flex-col">
                 <div>{tNav('schedulePost')}</div>
-                {scheduleTime && (
-                  <div className="text-xs text-muted-foreground">
-                    {formatLocalDateTime(scheduleTime, {
-                      year: "numeric",
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "numeric",
-                      hour12: true, // 오전/오후 표시
-                    })}
-                  </div>
-                )}
               </div>
             </Button>
-            <div className="absolute right-0 h-full">
-              <ChangePublishTimeDialog
+            {/* <div className="absolute right-0 h-full">
+              <AutoPublishTimeDialog
                 variant="icon"
                 onPublishTimeChange={() => fetchPublishTimes()}
                 ondisabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
               />
-            </div>
+            </div> */}
           </div>
           <Button
             variant="default"

@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar'
-import { ChangePublishTimeDialog } from './ChangePublishTimeDialog'
+import { AutoPublishTimeDialog } from './AutoPublishTimeDialog'
 import { useTranslations } from 'next-intl'
 
 interface ScheduleHeaderProps {
@@ -89,7 +89,7 @@ export function ScheduleHeader({
         {/* Controls */}
         <div className="flex gap-2 sm:items-center sm:gap-3">
           {/* Change Publish Time */}
-          <ChangePublishTimeDialog />
+          <AutoPublishTimeDialog />
 
           {/* Month/Date Selector */}
           <Popover>
