@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileSidebarProvider } from "@/contexts/MobileSidebarContext";
 import { MobileMenuButton } from "@/components/MobileMenuButton";
 import { GlobalModalProvider } from "@/components/providers/GlobalModalProvider";
+import { DashboardContent } from "@/components/dashboard/DashboardContent";
 
 export default function DashboardLayout({
   children,
@@ -14,7 +15,9 @@ export default function DashboardLayout({
         <Sidebar className="h-full rounded-r-xl" />
         <main className="flex-1 h-full overflow-hidden relative">
           <MobileMenuButton />
-          {children}
+          <DashboardContent>
+            {children}
+          </DashboardContent>
           <GlobalModalProvider />
         </main>
       </div>

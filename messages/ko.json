@@ -429,6 +429,13 @@
     }
   },
   "components": {
+    "socialConnectRequired": {
+      "title": "계정 연결이 필요합니다",
+      "noAccount": {
+        "description": "먼저 Threads 계정을 연결해주세요.",
+        "connectButton": "계정 연결하기"
+      }
+    },
     "rightSidebar": {
       "thinkingHowToWrite": "어떻게 쓸지 생각 중",
       "researchingAngles": "어떤 각도로 접근할지 탐색 중",
@@ -450,7 +457,21 @@
       "postScheduled": "포스트가 예약되었습니다",
       "scheduleFailed": "예약에 실패했습니다",
       "threadChainPublishing": "스레드 체인을 게시하는 중입니다",
-      "postPublished": "포스트가 게시되었습니다"
+      "postPublished": "포스트가 게시되었습니다",
+      "noContentToSchedule": "예약할 컨텐츠가 없습니다"
+    },
+    "selectPublishTime": {
+      "selectPublishTime": "게시 시간 선택",
+      "popularTimes": "추천 시간대",
+      "morningTime": "오전 9시",
+      "lunchTime": "오후 12시",
+      "eveningTime": "오후 7시",
+      "selectDate": "날짜 선택",
+      "selectTime": "시간 선택",
+      "timePlaceholder": "시간 선택",
+      "scheduledFor": "예약 시간",
+      "cancel": "취소",
+      "confirm": "예약하기"
     },
     "postCard": {
       "writeContent": "내용을 작성하세요...",
@@ -622,14 +643,25 @@
     "loadingThreadChain": "스레드 체인을 불러오는 중...",
     "fallbackUsername": "나",
     "selectDate": "날짜 선택",
-    "deleteSchedule": "일정 삭제",
+    "deleteSchedule": "예약 취소",
     "cancel": "취소",
-    "changeSchedule": "일정 변경",
+    "saveChanges": "저장",
     "unsavedChanges": "저장되지 않은 변경사항",
     "unsavedChangesMessage": "저장되지 않은 변경사항이 있습니다. 정말 닫으시겠습니까? 변경사항이 저장되지 않습니다.",
     "close": "닫기",
     "futureTimeRequired": "예약 시간은 미래 시간이어야 합니다.",
-    "scheduleUpdated": "일정이 성공적으로 업데이트되었습니다!"
+    "scheduleUpdated": "일정이 성공적으로 업데이트되었습니다!",
+    "scheduledFor": "예약 시간",
+    "timePlaceholder": "시간 선택"
+  },
+  "viewPostModal": {
+    "title": "게시된 인사이트",
+    "views": "조회수",
+    "likes": "좋아요",
+    "replies": "답글",
+    "reposts": "리포스트",
+    "shares": "공유",
+    "noInsights": "아직 인사이트가 존재하지 않아요"
   },
   "contentList": {
     "loginRequired": "🔒 콘텐츠를 보려면 로그인이 필요합니다.",

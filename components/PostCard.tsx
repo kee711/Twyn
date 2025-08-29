@@ -51,6 +51,8 @@ interface PostCardProps {
   onTextareaFocus?: () => void;
   hideAddButton?: boolean;
   showGrade?: boolean;
+  readOnly?: boolean;
+
   // Thread chain props
   isPartOfChain?: boolean;
   threadIndex?: number;
@@ -60,6 +62,7 @@ interface PostCardProps {
   isLastInChain?: boolean;
   // Height adjustment trigger
   triggerHeightAdjustment?: boolean;
+  // AI Input
 }
 
 // 점수 계산 함수
@@ -109,6 +112,7 @@ export function PostCard({
   onTextareaFocus,
   hideAddButton = false,
   showGrade = true,
+  readOnly = false,
   // Thread chain props
   isPartOfChain = false,
   threadIndex = 0,
@@ -505,7 +509,7 @@ export function PostCard({
           {/* Buttons variation by variants */}
 
           {/* Bottom section with optional grade and Add button */}
-          {!isCompact && !isWriting && (
+          {!isCompact && !isWriting && !readOnly && (
             <div className="flex justify-between">
               {showGrade && (
                 <div className="flex text-sm gap-2">

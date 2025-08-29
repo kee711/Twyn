@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Users, Lightbulb, User, Building, Zap, Target, MessageSquare, TrendingUp, AlertCircle, Clock, BarChart3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { OnboardingHeader } from './OnboardingHeader';
 
 interface UserOnboardingProps {
   onComplete: (responses: {
@@ -12,11 +13,13 @@ interface UserOnboardingProps {
     step2: string | null;
     step3: string | null;
   }) => void;
+  showThreadsConnection?: boolean;
+  onThreadsSkip?: () => void;
 }
 
 type Step = 1 | 2 | 3 | 4;
 
-export function UserOnboarding({ onComplete }: UserOnboardingProps) {
+export function UserOnboarding({ onComplete, showThreadsConnection = false, onThreadsSkip }: UserOnboardingProps) {
   const t = useTranslations('UserOnboarding');
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [responses, setResponses] = useState({
@@ -117,9 +120,12 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
     if (currentStep < 3) {
       setCurrentStep((prev) => (prev + 1) as Step);
     } else {
-      // 3단계에서 Continue 누르면 DB 저장 후 4단계로 이동
+      // Save responses to DB
       onComplete(responses);
-      setCurrentStep(4);
+      // Only show step 4 if showThreadsConnection is true
+      if (showThreadsConnection) {
+        setCurrentStep(4);
+      }
     }
   };
 
@@ -135,10 +141,6 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
     window.location.href = '/api/threads/oauth';
   };
 
-  const handleConnectLater = () => {
-    window.location.href = '/contents/topic-finder';
-  };
-
   const getCurrentSelectedOption = () => {
     return responses[`step${currentStep}` as keyof typeof responses];
   };
@@ -146,7 +148,8 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
   if (currentStep === 4) {
     // Step 4: Connect Threads Account
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-gray-50 flex flex-col relative">
+        <OnboardingHeader />
         {/* Progress bar - full width at top */}
         <div className="w-full bg-gray-200 h-1">
           <div className="bg-black h-1" style={{ width: `${(4 / 5) * 100}%` }} />
@@ -171,12 +174,12 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
               <img src="/threads.svg" alt="Threads" className="w-6 h-6 mr-2" />
               {t('connectThreads')}
             </Button>
-            {/* <button
-              onClick={handleConnectLater}
+            <button
+              onClick={onThreadsSkip}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               {t('connectLater')}
-            </button> */}
+            </button>
           </div>
         </div>
       </div>
@@ -188,7 +191,8 @@ export function UserOnboarding({ onComplete }: UserOnboardingProps) {
   const currentSelectedOption = getCurrentSelectedOption();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col relative">
+      <OnboardingHeader />
       {/* Progress bar - full width at top */}
       <div className="w-full bg-gray-200 h-1">
         <div

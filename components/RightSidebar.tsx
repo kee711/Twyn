@@ -11,7 +11,8 @@ import { createContent } from "@/app/actions/content";
 import { toast } from "sonner";
 import { postThreadChain, scheduleThreadChain, ThreadContent } from "@/app/actions/threadChain";
 import { formatLocalDateTime } from "@/lib/utils/time";
-import { ChangePublishTimeDialog } from "./schedule/ChangePublishTimeDialog";
+import { AutoPublishTimeDialog } from "./schedule/AutoPublishTimeDialog";
+import { SelectPublishTimeDialog } from "./schedule/SelectPublishTimeDialog";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import NextImage from 'next/image';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ import { usePathname } from 'next/navigation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
 import { useTranslations } from 'next-intl';
+import useAiContentStore from '@/stores/useAiContentStore';
 
 // 문자열이 아닐 수도 있는 content를 안전하게 문자열로 변환
 function getContentString(value: unknown): string {
@@ -38,6 +40,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
   const pathname = usePathname();
+  const { originalAiContent } = useAiContentStore();
 
   // Use global thread chain store
   const {
@@ -57,6 +60,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const [publishTimes, setPublishTimes] = useState<string[]>([]);
   const [reservedTimes, setReservedTimes] = useState<string[]>([]);
   const [scheduleTime, setScheduleTime] = useState<string | null>(null);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
   // 모바일에서는 isRightSidebarOpen 상태 사용, 데스크톱에서는 기존 isCollapsed 사용
   const toggleSidebar = isMobile ?
@@ -330,6 +334,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
         content: getContentString(threadChain[0]?.content) || '',
         publish_status: "draft",
         social_id: currentSocialId,
+        ai_generated: originalAiContent ? originalAiContent : undefined,
       });
 
       if (error) throw error;
@@ -360,19 +365,30 @@ export function RightSidebar({ className }: RightSidebarProps) {
     return true;
   };
 
-  // Post 예약발행
-  const handleSchedule = async () => {
+  // Post 예약발행 - Open modal instead of direct scheduling
+  const handleSchedule = () => {
     // Check social account connection
     if (!checkSocialAccountConnection()) return;
 
+    const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
+    if (validThreads.length === 0) {
+      toast.error(t('noContentToSchedule'));
+      return;
+    }
+
+    setShowScheduleDialog(true);
+  };
+
+  // Handle actual scheduling when time is selected
+  const handleConfirmSchedule = async (selectedDateTime: string) => {
     try {
       const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
-      if (validThreads.length === 0 || !scheduleTime) return;
+      if (validThreads.length === 0) return;
 
       const message = validThreads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
       toast.success(message);
 
-      const result = await scheduleThreadChain(validThreads, scheduleTime);
+      const result = await scheduleThreadChain(validThreads, selectedDateTime, originalAiContent);
 
       if (!result.success) throw new Error(result.error);
 
@@ -380,6 +396,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       clearThreadChain();
       localStorage.removeItem("draftContent");
       fetchScheduledTimes();
+      setScheduleTime(null); // Reset schedule time after successful scheduling
     } catch (error) {
       console.error("Error scheduling:", error);
       toast.error(t('scheduleFailed'));
@@ -402,13 +419,33 @@ export function RightSidebar({ className }: RightSidebarProps) {
       clearThreadChain();
       localStorage.removeItem("draftContent");
 
-      // Publish threads
+      // Publish threads - for now, we'll update the database after posting
+      // Since postThreadChain is also used by cron jobs, we'll handle ai_generated separately
       const result = await postThreadChain(validThreads);
 
       if (!result.success) {
         console.error("❌ Publish error:", result.error);
       } else {
         console.log("✅ Published:", result.threadIds);
+        
+        // If there's AI-generated content and posting was successful, update the database
+        if (originalAiContent && result.parentThreadId) {
+          try {
+            const response = await fetch('/api/contents/update-ai-generated', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                parentMediaId: result.parentThreadId,
+                aiGenerated: originalAiContent
+              })
+            });
+            if (!response.ok) {
+              console.error('Failed to update ai_generated field');
+            }
+          } catch (error) {
+            console.error('Error updating ai_generated field:', error);
+          }
+        }
       }
     } catch (error) {
       console.error("❌ handlePublish error:", error);
@@ -520,6 +557,14 @@ export function RightSidebar({ className }: RightSidebarProps) {
           )}
         </>
       )}
+
+      {/* Schedule Time Selection Dialog */}
+      <SelectPublishTimeDialog
+        open={showScheduleDialog}
+        onOpenChange={setShowScheduleDialog}
+        onConfirm={handleConfirmSchedule}
+        currentScheduledTime={scheduleTime}
+      />
     </>
   );
 }
@@ -766,33 +811,21 @@ function RightSidebarContent({
             <Button
               variant="default"
               size="xl"
-              className="!p-0 w-full rounded-r-sm mr-8 border-r border-dotted border-r-white bg-black text-white hover:bg-black/90"
+              className="!p-0 w-full bg-black text-white hover:bg-black/90 rounded-xl"
               onClick={handleSchedule}
               disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
             >
               <div className="flex-col">
                 <div>{tNav('schedulePost')}</div>
-                {scheduleTime && (
-                  <div className="text-xs text-muted-foreground">
-                    {formatLocalDateTime(scheduleTime, {
-                      year: "numeric",
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "numeric",
-                      hour12: true, // 오전/오후 표시
-                    })}
-                  </div>
-                )}
               </div>
             </Button>
-            <div className="absolute right-0 h-full">
-              <ChangePublishTimeDialog
+            {/* <div className="absolute right-0 h-full">
+              <AutoPublishTimeDialog
                 variant="icon"
                 onPublishTimeChange={() => fetchPublishTimes()}
                 ondisabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
               />
-            </div>
+            </div> */}
           </div>
           <Button
             variant="default"

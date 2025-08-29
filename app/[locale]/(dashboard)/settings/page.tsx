@@ -169,7 +169,17 @@ export default function SettingsPage() {
   }
 
   const handleSignOut = async () => {
-    await signOut({ redirect: true, callbackUrl: '/' })
+    // Clear any client-side state before signing out
+    if (typeof window !== 'undefined') {
+      // Clear any localStorage or sessionStorage if needed
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    
+    await signOut({ 
+      redirect: true, 
+      callbackUrl: '/' 
+    })
   }
 
 
@@ -398,7 +408,6 @@ export default function SettingsPage() {
         <PricingModal
           open={showPricingModal}
           onClose={handlePricingModalClose}
-          currentUserPlan={userProfile?.plan_type || 'Free'}
         />
       </div>
     </div>

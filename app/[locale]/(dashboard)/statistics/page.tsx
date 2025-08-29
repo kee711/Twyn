@@ -4,8 +4,6 @@ import { useState, useEffect, startTransition } from "react";
 import { useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/PostCard";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import {
@@ -17,15 +15,11 @@ import {
 } from "@/lib/queries/statisticsQueries";
 import { statisticsKeys } from "@/lib/queries/statisticsKeys";
 import {
-    LineChart,
-    Line,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    BarChart,
-    Bar,
     PieChart,
     Pie,
     Cell,
@@ -33,15 +27,11 @@ import {
     AreaChart
 } from "recharts";
 import {
-    TrendingUp,
     Users,
     Heart,
     MessageCircle,
     Repeat,
     Eye,
-    Share,
-    Calendar,
-    Download,
     RefreshCw,
     Loader2,
     Quote
@@ -51,11 +41,6 @@ import { useTranslations } from 'next-intl';
 
 
 // 타입 정의는 store에서 import
-interface MetricOption {
-    id: string;
-    label: string;
-    icon: React.ReactNode;
-}
 
 interface TopPost {
     id: string;
@@ -88,8 +73,8 @@ export default function StatisticsPage() {
     ];
 
     // 로컬 상태
-    const [selectedMetric, setSelectedMetric] = useState('views');
-    const [selectedTopPostMetric, setSelectedTopPostMetric] = useState('views');
+    const [selectedMetric] = useState('views');
+    const [selectedTopPostMetric] = useState('views');
     const [selectedDateRange, setSelectedDateRange] = useState(7);
     const [isClient, setIsClient] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState<any>(null);
@@ -98,8 +83,7 @@ export default function StatisticsPage() {
     const {
         currentInsights: userInsights = [],
         changes,
-        isLoading: isLoadingInsights,
-        refetch: refetchInsights
+        isLoading: isLoadingInsights
     } = useStatisticsWithChanges(
         selectedAccount?.social_id || '',
         selectedDateRange
@@ -194,7 +178,6 @@ export default function StatisticsPage() {
         const totalReplies = getInsightValue('replies');
         const totalReposts = getInsightValue('reposts');
         const totalQuotes = getInsightValue('quotes');
-        const totalEngagement = totalLikes + totalReplies + totalReposts + totalQuotes;
 
         // Time Series 데이터에서 차트 데이터 생성
         const chartData = viewsInsight?.values?.map((viewData: any, index: number) => {
@@ -355,25 +338,6 @@ export default function StatisticsPage() {
         );
     }
 
-    // 소셜 계정이 연결되지 않은 경우
-    if (!selectedAccount) {
-        return (
-            <div className="space-y-6 p-4 md:p-6">
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                        <Users className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                    <h2 className="text-xl font-semibold mb-2">{t('noAccount.title')}</h2>
-                    <p className="text-muted-foreground mb-4">
-                        {t('noAccount.description')}
-                    </p>
-                    <Button onClick={() => window.location.href = "/api/threads/oauth"}>
-                        {t('noAccount.connectButton')}
-                    </Button>
-                </div>
-            </div>
-        );
-    }
 
     if (!session) {
         return (

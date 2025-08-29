@@ -17,8 +17,9 @@ export async function checkOnboardingStatus(userId: string) {
       throw onboardingError;
     }
 
-    // If no onboarding record exists or not completed, user needs onboarding
-    const needsUserOnboarding = !onboardingData || onboardingData.is_completed !== true;
+    // If no onboarding record exists, user needs onboarding
+    // If ANY record exists (regardless of is_completed), onboarding is done
+    const needsUserOnboarding = !onboardingData;
 
     return needsUserOnboarding;
   } catch (error) {

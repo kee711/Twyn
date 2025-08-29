@@ -9,15 +9,22 @@ export const createClient = async () => {
     process.env.SUPABASE_ANON_KEY!,
     {
       cookies: {
-        async get(name: string) {
-          const cookie = await cookieStore.get(name)
-          return cookie?.value
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-        async set(name: string, value: string, options: CookieOptions) {
-          await cookieStore.set({ name, value, ...options })
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // Handle error when cookies can't be set (e.g., in static generation)
+          }
         },
-        async remove(name: string, options: CookieOptions) {
-          await cookieStore.set({ name, value: '', ...options })
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // Handle error when cookies can't be removed
+          }
         },
       },
     }
