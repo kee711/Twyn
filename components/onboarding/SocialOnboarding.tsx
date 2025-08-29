@@ -9,6 +9,7 @@ import { ArrowRight, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { OnboardingHeader } from './OnboardingHeader';
 
 interface SocialOnboardingProps {
   socialAccountId: string;
@@ -77,7 +78,8 @@ export function SocialOnboarding({ socialAccountId, onComplete }: SocialOnboardi
   }
 
   return (
-    <div className="flex flex-col min-h-screen max-w-2xl mx-auto p-6">
+    <div className="flex flex-col min-h-screen max-w-2xl mx-auto p-6 relative">
+      <OnboardingHeader />
       {/* Progress indicator */}
       {/* <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
