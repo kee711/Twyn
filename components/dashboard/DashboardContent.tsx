@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
 import useSocialAccountStore from '@/stores/useSocialAccountStore'
 import { SocialConnectRequired } from './SocialConnectRequired'
 
@@ -13,6 +14,7 @@ export function DashboardContent({ children }: DashboardContentProps) {
     const { data: session } = useSession()
     const { accounts, fetchSocialAccounts } = useSocialAccountStore()
     const [isLoading, setIsLoading] = useState(true)
+    const pathname = usePathname()
 
     useEffect(() => {
         const loadAccounts = async () => {
@@ -24,11 +26,15 @@ export function DashboardContent({ children }: DashboardContentProps) {
         loadAccounts()
     }, [session?.user?.id, fetchSocialAccounts])
 
+    // Check if current path is settings page
+    const isSettingsPage = pathname?.includes('/settings')
+
     if (isLoading) {
         return <div className="flex items-center justify-center h-full">Loading...</div>
     }
 
-    if (accounts.length === 0) {
+    // Skip social account requirement for settings page
+    if (!isSettingsPage && accounts.length === 0) {
         return <SocialConnectRequired />
     }
 
