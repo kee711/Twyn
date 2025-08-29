@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Users, Lightbulb, User, Building, Zap, Target, MessageSquare, TrendingUp, AlertCircle, Clock, BarChart3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { OnboardingHeader } from './OnboardingHeader';
 
 interface UserOnboardingProps {
   onComplete: (responses: {
@@ -147,7 +148,8 @@ export function UserOnboarding({ onComplete, showThreadsConnection = false, onTh
   if (currentStep === 4) {
     // Step 4: Connect Threads Account
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-gray-50 flex flex-col relative">
+        <OnboardingHeader />
         {/* Progress bar - full width at top */}
         <div className="w-full bg-gray-200 h-1">
           <div className="bg-black h-1" style={{ width: `${(4 / 5) * 100}%` }} />
@@ -189,7 +191,8 @@ export function UserOnboarding({ onComplete, showThreadsConnection = false, onTh
   const currentSelectedOption = getCurrentSelectedOption();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col relative">
+      <OnboardingHeader />
       {/* Progress bar - full width at top */}
       <div className="w-full bg-gray-200 h-1">
         <div

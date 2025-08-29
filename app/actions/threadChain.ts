@@ -677,7 +677,7 @@ async function saveThreadChainToDatabase(
     media_id: threadIds[index],
     publish_status: scheduledAt ? 'scheduled' : 'posted',
     scheduled_at: scheduledAt,
-    parent_media_id: parentThreadId,
+    parent_media_id: parentMediaId, // Use the provided parent_media_id (actual or temporary)
     thread_sequence: index,
     is_thread_chain: true,
     created_at: getCurrentUTCISO(),
@@ -847,7 +847,8 @@ async function postThreadChainOptimized(threads: ThreadContent[], options?: Auth
 
   // Save to database (skip for CRON jobs as they're already in database)
   if (!options?.accessToken) {
-    await saveThreadChainToDatabase(threads, threadIds, parentThreadId);
+    // For immediate posting, use the first thread's actual media_id as parent_media_id
+    await saveThreadChainToDatabase(threads, threadIds, threadIds[0]);
   }
 
   return {
@@ -872,6 +873,7 @@ async function postSingleThread(thread: ThreadContent, options?: AuthOptions): P
 
   // Save to database (skip for CRON jobs as they're already in database)
   if (!options?.accessToken) {
+    // For single thread, the thread itself is the parent
     await saveThreadChainToDatabase([thread], [result.threadId], result.threadId);
   }
 
@@ -893,20 +895,22 @@ export async function scheduleThreadChain(
       throw new Error('Thread chain cannot be empty');
     }
 
-    // Generate a random parent_media_id for scheduling (not posting yet)
+    // For scheduled posts, we use a temporary parent_media_id
+    // This will be replaced with the actual media_id when the post is published
+    // Format: "temp_" prefix to clearly indicate it's temporary
     const timestamp = Date.now();
     const randomSuffix = Math.floor(Math.random() * 10000);
-    const parentThreadId = `scheduled_${timestamp}_${randomSuffix}`;
+    const tempParentId = `temp_${timestamp}_${randomSuffix}`;
 
-    // Generate placeholder IDs for all threads
-    const threadIds = threads.map((_, index) => `${parentThreadId}_thread_${index}`);
+    // Generate temporary IDs for all threads (will be replaced when posted)
+    const threadIds = threads.map((_, index) => `${tempParentId}_${index}`);
 
     // Save to database with scheduled status (no actual posting)
     await saveThreadChainToDatabase(threads, threadIds, parentThreadId, scheduledAt, aiGenerated);
 
     return {
       success: true,
-      parentThreadId,
+      parentThreadId: tempParentId,
       threadIds
     };
 
