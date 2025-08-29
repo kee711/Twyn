@@ -640,8 +640,9 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
 async function saveThreadChainToDatabase(
   threads: ThreadContent[],
   threadIds: string[],
-  parentMediaId: string,  // This is either the actual media_id or a temporary ID
-  scheduledAt?: string
+  parentThreadId: string,
+  scheduledAt?: string,
+  aiGenerated?: any
 ) {
   const supabase = await createClient();
   let userId: string;
@@ -680,6 +681,10 @@ async function saveThreadChainToDatabase(
     thread_sequence: index,
     is_thread_chain: true,
     created_at: getCurrentUTCISO(),
+    // Store the specific AI-generated content for this thread as plain text
+    ai_generated: aiGenerated && Array.isArray(aiGenerated) && aiGenerated[index] 
+      ? aiGenerated[index].content 
+      : null,
   }));
 
   const { data, error } = await supabase
@@ -882,7 +887,8 @@ async function postSingleThread(thread: ThreadContent, options?: AuthOptions): P
 // Schedule thread chain for later posting
 export async function scheduleThreadChain(
   threads: ThreadContent[],
-  scheduledAt: string
+  scheduledAt: string,
+  aiGenerated?: any
 ): Promise<ThreadChainResult> {
   try {
     if (!threads || threads.length === 0) {
@@ -900,8 +906,7 @@ export async function scheduleThreadChain(
     const threadIds = threads.map((_, index) => `${tempParentId}_${index}`);
 
     // Save to database with scheduled status (no actual posting)
-    // The parent_media_id will be updated to the real media_id when posted by cron job
-    await saveThreadChainToDatabase(threads, threadIds, tempParentId, scheduledAt);
+    await saveThreadChainToDatabase(threads, threadIds, parentThreadId, scheduledAt, aiGenerated);
 
     return {
       success: true,

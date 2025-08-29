@@ -29,6 +29,8 @@ export type Content = {
   is_thread_chain?: boolean
   parent_media_id?: string
   thread_sequence?: number
+  // AI generation tracking
+  ai_generated?: any
 }
 
 export async function createContent(content: Content) {
@@ -42,13 +44,28 @@ export async function createContent(content: Content) {
     const supabase = await createClient()
     const userId = session.user.id
 
+    // Extract plain text from ai_generated if it's an array
+    let aiGeneratedText = null;
+    if (content.ai_generated) {
+      if (Array.isArray(content.ai_generated) && content.ai_generated.length > 0) {
+        // For single posts, take the first item's content
+        const firstItem = content.ai_generated[0];
+        aiGeneratedText = typeof firstItem === 'object' && firstItem.content 
+          ? firstItem.content 
+          : firstItem;
+      } else if (typeof content.ai_generated === 'string') {
+        aiGeneratedText = content.ai_generated;
+      }
+    }
+
     const { data, error } = await supabase
       .from('my_contents')
       .insert([{
         content: content.content,
         publish_status: content.publish_status,
         social_id: content.social_id,
-        user_id: userId // 🔒 RLS: 사용자 ID 추가
+        user_id: userId, // 🔒 RLS: 사용자 ID 추가
+        ai_generated: aiGeneratedText
       }])
       .select()
       .single()
