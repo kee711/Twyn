@@ -652,6 +652,15 @@
     "scheduledFor": "Scheduled for",
     "timePlaceholder": "Select time"
   },
+  "viewPostModal": {
+    "title": "Post Insights",
+    "views": "Views",
+    "likes": "Likes",
+    "replies": "Replies",
+    "reposts": "Reposts",
+    "shares": "Shares",
+    "noInsights": "No insights available"
+  },
   "contentList": {
     "loginRequired": "🔒 You need to login to view contents.",
     "loadingContents": "Loading contents...",
