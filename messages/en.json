@@ -636,12 +636,12 @@
     "posted": "Posted"
   },
   "editPostModal": {
-    "title": "Edit content",
+    "title": "Edit scheduled content",
     "failedStatus": "Failed - Will reschedule on save",
     "loadingThreadChain": "Loading thread chain...",
     "fallbackUsername": "Me",
     "selectDate": "Pick a date",
-    "deleteSchedule": "Delete Schedule",
+    "deleteSchedule": "Delete",
     "cancel": "Cancel",
     "saveChanges": "Save",
     "unsavedChanges": "Unsaved changes",
