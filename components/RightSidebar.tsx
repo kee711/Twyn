@@ -21,6 +21,7 @@ import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
 import { useTranslations } from 'next-intl';
 import useAiContentStore from '@/stores/useAiContentStore';
+import { trackUserAction } from '@/lib/analytics/mixpanel';
 
 // 문자열이 아닐 수도 있는 content를 안전하게 문자열로 변환
 function getContentString(value: unknown): string {
@@ -342,6 +343,13 @@ export function RightSidebar({ className }: RightSidebarProps) {
       // DB 저장 성공 시 localStorage 초기화
       localStorage.removeItem("draftContent");
       toast.success(t('draftSaved'));
+      
+      // Track content saved
+      trackUserAction.contentSaved({
+        type: 'draft',
+        isAiGenerated: !!originalAiContent,
+        threadCount: 1
+      });
     } catch (error) {
       console.error("Error saving draft:", error);
       toast.error(t('draftSaveFailed'));
@@ -397,6 +405,13 @@ export function RightSidebar({ className }: RightSidebarProps) {
       localStorage.removeItem("draftContent");
       fetchScheduledTimes();
       setScheduleTime(null); // Reset schedule time after successful scheduling
+      
+      // Track content scheduled
+      trackUserAction.contentScheduled({
+        scheduledTime: selectedDateTime,
+        threadCount: validThreads.length,
+        isAiGenerated: !!originalAiContent
+      });
     } catch (error) {
       console.error("Error scheduling:", error);
       toast.error(t('scheduleFailed'));
@@ -427,6 +442,13 @@ export function RightSidebar({ className }: RightSidebarProps) {
         console.error("❌ Publish error:", result.error);
       } else {
         console.log("✅ Published:", result.threadIds);
+        
+        // Track content published
+        trackUserAction.contentPublished({
+          threadCount: validThreads.length,
+          isAiGenerated: !!originalAiContent,
+          publishType: 'immediate'
+        });
         
         // If there's AI-generated content and posting was successful, update the database
         if (originalAiContent && result.parentThreadId) {

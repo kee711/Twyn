@@ -9,6 +9,7 @@ import { Toaster } from 'sonner';
 import { Providers } from '../providers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/authOptions';
+import { MixpanelProvider } from '@/components/analytics/MixpanelProvider';
 import Script from 'next/script';
 
 const inter = Inter({ subsets: ["latin"] });
@@ -59,7 +60,9 @@ export default async function LocaleLayout({
         <div className="h-full">
           <Providers session={session}>
             <NextIntlClientProvider messages={messages}>
-              {children}
+              <MixpanelProvider>
+                {children}
+              </MixpanelProvider>
             </NextIntlClientProvider>
           </Providers>
         </div>
