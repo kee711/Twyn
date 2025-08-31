@@ -640,7 +640,7 @@ async function createThreadsReplyOptimized(content: string, replyToId: string, m
 async function saveThreadChainToDatabase(
   threads: ThreadContent[],
   threadIds: string[],
-  parentThreadId: string,
+  parentMediaId: string,  // This is either the actual media_id or a temporary ID
   scheduledAt?: string,
   aiGenerated?: any
 ) {
@@ -906,7 +906,8 @@ export async function scheduleThreadChain(
     const threadIds = threads.map((_, index) => `${tempParentId}_${index}`);
 
     // Save to database with scheduled status (no actual posting)
-    await saveThreadChainToDatabase(threads, threadIds, parentThreadId, scheduledAt, aiGenerated);
+    // The parent_media_id will be updated to the real media_id when posted by cron job
+    await saveThreadChainToDatabase(threads, threadIds, tempParentId, scheduledAt, aiGenerated);
 
     return {
       success: true,
