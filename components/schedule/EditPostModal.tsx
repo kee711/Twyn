@@ -264,6 +264,8 @@ export function EditPostModal({
             </DialogTitle>
           </DialogHeader>
 
+
+
           <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="py-4">
               {isLoadingThreads ? (
@@ -289,44 +291,47 @@ export function EditPostModal({
                 />
               )}
             </div>
-
-            {/* Preview */}
-            <div className="p-4 bg-muted rounded-xl">
-              <p className="text-sm text-muted-foreground mb-3">{t('scheduledFor')}</p>
-              <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
-                <DropdownDate
-                  className="w-full"
-                  value={editDate ? format(editDate, 'yyyy-MM-dd') : undefined}
-                  onValueChange={(date) => setEditDate(date ? new Date(date) : undefined)}
-                  placeholder={t('selectDate')}
-                  disabledDates={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
-
-                <span className="text-muted-foreground">at</span>
-
-                <DropdownTime
-                  value={editTime}
-                  onValueChange={setEditTime}
-                  placeholder={t('timePlaceholder')}
-                />
-              </div>
-            </div>
           </div>
 
-          <DialogFooter className="flex justify-between items-center pt-4 border-t flex-shrink-0">
-            <div className="flex justify-between w-full">
-              <Button variant="destructive" onClick={handleDelete}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t('deleteSchedule')}
-              </Button>
+          <DialogFooter className="justify-between items-center pt-4 border-t flex-shrink-0">
+            <div className="flex-col gap-2 w-full">
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => handleModalClose(false)}>
-                  {t('cancel')}
+              {/* Preview */}
+              <div className="w-2/3 mb-3 ml-auto">
+                {/* <p className="text-sm text-muted-foreground mb-3">{t('scheduledFor')}</p> */}
+                <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+                  <DropdownDate
+                    className="w-full bg-transparent"
+                    value={editDate ? format(editDate, 'yyyy-MM-dd') : undefined}
+                    onValueChange={(date) => setEditDate(date ? new Date(date) : undefined)}
+                    placeholder={t('selectDate')}
+                    disabledDates={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  />
+
+                  <span className="text-muted-foreground">at</span>
+
+                  <DropdownTime
+                    className="bg-transparent"
+                    value={editTime}
+                    onValueChange={setEditTime}
+                    placeholder={t('timePlaceholder')}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between w-full">
+                <Button variant="destructive" onClick={handleDelete}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('deleteSchedule')}
                 </Button>
-                <Button onClick={handleSaveChanges}>
-                  {t('saveChanges')}
-                </Button>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => handleModalClose(false)}>
+                    {t('cancel')}
+                  </Button>
+                  <Button onClick={handleSaveChanges}>
+                    {t('saveChanges')}
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogFooter>
