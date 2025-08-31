@@ -9,6 +9,8 @@ import { Toaster } from 'sonner';
 import { Providers } from '../providers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/authOptions';
+import { MixpanelProvider } from '@/components/analytics/MixpanelProvider';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,11 +41,28 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning className="h-full">
+      <head>
+        {/* Google Analytics 4 */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-LTQDELH3V7"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-LTQDELH3V7');
+          `}
+        </Script>
+      </head>
       <body className={`h-full bg-muted ${inter.className}`}>
         <div className="h-full">
           <Providers session={session}>
             <NextIntlClientProvider messages={messages}>
-              {children}
+              <MixpanelProvider>
+                {children}
+              </MixpanelProvider>
             </NextIntlClientProvider>
           </Providers>
         </div>
