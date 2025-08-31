@@ -25,6 +25,7 @@ import { useContentGenerationStore } from '@/lib/stores/content-generation';
 // removed duplicate import
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import useAiContentStore from '@/stores/useAiContentStore';
+import { trackUserAction } from '@/lib/analytics/mixpanel';
 
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
@@ -271,6 +272,14 @@ export default function TopicFinderPage() {
                     setGenerationStatus(null);
                     clearGenerationPreview();
                     toast.success(t('threadsGenerated', { count: threadChain.length }));
+                    
+                    // Track AI content generation
+                    trackUserAction.aiContentGenerated({
+                        topic: headline,
+                        postType: postType as 'single' | 'thread',
+                        language,
+                        threadCount: threadChain.length
+                    });
                 } else {
                     throw new Error('No threads received');
                 }
@@ -288,6 +297,14 @@ export default function TopicFinderPage() {
                 setGenerationStatus(null);
                 clearGenerationPreview();
                 toast.success(t('threadsGenerated', { count: threadChain.length }));
+                
+                // Track AI content generation
+                trackUserAction.aiContentGenerated({
+                    topic: headline,
+                    postType: postType as 'single' | 'thread',
+                    language,
+                    threadCount: threadChain.length
+                });
             }
         } catch (e) {
             toast.error(t('failedToGenerateChain'));

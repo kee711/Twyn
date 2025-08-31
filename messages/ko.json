@@ -638,14 +638,14 @@
     "posted": "게시됨"
   },
   "editPostModal": {
-    "title": "콘텐츠 편집",
+    "title": "예약된 콘텐츠 편집",
     "failedStatus": "실패 - 저장 시 재예약됩니다",
     "loadingThreadChain": "스레드 체인을 불러오는 중...",
     "fallbackUsername": "나",
     "selectDate": "날짜 선택",
     "deleteSchedule": "예약 취소",
-    "cancel": "취소",
-    "saveChanges": "저장",
+    "cancel": "닫기",
+    "saveChanges": "저장하기",
     "unsavedChanges": "저장되지 않은 변경사항",
     "unsavedChangesMessage": "저장되지 않은 변경사항이 있습니다. 정말 닫으시겠습니까? 변경사항이 저장되지 않습니다.",
     "close": "닫기",
@@ -655,7 +655,7 @@
     "timePlaceholder": "시간 선택"
   },
   "viewPostModal": {
-    "title": "게시된 인사이트",
+    "title": "게시물 인사이트",
     "views": "조회수",
     "likes": "좋아요",
     "replies": "답글",

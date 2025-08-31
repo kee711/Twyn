@@ -22,16 +22,13 @@ export default function SignInClient() {
         try {
           const onboardingStatus = await checkOnboardingStatus(session.user.id)
 
-          // 온보딩이 완료된 사용자는 바로 callbackUrl로 이동
-          if (!onboardingStatus) {
-            console.log('✅ User onboarding complete, redirecting to:', callbackUrl);
-            window.location.href = callbackUrl
-          } else if (onboardingStatus) {
+          // 온보딩이 필요한 사용자는 온보딩 페이지로
+          if (onboardingStatus) {
             console.log('👤 User onboarding needed, redirecting to user onboarding');
             window.location.href = '/onboarding?type=user'
           } else {
-            console.log('🔄 Fallback case, redirecting to:', callbackUrl);
-            // Fallback - 온보딩 상태가 명확하지 않은 경우 기본 페이지로
+            // 온보딩이 완료된 사용자는 바로 callbackUrl로 이동
+            console.log('✅ User onboarding complete, redirecting to:', callbackUrl);
             window.location.href = callbackUrl
           }
         } catch (error) {
