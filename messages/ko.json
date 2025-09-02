@@ -548,6 +548,8 @@
         "description": "지난 {days}일 동안 가장 높은 성과를 기록한 포스트",
         "noData": "선택된 기간에 포스트 데이터가 없습니다."
       },
+      "noContentAvailable": "콘텐츠가 없습니다",
+      "generatingInsight": "AI 인사이트 생성 중...",
       "noAccount": {
         "title": "계정 연결이 필요해요",
         "description": "통계를 확인하려면 먼저 Threads 계정을 연결해주세요.",
@@ -556,6 +558,26 @@
       "noAuth": {
         "title": "인증이 필요합니다",
         "description": "통계를 보려면 로그인해주세요."
+      },
+      "demographics": {
+        "ageDistribution": "연령 분포",
+        "genderDistribution": "성별 분포",
+        "geographicDistribution": "지역 분포",
+        "followersByCountry": "국가별 팔로워 분포",
+        "topCountries": "상위 국가",
+        "noData": "인구 통계 데이터가 없습니다",
+        "noGeographicData": "지역 데이터가 없습니다",
+        "requiresFollowers": "팔로워 100명 이상부터 인구 통계를 확인할 수 있습니다",
+        "male": "남성",
+        "female": "여성",
+        "unknown": "미상",
+        "insights": {
+          "malePopular": "남성 팔로워분들에게 특별히 인기가 더 많으시네요! ({percentage}%)",
+          "femalePopular": "여성 팔로워분들에게 특별히 인기가 더 많으시네요! ({percentage}%)",
+          "balancedGender": "성별 균형이 잘 맞는 팔로워 분포를 보이고 있습니다!",
+          "topAgeGroup": "{ageGroup} 연령대에서 가장 큰 반응을 얻고 있습니다",
+          "topCountry": "대부분의 팔로워가 {country}에서 활동하고 있습니다"
+        }
       }
     }
   },
