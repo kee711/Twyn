@@ -21,19 +21,52 @@ export default function SignInClient() {
   const [inviteCodeError, setInviteCodeError] = useState('')
   const [isCodeValid, setIsCodeValid] = useState(false)
 
-  // Check for error messages in URL
+  // Check for error messages in URL after page load
   useEffect(() => {
-    const error = searchParams.get('error')
-    if (error === 'NotRegistered') {
-      toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.')
-      // Automatically switch to signup mode
-      setIsSignUp(true)
-    } else if (error === 'InvalidInviteCode') {
-      toast.error('유효하지 않은 초대 코드입니다.')
-    } else if (error === 'CreateUserFailed') {
-      toast.error('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.')
-    }
-  }, [searchParams])
+    // Small delay to ensure page is fully loaded before showing toast
+    const timer = setTimeout(() => {
+      const error = searchParams.get('error')
+      const callbackUrlParam = searchParams.get('callbackUrl')
+      
+      // Check if callbackUrl contains error
+      if (callbackUrlParam?.includes('/error') || callbackUrlParam?.includes('error=AccessDenied')) {
+        toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.')
+        setIsSignUp(true)
+        // Clean up URL after showing toast
+        setTimeout(() => {
+          router.replace('/signin')
+        }, 100)
+        return
+      }
+      
+      // Handle direct error parameters
+      if (error === 'AccessDenied') {
+        toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.')
+        setIsSignUp(true)
+        setTimeout(() => {
+          router.replace('/signin')
+        }, 100)
+      } else if (error === 'NotRegistered') {
+        toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.')
+        setIsSignUp(true)
+        setTimeout(() => {
+          router.replace('/signin')
+        }, 100)
+      } else if (error === 'InvalidInviteCode') {
+        toast.error('유효하지 않은 초대 코드입니다.')
+        setTimeout(() => {
+          router.replace('/signin')
+        }, 100)
+      } else if (error === 'CreateUserFailed') {
+        toast.error('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.')
+        setTimeout(() => {
+          router.replace('/signin')
+        }, 100)
+      }
+    }, 100) // Wait 100ms for page to be ready
+    
+    return () => clearTimeout(timer)
+  }, [searchParams, router])
 
   // 세션이 있으면 온보딩 상태 확인 후 리다이렉트
   useEffect(() => {
