@@ -135,23 +135,9 @@ export const authOptions: AuthOptions = {
         }
 
         if (!existingUser) {
-          // 새 사용자 생성
-          const { error: createError } = await supabase
-            .from('user_profiles')
-            .insert([
-              {
-                email: user.email,
-                name: user.name,
-                provider: account?.provider,
-                image: user.image,
-                user_id: user.id,
-              },
-            ])
-
-          if (createError) {
-            console.error('Error creating user:', createError)
-            return false
-          }
+          // User doesn't exist - block sign in
+          console.log('User not registered, blocking sign in:', user.email)
+          return false
 
         } else {
           // 기존 사용자 정보 업데이트
