@@ -28,12 +28,31 @@
     "signIn": "Sign In",
     "signOut": "Sign Out",
     "signInWithGoogle": "Sign in with Google",
+    "signUpWithGoogle": "Sign up with Google",
     "welcome": "Welcome to Twyn!",
     "loginRequired": "Login required",
     "signInDescription": "Sign in to your account to continue",
+    "signUpDescription": "Enter your invite code to get started",
     "privacyNotice": "By continuing, you agree to our",
     "privacyPolicy": "Privacy Policy",
-    "close": "Close"
+    "close": "Close",
+    "signUp": "Sign Up",
+    "inviteCodePlaceholder": "Enter invite code",
+    "inviteCodeRequired": "Please enter an invite code",
+    "invalidInviteCode": "Invalid invite code",
+    "expiredInviteCode": "Expired code",
+    "inviteCodeError": "Error validating invite code",
+    "processing": "Processing...",
+    "haveAccount": "Already have an account? Sign in",
+    "noAccount": "Don't have an account? Sign up",
+    "alreadyRegistered": "Account already exists. Redirecting to sign in page.",
+    "alreadyRegisteredSignIn": "Account already exists. Please sign in.",
+    "signUpError": "An error occurred during sign up",
+    "signInError": "Sign in failed. Please try again.",
+    "accountNotFound": "Account does not exist. Please sign up first.",
+    "signInFailedSignUp": "Sign in failed. Please sign up if you don't have an account.",
+    "validInviteCodeRequired": "Please enter a valid invite code",
+    "signUpPreparationError": "Error preparing sign up"
   },
   "UserOnboarding": {
     "step1Title": "What inspired you to start creating content?",
@@ -119,7 +138,8 @@
     "postNow": "Post Now",
     "schedulePost": "Schedule Post",
     "premiumPlan": "Premium Plan",
-    "login": "Login"
+    "login": "Login",
+    "joinOurCommunity": "Join our community!"
   },
   "SocialAccountSelector": {
     "selectAccount": "Select Account",
