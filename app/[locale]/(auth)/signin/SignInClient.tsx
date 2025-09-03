@@ -1,14 +1,13 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { checkOnboardingStatus } from '@/lib/utils/check-onboarding'
 import { SocialButton } from '@/components/signin/buttons/social-button'
 import { useTranslations } from 'next-intl'
-import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { useRouter } from '@/i18n/navigation'
 
 export default function SignInClient() {
   const t = useTranslations('auth')
@@ -16,54 +15,58 @@ export default function SignInClient() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/contents/topic-finder'
   const { data: session, status } = useSession()
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [inviteCode, setInviteCode] = useState('')
-  const [inviteCodeError, setInviteCodeError] = useState('')
-  const [isCodeValid, setIsCodeValid] = useState(false)
 
   // Check for error messages in URL after page load
   useEffect(() => {
-    // Small delay to ensure page is fully loaded before showing toast
     const timer = setTimeout(() => {
       const error = searchParams.get('error')
-      const callbackUrlParam = searchParams.get('callbackUrl')
       
-      // Check if callbackUrl contains error
-      if (callbackUrlParam?.includes('/error') || callbackUrlParam?.includes('error=AccessDenied')) {
-        toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.')
-        setIsSignUp(true)
-        // Clean up URL after showing toast
-        setTimeout(() => {
-          router.replace('/signin')
-        }, 100)
-        return
+      if (error === 'AccessDenied' || error === 'OAuthAccountNotLinked') {
+        // Check if we're coming from a signup attempt by checking for signup cookie
+        fetch('/api/auth/check-signup-intent')
+          .then(res => res.json())
+          .then(data => {
+            if (data.isSignupIntent) {
+              // This was a signup attempt with existing user
+              toast.error('이미 가입된 계정입니다. 로그인해주세요.', {
+                duration: 4000,
+                position: 'top-center'
+              })
+            } else {
+              // Regular sign in failure
+              toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.', {
+                duration: 4000,
+                position: 'top-center'
+              })
+            }
+          })
+          .catch(() => {
+            // Fallback error message
+            toast.error('로그인에 실패했습니다. 다시 시도해주세요.', {
+              duration: 4000,
+              position: 'top-center'
+            })
+          })
+        
+        // Clear the error parameter from URL
+        const newSearchParams = new URLSearchParams(searchParams.toString())
+        newSearchParams.delete('error')
+        const newUrl = newSearchParams.toString() ? `/signin?${newSearchParams.toString()}` : '/signin'
+        router.replace(newUrl)
+      } else if (error === 'Callback' || error === 'Default') {
+        // These are generic NextAuth errors
+        toast.error('로그인에 실패했습니다. 계정이 없으시면 회원가입을 진행해주세요.', {
+          duration: 4000,
+          position: 'top-center'
+        })
+        
+        // Clear the error parameter from URL
+        const newSearchParams = new URLSearchParams(searchParams.toString())
+        newSearchParams.delete('error')
+        const newUrl = newSearchParams.toString() ? `/signin?${newSearchParams.toString()}` : '/signin'
+        router.replace(newUrl)
       }
-      
-      // Handle direct error parameters
-      if (error === 'AccessDenied') {
-        toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.')
-        setIsSignUp(true)
-        setTimeout(() => {
-          router.replace('/signin')
-        }, 100)
-      } else if (error === 'NotRegistered') {
-        toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.')
-        setIsSignUp(true)
-        setTimeout(() => {
-          router.replace('/signin')
-        }, 100)
-      } else if (error === 'InvalidInviteCode') {
-        toast.error('유효하지 않은 초대 코드입니다.')
-        setTimeout(() => {
-          router.replace('/signin')
-        }, 100)
-      } else if (error === 'CreateUserFailed') {
-        toast.error('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.')
-        setTimeout(() => {
-          router.replace('/signin')
-        }, 100)
-      }
-    }, 100) // Wait 100ms for page to be ready
+    }, 100)
     
     return () => clearTimeout(timer)
   }, [searchParams, router])
@@ -75,25 +78,22 @@ export default function SignInClient() {
         try {
           const onboardingStatus = await checkOnboardingStatus(session.user.id)
 
-          // 온보딩이 필요한 사용자는 온보딩 페이지로
           if (onboardingStatus) {
-            console.log('👤 User onboarding needed, redirecting to user onboarding');
+            console.log('👤 User needs onboarding')
             window.location.href = '/onboarding?type=user'
           } else {
-            // 온보딩이 완료된 사용자는 바로 callbackUrl로 이동
-            console.log('✅ User onboarding complete, redirecting to:', callbackUrl);
+            console.log('✅ Redirecting to:', callbackUrl)
             window.location.href = callbackUrl
           }
         } catch (error) {
-          console.error('❌ Error checking onboarding status:', error)
-          // Fallback to default redirect
+          console.error('❌ Error checking onboarding:', error)
           window.location.href = callbackUrl
         }
       }
 
       handleRedirect()
     }
-  }, [session, status, router, callbackUrl])
+  }, [session, status, callbackUrl])
 
   // 로딩 상태 표시를 위한 상태
   const [isLoading, setIsLoading] = useState(true)
@@ -114,83 +114,13 @@ export default function SignInClient() {
     }
   }
 
-  // 초대 코드 검증
-  const validateInviteCode = async (code: string) => {
-    if (!code.trim()) {
-      setInviteCodeError('초대 코드를 입력해주세요')
-      setIsCodeValid(false)
-      return
-    }
-
-    setInviteCodeError('')
-
-    try {
-      const response = await fetch('/api/auth/validate-invite-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setIsCodeValid(true)
-        setInviteCodeError('')
-        // Store invite code in session storage for auth callback
-        sessionStorage.setItem('inviteCodeId', data.inviteCodeId)
-        sessionStorage.setItem('inviteCode', code)
-      } else {
-        setIsCodeValid(false)
-        setInviteCodeError(data.error || '유효하지 않은 초대 코드입니다')
-      }
-    } catch (error) {
-      setIsCodeValid(false)
-      setInviteCodeError('초대 코드 확인 중 오류가 발생했습니다')
-    }
-  }
-
-  // 초대 코드 입력 변경 처리
-  const handleInviteCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const code = e.target.value
-    setInviteCode(code)
-
-    if (code.length > 0) {
-      // 즉시 검증 실행
-      validateInviteCode(code)
-    } else {
-      setIsCodeValid(false)
-      setInviteCodeError('')
-    }
-  }
-
   // Google 로그인 핸들러
   const handleGoogleSignIn = async () => {
-    if (isSignUp) {
-      // 회원가입 모드에서는 초대 코드가 유효한 경우에만 진행
-      if (isCodeValid) {
-        // Store signup info for the auth callback
-        sessionStorage.setItem('isSignup', 'true')
-        sessionStorage.setItem('inviteCode', inviteCode)
-        sessionStorage.setItem('inviteCodeId', sessionStorage.getItem('inviteCodeId') || '')
-        
-        // Proceed with Google OAuth
-        signIn('google', { callbackUrl })
-      }
-    } else {
-      // 로그인 모드 - Sign in with Google
-      const result = await signIn('google', { 
-        redirect: false,
-        callbackUrl 
-      })
-      
-      // Check if sign in was blocked (user doesn't exist)
-      if (result?.error) {
-        toast.error('Please sign up first')
-        setIsSignUp(true) // Switch to signup mode
-      } else if (result?.url) {
-        window.location.href = result.url
-      }
-    }
+    console.log('🔐 Starting sign in flow')
+    await signIn('google', { 
+      callbackUrl,
+      redirect: true
+    })
   }
 
   // 로딩 중이면 로딩 UI 표시
@@ -234,65 +164,30 @@ export default function SignInClient() {
 
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {isSignUp ? '회원가입' : t('welcome')}
+              {t('welcome')}
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              {isSignUp ? '초대 코드를 입력하여 시작하세요' : t('signInDescription')}
+              {t('signInDescription')}
             </p>
           </div>
 
           <div className="space-y-4">
-            {isSignUp && (
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="초대 코드 입력"
-                  value={inviteCode}
-                  onChange={handleInviteCodeChange}
-                  className={`w-full pr-32 ${inviteCodeError ? 'border-red-500' : isCodeValid ? 'border-green-500' : ''}`}
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {inviteCodeError && (
-                    <>
-                      <svg className="h-4 w-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      <span className="text-xs text-red-500">Invalid code</span>
-                    </>
-                  )}
-                  {isCodeValid && (
-                    <>
-                      <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
             <SocialButton
               social="google"
               theme="brand"
-              className={`w-full ${isSignUp && !isCodeValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className="w-full"
               onClick={handleGoogleSignIn}
-              disabled={isSignUp && !isCodeValid}
             >
-              {isSignUp ? 'Google로 회원가입' : t('signInWithGoogle')}
+              {t('signInWithGoogle')}
             </SocialButton>
 
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp)
-                  setInviteCode('')
-                  setInviteCodeError('')
-                  setIsCodeValid(false)
-                }}
+                onClick={() => router.push('/signup')}
                 className="text-sm text-primary hover:underline"
               >
-                {isSignUp ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입'}
+                계정이 없으신가요? 회원가입
               </button>
             </div>
 
