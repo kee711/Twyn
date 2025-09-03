@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { routing } from './i18n/routing'
 import { getToken } from 'next-auth/jwt'
 
-const publicPages = ['/', '/signin', '/privacy', '/data-deletion-policy']
+const publicPages = ['/', '/signin', '/signup', '/error', '/privacy', '/data-deletion-policy']
 
 const intlMiddleware = createIntlMiddleware(routing)
 

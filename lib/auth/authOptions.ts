@@ -1,6 +1,7 @@
 import { AuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 const supabaseUrl = process.env.SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_ANON_KEY!
@@ -36,7 +37,7 @@ export const authOptions: AuthOptions = {
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
-          scope: "openid email profile"
+          scope: "openid email profile",
         }
       }
     }),
@@ -100,9 +101,16 @@ export const authOptions: AuthOptions = {
       return session
     },
     async signIn({ user, account }) {
-
       try {
-        // 사용자가 존재하는지 확인하고 deleted_at 필드 체크
+
+        // Check if this is a signup flow by checking cookies
+        const cookieStore = await cookies()
+        const isSignupIntent = cookieStore.get('signup_intent')?.value === 'true'
+        const inviteCode = cookieStore.get('signup_invite_code')?.value
+        const inviteCodeId = cookieStore.get('signup_invite_code_id')?.value
+
+
+        // 사용자가 존재하는지 확인
         const { data: existingUser, error: fetchError } = await supabase
           .from('user_profiles')
           .select('*')
@@ -114,33 +122,79 @@ export const authOptions: AuthOptions = {
           return false
         }
 
-        // 삭제된 계정인 경우 계정 복구
-        if (existingUser?.deleted_at) {
-          console.log('Restoring deleted account:', user.email)
-          const { error: restoreError } = await supabase
-            .from('user_profiles')
-            .update({
-              deleted_at: null,
-              name: user.name,
-              provider: account?.provider,
-              image: user.image,
-              user_id: user.id,
-            })
-            .eq('email', user.email)
+        // 사용자가 존재하지 않는 경우
+        if (!existingUser) {
+          // signup 모드인 경우에만 사용자 생성
+          if (isSignupIntent) {
 
-          if (restoreError) {
-            console.error('Error restoring user:', restoreError)
-            return false
+            // Handle invite code if provided
+            if (inviteCode && inviteCodeId) {
+              await supabase
+                .from('invite_codes')
+                .update({
+                  is_used: true,
+                  used_at: new Date().toISOString()
+                })
+                .eq('id', inviteCodeId)
+                .eq('code', inviteCode)
+            }
+
+            // Create new user
+            const { error: createError } = await supabase
+              .from('user_profiles')
+              .insert({
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                user_id: user.id,
+                provider: account?.provider,
+                created_at: new Date().toISOString()
+              })
+
+            if (createError) {
+              console.error('Error creating user:', createError)
+              return false
+            }
+
+
+            // Note: We can't clear cookies here directly, but they will be cleared
+            // when the user lands on the onboarding page
+            return true
           }
+
+          // Not signup mode - block sign in
+          return false
         }
 
-        if (!existingUser) {
-          // User doesn't exist - block sign in
-          console.log('User not registered, blocking sign in:', user.email)
-          return false
+        // 삭제된 계정인 경우
+        if (existingUser.deleted_at) {
+          // signup 모드이면 계정 복구
+          if (isSignupIntent) {
+            const { error: restoreError } = await supabase
+              .from('user_profiles')
+              .update({
+                deleted_at: null,
+                name: user.name,
+                provider: account?.provider,
+                image: user.image,
+                user_id: user.id,
+                updated_at: new Date().toISOString()
+              })
+              .eq('email', user.email)
 
-        } else {
-          // 기존 사용자 정보 업데이트
+            if (restoreError) {
+              console.error('Error restoring user:', restoreError)
+              return false
+            }
+
+            return true
+          }
+
+          return false
+        }
+
+        // 기존 사용자 - 로그인 모드
+        if (!isSignupIntent) {
           const { error: updateError } = await supabase
             .from('user_profiles')
             .update({
@@ -148,6 +202,7 @@ export const authOptions: AuthOptions = {
               provider: account?.provider,
               image: user.image,
               user_id: user.id,
+              updated_at: new Date().toISOString()
             })
             .eq('email', user.email)
 
@@ -155,36 +210,15 @@ export const authOptions: AuthOptions = {
             console.error('Error updating user:', updateError)
             return false
           }
+
+          return true
+        } else {
+          // signup 모드인데 이미 사용자가 존재하는 경우
+          console.log('⚠️ User already exists in signup mode:', user.email)
+          // Return false will redirect to error page
+          // The error will be handled based on the signup_intent cookie
+          return false
         }
-
-        // 로그인 성공 후 온보딩 완료 여부 확인하여 미완료 시 온보딩 페이지로 리다이렉트
-        try {
-          const { data: onboardingData, error: onboardingError } = await supabase
-            .from('user_onboarding')
-            .select('is_completed')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single()
-
-          // PGRST116: No rows returned → 온보딩 레코드 없음
-          if (onboardingError && onboardingError.code !== 'PGRST116') {
-            console.error('Error checking onboarding:', onboardingError)
-          }
-
-          // User needs onboarding only if no record exists at all
-          const needsOnboarding = !onboardingData
-
-          if (needsOnboarding) {
-            // Store onboarding flag in token for redirect after session creation
-            // Returning true here ensures session is properly created
-            return true
-          }
-        } catch (onboardingCheckError) {
-          console.error('Unexpected error checking onboarding:', onboardingCheckError)
-        }
-
-        return true
       } catch (error) {
         console.error('Error in signIn callback:', error)
         return false
@@ -199,7 +233,6 @@ export const authOptions: AuthOptions = {
   },
   pages: {
     signIn: '/signin',
-    error: '/error',
+    error: '/signin', // Default error redirect
   },
-  debug: true,
 }

@@ -31,6 +31,17 @@ export default function OnboardingPage() {
       return;
     }
 
+    // Clear signup-related sessionStorage and cookies
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('signup_in_progress');
+      sessionStorage.removeItem('inviteCode');
+      sessionStorage.removeItem('inviteCodeId');
+      
+      // Clear server-side cookies
+      fetch('/api/auth/clear-signup-cookies', { method: 'POST' })
+        .catch(err => console.error('Failed to clear signup cookies:', err));
+    }
+
     const checkOnboarding = async () => {
       const type = searchParams.get('type');
       const accountId = searchParams.get('account_id');
