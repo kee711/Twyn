@@ -61,7 +61,7 @@ export default function OnboardingPage() {
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         // If user already has onboarding data, redirect to dashboard
         if (onboardingData) {

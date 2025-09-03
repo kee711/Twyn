@@ -71,7 +71,7 @@ export const authOptions: AuthOptions = {
           .eq('user_id', profile.sub)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         // User needs onboarding only if no record exists at all
         token.needsOnboarding = !onboardingData
@@ -85,7 +85,7 @@ export const authOptions: AuthOptions = {
           .eq('user_id', token.userId)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         // User needs onboarding only if no record exists at all
         token.needsOnboarding = !onboardingData
