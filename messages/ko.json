@@ -119,7 +119,8 @@
     "postNow": "지금 게시",
     "schedulePost": "포스트 예약",
     "premiumPlan": "프리미엄 플랜",
-    "login": "로그인"
+    "login": "로그인",
+    "joinOurCommunity": "커뮤니티에 합류하세요!"
   },
   "SocialAccountSelector": {
     "selectAccount": "계정 선택",

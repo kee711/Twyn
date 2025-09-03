@@ -119,7 +119,8 @@
     "postNow": "Post Now",
     "schedulePost": "Schedule Post",
     "premiumPlan": "Premium Plan",
-    "login": "Login"
+    "login": "Login",
+    "joinOurCommunity": "Join our community!"
   },
   "SocialAccountSelector": {
     "selectAccount": "Select Account",
