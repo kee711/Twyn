@@ -73,27 +73,41 @@ export default function SignInClient() {
 
   // 세션이 있으면 온보딩 상태 확인 후 리다이렉트
   useEffect(() => {
+    // Only redirect if authenticated AND not already redirecting
     if (status === 'authenticated' && session?.user?.id) {
+      // Prevent multiple redirects
+      const isRedirecting = sessionStorage.getItem('redirecting')
+      if (isRedirecting) return
+      
+      sessionStorage.setItem('redirecting', 'true')
+      
       const handleRedirect = async () => {
         try {
           const onboardingStatus = await checkOnboardingStatus(session.user.id)
 
           if (onboardingStatus) {
             console.log('👤 User needs onboarding')
-            window.location.href = '/onboarding?type=user'
+            // Use router.push instead of window.location.href for better control
+            router.push('/onboarding?type=user')
           } else {
             console.log('✅ Redirecting to:', callbackUrl)
-            window.location.href = callbackUrl
+            // Use router.push for consistent behavior
+            router.push(callbackUrl)
           }
         } catch (error) {
           console.error('❌ Error checking onboarding:', error)
-          window.location.href = callbackUrl
+          router.push(callbackUrl)
+        } finally {
+          // Clear the redirecting flag after a delay
+          setTimeout(() => {
+            sessionStorage.removeItem('redirecting')
+          }, 1000)
         }
       }
 
       handleRedirect()
     }
-  }, [session, status, callbackUrl])
+  }, [session, status, callbackUrl, router])
 
   // 로딩 상태 표시를 위한 상태
   const [isLoading, setIsLoading] = useState(true)
