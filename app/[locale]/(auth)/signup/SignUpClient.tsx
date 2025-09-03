@@ -39,13 +39,13 @@ export default function SignUpClient() {
       
       if (isFromSignup) {
         // This means user already exists
-        toast.error('이미 가입된 계정입니다. 로그인 페이지로 이동합니다.', {
+        toast.error(t('alreadyRegistered'), {
           duration: 3000,
           position: 'top-center'
         })
         sessionStorage.removeItem('signup_in_progress')
       } else {
-        toast.error('회원가입 중 오류가 발생했습니다.', {
+        toast.error(t('signUpError'), {
           duration: 3000,
           position: 'top-center'
         })
@@ -55,7 +55,7 @@ export default function SignUpClient() {
         router.push('/signin')
       }, 2000)
     } else if (error === 'UserAlreadyExists') {
-      toast.error('이미 가입된 계정입니다. 로그인 페이지로 이동합니다.', {
+      toast.error(t('alreadyRegistered'), {
         duration: 3000,
         position: 'top-center'
       })
@@ -68,7 +68,7 @@ export default function SignUpClient() {
   // 초대 코드 검증
   const validateInviteCode = async (code: string) => {
     if (!code.trim()) {
-      setInviteCodeError('초대 코드를 입력해주세요')
+      setInviteCodeError(t('inviteCodeRequired'))
       setIsCodeValid(false)
       return
     }
@@ -91,11 +91,11 @@ export default function SignUpClient() {
         sessionStorage.setItem('inviteCode', code)
       } else {
         setIsCodeValid(false)
-        setInviteCodeError(data.error || '유효하지 않은 초대 코드입니다')
+        setInviteCodeError(data.error || t('invalidInviteCode'))
       }
     } catch (error) {
       setIsCodeValid(false)
-      setInviteCodeError('초대 코드 확인 중 오류가 발생했습니다')
+      setInviteCodeError(t('inviteCodeError'))
     }
   }
 
@@ -115,7 +115,7 @@ export default function SignUpClient() {
   // Google 회원가입 핸들러
   const handleGoogleSignUp = async () => {
     if (!isCodeValid) {
-      toast.error('유효한 초대 코드를 입력해주세요')
+      toast.error(t('validInviteCodeRequired'))
       return
     }
 
@@ -138,7 +138,7 @@ export default function SignUpClient() {
       const prepData = await prepResponse.json()
 
       if (!prepData.success) {
-        toast.error(prepData.error || '회원가입 준비 중 오류가 발생했습니다')
+        toast.error(prepData.error || t('signUpPreparationError'))
         sessionStorage.removeItem('signup_in_progress')
         setIsLoading(false)
         return
@@ -153,7 +153,7 @@ export default function SignUpClient() {
       
     } catch (error) {
       console.error('Signup error:', error)
-      toast.error('회원가입 중 오류가 발생했습니다')
+      toast.error(t('signUpError'))
       sessionStorage.removeItem('signup_in_progress')
       setIsLoading(false)
     }
@@ -178,10 +178,10 @@ export default function SignUpClient() {
 
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              회원가입
+              {t('signUp')}
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              초대 코드를 입력하여 시작하세요
+              {t('signUpDescription')}
             </p>
           </div>
 
@@ -189,7 +189,7 @@ export default function SignUpClient() {
             <div className="relative">
               <Input
                 type="text"
-                placeholder="초대 코드 입력"
+                placeholder={t('inviteCodePlaceholder')}
                 value={inviteCode}
                 onChange={handleInviteCodeChange}
                 className={`w-full pr-32 ${inviteCodeError ? 'border-red-500' : isCodeValid ? 'border-green-500' : ''}`}
@@ -202,7 +202,7 @@ export default function SignUpClient() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <span className="text-xs text-red-500">
-                      {inviteCodeError.includes('usage limit') || inviteCodeError.includes('expired') ? 'Expired code' : 'Invalid code'}
+                      {inviteCodeError.includes('usage limit') || inviteCodeError.includes('expired') ? t('expiredInviteCode') : t('invalidInviteCode')}
                     </span>
                   </>
                 )}
@@ -221,7 +221,7 @@ export default function SignUpClient() {
               onClick={handleGoogleSignUp}
               disabled={!isCodeValid || isLoading}
             >
-              {isLoading ? '처리 중...' : 'Google로 회원가입'}
+              {isLoading ? t('processing') : t('signUpWithGoogle')}
             </SocialButton>
 
             <div className="text-center">
@@ -231,7 +231,7 @@ export default function SignUpClient() {
                 className="text-sm text-primary hover:underline"
                 disabled={isLoading}
               >
-                이미 계정이 있으신가요? 로그인
+                {t('haveAccount')}
               </button>
             </div>
 

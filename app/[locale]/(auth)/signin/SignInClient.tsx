@@ -28,13 +28,13 @@ export default function SignInClient() {
           .then(data => {
             if (data.isSignupIntent) {
               // This was a signup attempt with existing user
-              toast.error('이미 가입된 계정입니다. 로그인해주세요.', {
+              toast.error(t('alreadyRegisteredSignIn'), {
                 duration: 4000,
                 position: 'top-center'
               })
             } else {
               // Regular sign in failure
-              toast.error('계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.', {
+              toast.error(t('accountNotFound'), {
                 duration: 4000,
                 position: 'top-center'
               })
@@ -42,7 +42,7 @@ export default function SignInClient() {
           })
           .catch(() => {
             // Fallback error message
-            toast.error('로그인에 실패했습니다. 다시 시도해주세요.', {
+            toast.error(t('signInError'), {
               duration: 4000,
               position: 'top-center'
             })
@@ -55,7 +55,7 @@ export default function SignInClient() {
         router.replace(newUrl)
       } else if (error === 'Callback' || error === 'Default') {
         // These are generic NextAuth errors
-        toast.error('로그인에 실패했습니다. 계정이 없으시면 회원가입을 진행해주세요.', {
+        toast.error(t('signInFailedSignUp'), {
           duration: 4000,
           position: 'top-center'
         })
@@ -187,7 +187,7 @@ export default function SignInClient() {
                 onClick={() => router.push('/signup')}
                 className="text-sm text-primary hover:underline"
               >
-                계정이 없으신가요? 회원가입
+                {t('noAccount')}
               </button>
             </div>
 
