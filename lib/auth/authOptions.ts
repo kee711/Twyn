@@ -127,29 +127,56 @@ export const authOptions: AuthOptions = {
           // signup 모드인 경우에만 사용자 생성
           if (isSignupIntent) {
 
-            // Handle invite code if provided
+            // Handle invite code if provided - MUST complete before user creation
             if (inviteCode && inviteCodeId) {
-              await supabase
+              // First, get the current used_count
+              const { data: inviteData, error: fetchError } = await supabase
+                .from('invite_codes')
+                .select('used_count')
+                .eq('code', inviteCode)
+                .single()
+
+              if (fetchError) {
+                console.error('Error fetching invite code:', fetchError)
+                return false // Fail the signup if we can't verify the invite code
+              }
+
+              // Increment used_count
+              const newUsedCount = (inviteData?.used_count || 0) + 1
+
+              const { error: updateError } = await supabase
                 .from('invite_codes')
                 .update({
-                  is_used: true,
-                  used_at: new Date().toISOString()
+                  used_count: newUsedCount,
                 })
-                .eq('id', inviteCodeId)
                 .eq('code', inviteCode)
+
+              if (updateError) {
+                console.error('Error updating invite code used_count:', updateError)
+                return false // Fail the signup if we can't update the invite code
+              }
+
+              console.log(`✅ Successfully incremented used_count for invite code: ${inviteCode} to ${newUsedCount}`)
             }
 
-            // Create new user
+            // Create new user with invite_code_id if provided
+            const userProfileData: any = {
+              email: user.email,
+              name: user.name,
+              image: user.image,
+              user_id: user.id,
+              provider: account?.provider,
+              created_at: new Date().toISOString()
+            }
+            
+            // Add invite_code_id if an invite code was used
+            if (inviteCodeId) {
+              userProfileData.invite_code_id = inviteCodeId
+            }
+            
             const { error: createError } = await supabase
               .from('user_profiles')
-              .insert({
-                email: user.email,
-                name: user.name,
-                image: user.image,
-                user_id: user.id,
-                provider: account?.provider,
-                created_at: new Date().toISOString()
-              })
+              .insert(userProfileData)
 
             if (createError) {
               console.error('Error creating user:', createError)
@@ -170,16 +197,56 @@ export const authOptions: AuthOptions = {
         if (existingUser.deleted_at) {
           // signup 모드이면 계정 복구
           if (isSignupIntent) {
+            // Handle invite code if provided - MUST complete before account restoration
+            if (inviteCode && inviteCodeId) {
+              // First, get the current used_count
+              const { data: inviteData, error: fetchError } = await supabase
+                .from('invite_codes')
+                .select('used_count')
+                .eq('code', inviteCode)
+                .single()
+
+              if (fetchError) {
+                console.error('Error fetching invite code:', fetchError)
+                return false // Fail the signup if we can't verify the invite code
+              }
+
+              // Increment used_count
+              const newUsedCount = (inviteData?.used_count || 0) + 1
+
+              const { error: updateError } = await supabase
+                .from('invite_codes')
+                .update({
+                  used_count: newUsedCount,
+                })
+                .eq('code', inviteCode)
+
+              if (updateError) {
+                console.error('Error updating invite code used_count:', updateError)
+                return false // Fail the signup if we can't update the invite code
+              }
+
+              console.log(`✅ Successfully incremented used_count for invite code: ${inviteCode} to ${newUsedCount} (account restoration)`)
+            }
+
+            // Prepare update data with invite_code_id if provided
+            const updateData: any = {
+              deleted_at: null,
+              name: user.name,
+              provider: account?.provider,
+              image: user.image,
+              user_id: user.id,
+              updated_at: new Date().toISOString()
+            }
+            
+            // Add invite_code_id if an invite code was used
+            if (inviteCodeId) {
+              updateData.invite_code_id = inviteCodeId
+            }
+            
             const { error: restoreError } = await supabase
               .from('user_profiles')
-              .update({
-                deleted_at: null,
-                name: user.name,
-                provider: account?.provider,
-                image: user.image,
-                user_id: user.id,
-                updated_at: new Date().toISOString()
-              })
+              .update(updateData)
               .eq('email', user.email)
 
             if (restoreError) {
