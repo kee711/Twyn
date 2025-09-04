@@ -59,6 +59,15 @@ const config: NextConfig = {
       crypto: false,
       path: false,
       os: false,
+      http: false,
+      https: false,
+      stream: false,
+      querystring: false,
+      url: false,
+      zlib: false,
+      net: false,
+      tls: false,
+      child_process: false,
     };
 
     // Only include stagewise in development mode

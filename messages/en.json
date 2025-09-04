@@ -553,8 +553,7 @@
         "trendInPeriod": "trend in period",
         "currentCount": "Current count",
         "fromPreviousPeriod": "from previous period",
-        "noData": "No data",
-        "noContentAvailable": "No content available"
+        "noData": "No data"
       },
       "charts": {
         "viewsPerformance": "Views Performance",
@@ -566,6 +565,8 @@
         "description": "Top performing posts in the last {days} days",
         "noData": "No post data available for the selected period."
       },
+      "noContentAvailable": "No content available",
+      "generatingInsight": "Generating AI insight...",
       "noAccount": {
         "title": "Account connection required",
         "description": "Please connect your Threads account first to view statistics.",
@@ -574,6 +575,26 @@
       "noAuth": {
         "title": "Authentication Required",
         "description": "Please sign in to view your statistics."
+      },
+      "demographics": {
+        "ageDistribution": "Age Distribution",
+        "genderDistribution": "Gender Distribution",
+        "geographicDistribution": "Geographic Distribution",
+        "followersByCountry": "Distribution of followers by country",
+        "topCountries": "Top Countries",
+        "noData": "No demographic data available",
+        "noGeographicData": "No geographic data available",
+        "requiresFollowers": "Requires 100+ followers to view demographics",
+        "male": "Male",
+        "female": "Female",
+        "unknown": "Unknown",
+        "insights": {
+          "malePopular": "You're especially popular with male audiences ({percentage}%)!",
+          "femalePopular": "You're especially popular with female audiences ({percentage}%)!",
+          "balancedGender": "You have a well-balanced gender distribution among your followers!",
+          "topAgeGroup": "Your content resonates most with the {ageGroup} age group",
+          "topCountry": "Most of your followers are from {country}"
+        }
       }
     }
   },
