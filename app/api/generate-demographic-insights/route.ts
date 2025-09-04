@@ -3,10 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/authOptions';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-    apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -15,6 +11,15 @@ export async function POST(request: NextRequest) {
         }
 
         const { ageData, genderData, locale = 'en' } = await request.json();
+
+        const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+        if (!apiKey) {
+            return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+        }
+
+        const openai = new OpenAI({
+            apiKey: apiKey,
+        });
 
         if (!ageData && !genderData) {
             return NextResponse.json({ error: 'No demographic data provided' }, { status: 400 });
@@ -101,5 +106,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-
-export const runtime = 'edge';
