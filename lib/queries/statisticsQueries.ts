@@ -90,6 +90,26 @@ export const fetchUserInsights = async (
   }
 };
 
+// Demographic Data Query Functions
+export const fetchDemographicData = async (
+  accountId: string,
+  breakdown: 'age' | 'gender' | 'country' | 'city'
+): Promise<any> => {
+  try {
+    const response = await fetch(
+      `/api/insights?type=user&user_id=${accountId}&metric=follower_demographics&breakdown=${breakdown}`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data.data?.[0] || null;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching ${breakdown} demographics:`, error);
+    return null;
+  }
+};
+
 // Previous Period Insights Query Function (과거 동일 기간 데이터)
 export const fetchPreviousPeriodInsights = async (
   accountId: string,
@@ -288,6 +308,59 @@ export const useTopPosts = (accountId: string) => {
     enabled: !!accountId,
     staleTime: 10 * 60 * 1000, // 10분 (더 긴 캐시 시간)
     gcTime: 60 * 60 * 1000, // 1시간
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+};
+
+// Demographic data hooks
+export const useDemographicData = (accountId: string, breakdown: 'age' | 'gender' | 'country' | 'city') => {
+  return useQuery({
+    queryKey: ['demographics', accountId, breakdown],
+    queryFn: () => fetchDemographicData(accountId, breakdown),
+    enabled: !!accountId,
+    staleTime: 30 * 60 * 1000, // 30분
+    gcTime: 60 * 60 * 1000, // 1시간
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+};
+
+// AI Insights for demographics
+export const fetchDemographicInsights = async (
+  ageData: any[],
+  genderData: any[],
+  locale: string
+): Promise<{ age?: string; gender?: string }> => {
+  try {
+    const response = await fetch('/api/generate-demographic-insights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ageData, genderData, locale }),
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.insights || {};
+    }
+    return {};
+  } catch (error) {
+    console.error('Error fetching demographic insights:', error);
+    return {};
+  }
+};
+
+export const useDemographicInsights = (
+  ageData: any[],
+  genderData: any[],
+  locale: string
+) => {
+  return useQuery({
+    queryKey: ['demographicInsights', ageData, genderData, locale],
+    queryFn: () => fetchDemographicInsights(ageData, genderData, locale),
+    enabled: !!(ageData.length > 0 || genderData.length > 0),
+    staleTime: 60 * 60 * 1000, // 1시간
+    gcTime: 2 * 60 * 60 * 1000, // 2시간
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

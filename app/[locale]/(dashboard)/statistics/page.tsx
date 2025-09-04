@@ -11,7 +11,9 @@ import {
     useTopPosts,
     useRefreshStatistics,
     fetchUserInsights,
-    fetchTopPosts
+    fetchTopPosts,
+    useDemographicData,
+    useDemographicInsights
 } from "@/lib/queries/statisticsQueries";
 import { statisticsKeys } from "@/lib/queries/statisticsKeys";
 import {
@@ -24,7 +26,9 @@ import {
     Pie,
     Cell,
     Area,
-    AreaChart
+    AreaChart,
+    BarChart,
+    Bar
 } from "recharts";
 import {
     Users,
@@ -34,10 +38,21 @@ import {
     Eye,
     RefreshCw,
     Loader2,
-    Quote
+    Quote,
+    MapPin,
+    UserCheck
 } from "lucide-react";
+import {
+    ComposableMap,
+    Geographies,
+    Geography,
+    ZoomableGroup,
+    Marker,
+    Annotation
+} from "react-simple-maps";
 import { cn } from "@/lib/utils";
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { Sparkles } from 'lucide-react';
 
 
 // 타입 정의는 store에서 import
@@ -62,6 +77,7 @@ interface DateRange {
 
 export default function StatisticsPage() {
     const t = useTranslations('components.statistics');
+    const locale = useLocale();
     const { data: session } = useSession();
     const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
     const queryClient = useQueryClient();
@@ -97,6 +113,12 @@ export default function StatisticsPage() {
 
     const refreshMutation = useRefreshStatistics();
 
+    // Demographic data hooks
+    const { data: ageData } = useDemographicData(selectedAccount?.social_id || '', 'age');
+    const { data: genderData } = useDemographicData(selectedAccount?.social_id || '', 'gender');
+    const { data: countryData } = useDemographicData(selectedAccount?.social_id || '', 'country');
+    const { data: cityData } = useDemographicData(selectedAccount?.social_id || '', 'city');
+
     // 캐시에서 데이터가 있는지 확인
     const isFromCache = queryClient.getQueryData(
         statisticsKeys.userInsights(selectedAccount?.social_id || '', selectedDateRange)
@@ -106,7 +128,7 @@ export default function StatisticsPage() {
     useEffect(() => {
         setIsClient(true);
         setSelectedAccount(getSelectedAccount());
-    }, [currentSocialId, getSelectedAccount]);
+    }, [currentSocialId]);
 
     // 30일, 90일 데이터 prefetching
     useEffect(() => {
@@ -220,32 +242,123 @@ export default function StatisticsPage() {
         return chartData;
     };
 
-    // 실제 API 데이터에서 파이 차트 데이터 생성
-    const generatePieData = () => {
-        const likes = getInsightValue('likes');
-        const replies = getInsightValue('replies');
-        const reposts = getInsightValue('reposts');
-        const quotes = getInsightValue('quotes');
-
-        const total = likes + replies + reposts + quotes;
-
-        if (total === 0) {
-            return []; // 모든 값이 0이면 Mock 데이터 사용
+    // Process demographic data for charts
+    const processAgeDemographics = () => {
+        // Check if we have real data (followers >= 100)
+        const followersCount = getInsightValue('followers_count');
+        const hasEnoughFollowers = followersCount >= 100;
+        
+        // If we have real data and enough followers, use it
+        if (hasEnoughFollowers && ageData?.values && ageData.values.length > 0) {
+            const total = ageData.values.reduce((sum: number, item: any) => sum + item.value, 0);
+            return ageData.values.map((item: any, index: number) => ({
+                name: item.name || item.age_range || 'Unknown',
+                value: item.value,
+                percentage: Math.round((item.value / total) * 100),
+                fill: `hsl(217, 91%, ${70 - index * 10}%)`
+            }));
         }
-
-        const pieData = [
-            { name: 'Likes', value: Math.round((likes / total) * 100), color: '#ef4444' },
-            { name: 'Replies', value: Math.round((replies / total) * 100), color: '#3b82f6' },
-            { name: 'Reposts', value: Math.round((reposts / total) * 100), color: '#10b981' },
-            { name: 'Quotes', value: Math.round((quotes / total) * 100), color: '#f59e0b' },
-        ];
-
-        return pieData.filter((item: any) => item.value > 0);
+        
+        // Return empty array to show blurred mock data
+        return [];
     };
 
-    // 차트와 파이 데이터 생성
+    const processGenderDemographics = () => {
+        // Check if we have real data (followers >= 100)
+        const followersCount = getInsightValue('followers_count');
+        const hasEnoughFollowers = followersCount >= 100;
+        
+        // If we have real data and enough followers, use it
+        if (hasEnoughFollowers && genderData?.values && genderData.values.length > 0) {
+            const total = genderData.values.reduce((sum: number, item: any) => sum + item.value, 0);
+            return genderData.values.map((item: any, index: number) => ({
+                name: item.name === 'M' ? t('demographics.male') :
+                    item.name === 'F' ? t('demographics.female') :
+                        t('demographics.unknown'),
+                value: item.value,
+                percentage: Math.round((item.value / total) * 100),
+                fill: `hsl(270, 70%, ${65 - index * 15}%)`
+            }));
+        }
+        
+        // Return empty array to show blurred mock data
+        return [];
+    };
+
+    // Process geographic data for map
+    const processGeographicData = () => {
+        // Check if we have real data (followers >= 100)
+        const followersCount = getInsightValue('followers_count');
+        const hasEnoughFollowers = followersCount >= 100;
+        
+        // If we have real data and enough followers, use it
+        if (hasEnoughFollowers && countryData?.values && countryData.values.length > 0) {
+            return countryData.values.map((item: any) => ({
+                country: item.name,
+                value: item.value
+            }));
+        }
+        
+        // Return empty array to show blurred mock data
+        return [];
+    };
+
+    // Generate insights based on demographics
+    const generateDemographicInsights = () => {
+        const insights = [];
+
+        // Gender insight
+        if (genderData?.values && genderData.values.length > 0) {
+            const sortedGender = [...genderData.values].sort((a: any, b: any) => b.value - a.value);
+            const topGender = sortedGender[0];
+            const percentage = Math.round((topGender.value / genderData.values.reduce((sum: number, item: any) => sum + item.value, 0)) * 100);
+
+            if (topGender.name === 'M' && percentage > 55) {
+                insights.push(t('demographics.insights.malePopular', { percentage }));
+            } else if (topGender.name === 'F' && percentage > 55) {
+                insights.push(t('demographics.insights.femalePopular', { percentage }));
+            } else {
+                insights.push(t('demographics.insights.balancedGender'));
+            }
+        }
+
+        // Age insight
+        if (ageData?.values && ageData.values.length > 0) {
+            const sortedAge = [...ageData.values].sort((a: any, b: any) => b.value - a.value);
+            const topAge = sortedAge[0];
+            insights.push(t('demographics.insights.topAgeGroup', { ageGroup: topAge.name || topAge.age_range }));
+        }
+
+        // Country insight
+        if (countryData?.values && countryData.values.length > 0) {
+            const sortedCountry = [...countryData.values].sort((a: any, b: any) => b.value - a.value);
+            const topCountry = sortedCountry[0];
+            insights.push(t('demographics.insights.topCountry', { country: topCountry.name }));
+        }
+
+        return insights;
+    };
+
+    // 차트와 demographic 데이터 생성
     const chartData = generateChartData();
-    const pieData = generatePieData();
+    const agePieData = processAgeDemographics();
+    const genderPieData = processGenderDemographics();
+    const geographicData = processGeographicData();
+    const demographicInsights = generateDemographicInsights();
+
+    // Calculate geographic totals for use in map and list
+    const totalGeographicFollowers = geographicData.reduce((sum: number, d: any) => sum + d.value, 0);
+    const maxGeographicValue = geographicData.length > 0 ? Math.max(...geographicData.map((d: any) => d.value)) : 0;
+
+    // Fetch AI insights for demographics
+    const { data: aiComments, isLoading: isLoadingAIComments } = useDemographicInsights(
+        agePieData,
+        genderPieData,
+        locale
+    );
+    
+    // Use real AI comments when available, no mock comments needed
+    const displayAIComments = aiComments;
 
     // 메트릭 카드 데이터
     const metricCards = [
@@ -395,7 +508,7 @@ export default function StatisticsPage() {
                             ) : (
                                 <RefreshCw className="h-4 w-4" />
                             )}
-                            {t('refresh')}
+                            <span className="hidden sm:inline">{t('refresh')}</span>
                         </button>
                     </div>
                 </div>
@@ -544,40 +657,455 @@ export default function StatisticsPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Pie Chart */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">{t('charts.engagementBreakdown')}</CardTitle>
-                                <CardDescription className="text-sm text-muted-foreground">
-                                    {t('charts.forLastDays', { days: selectedDateRange })}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-64 md:h-80">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={pieData}
-                                                cx="50%"
-                                                cy="50%"
-                                                outerRadius={80}
-                                                fill="#8884d8"
-                                                dataKey="value"
-                                                label={({ name, value }) => `${name}: ${value}%`}
-                                            >
-                                                {pieData.map((entry: any, index: number) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip
-                                                formatter={(value: any) => [`${value}%`, 'Percentage']}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        {/* Demographics Section */}
+                        <div className="space-y-4">
+                            {/* Age & Gender Charts */}
+                            <div className="grid grid-cols-1 h-full md:grid-cols-2 gap-4">
+                                {/* Age Distribution */}
+                                <Card>
+                                    <CardHeader className="pb-4">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <Users className="w-4 h-4" />
+                                            {t('demographics.ageDistribution')}
+                                        </CardTitle>
+                                        <CardDescription className="text-sm text-muted-foreground">
+                                            {t('charts.forLastDays', { days: selectedDateRange })}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="h-48 relative">
+                                            {agePieData.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={agePieData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                        <XAxis
+                                                            dataKey="name"
+                                                            tick={{ fontSize: 12 }}
+                                                            stroke="#6b7280"
+                                                        />
+                                                        <YAxis
+                                                            tick={{ fontSize: 12 }}
+                                                            stroke="#6b7280"
+                                                            tickFormatter={(value) => `${value}%`}
+                                                        />
+                                                        <Tooltip
+                                                            formatter={(value: any) => `${value}%`}
+                                                            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb' }}
+                                                        />
+                                                        <Bar
+                                                            dataKey="percentage"
+                                                            radius={[8, 8, 0, 0]}
+                                                        >
+                                                            {agePieData.map((entry: any, index: number) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                            ))}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <>
+                                                    <div className="h-full blur-sm">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <BarChart data={[
+                                                                { name: '18-24', percentage: 25, fill: `hsl(217, 91%, 70%)` },
+                                                                { name: '25-34', percentage: 35, fill: `hsl(217, 91%, 60%)` },
+                                                                { name: '35-44', percentage: 20, fill: `hsl(217, 91%, 50%)` },
+                                                                { name: '45-54', percentage: 15, fill: `hsl(217, 91%, 40%)` },
+                                                                { name: '55+', percentage: 5, fill: `hsl(217, 91%, 30%)` }
+                                                            ]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                                <XAxis
+                                                                    dataKey="name"
+                                                                    tick={{ fontSize: 12 }}
+                                                                    stroke="#6b7280"
+                                                                />
+                                                                <YAxis
+                                                                    tick={{ fontSize: 12 }}
+                                                                    stroke="#6b7280"
+                                                                    tickFormatter={(value) => `${value}%`}
+                                                                />
+                                                                <Bar
+                                                                    dataKey="percentage"
+                                                                    radius={[8, 8, 0, 0]}
+                                                                >
+                                                                    {[0, 1, 2, 3, 4].map((index) => (
+                                                                        <Cell key={`cell-${index}`} fill={`hsl(217, 91%, ${70 - index * 10}%)`} />
+                                                                    ))}
+                                                                </Bar>
+                                                            </BarChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80">
+                                                        <div className="text-center px-4">
+                                                            <p className="text-sm font-medium text-muted-foreground">
+                                                                {t('demographics.requiresFollowers')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        {/* AI Insight for Age */}
+                                        {agePieData.length > 0 && (
+                                            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                                                {isLoadingAIComments ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {t('generatingInsight')}
+                                                        </p>
+                                                    </div>
+                                                ) : displayAIComments?.age ? (
+                                                    <div className="flex gap-2">
+                                                        <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                                            {displayAIComments.age}
+                                                        </p>
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Gender Distribution */}
+                                <Card>
+                                    <CardHeader className="pb-4">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <UserCheck className="w-4 h-4" />
+                                            {t('demographics.genderDistribution')}
+                                        </CardTitle>
+                                        <CardDescription className="text-sm text-muted-foreground">
+                                            {t('charts.forLastDays', { days: selectedDateRange })}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="h-48 relative">
+                                            {genderPieData.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={genderPieData}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            outerRadius={60}
+                                                            fill="#8884d8"
+                                                            dataKey="percentage"
+                                                            label={({ name, percentage }) => `${name}: ${percentage}%`}
+                                                            labelLine={false}
+                                                        >
+                                                            {genderPieData.map((entry: any, index: number) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip
+                                                            formatter={(value: any) => `${value}%`}
+                                                            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb' }}
+                                                        />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <>
+                                                    <div className="h-full blur-sm">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <PieChart>
+                                                                <Pie
+                                                                    data={[
+                                                                        { name: 'Male', percentage: 56, fill: `hsl(270, 70%, 65%)` },
+                                                                        { name: 'Female', percentage: 44, fill: `hsl(270, 70%, 50%)` }
+                                                                    ]}
+                                                                    cx="50%"
+                                                                    cy="50%"
+                                                                    outerRadius={60}
+                                                                    fill="#8884d8"
+                                                                    dataKey="percentage"
+                                                                    label={({ name, percentage }) => `${name}: ${percentage}%`}
+                                                                    labelLine={false}
+                                                                >
+                                                                    <Cell fill={`hsl(270, 70%, 65%)`} />
+                                                                    <Cell fill={`hsl(270, 70%, 50%)`} />
+                                                                </Pie>
+                                                            </PieChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80">
+                                                        <div className="text-center px-4">
+                                                            <p className="text-sm font-medium text-muted-foreground">
+                                                                {t('demographics.requiresFollowers')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        {/* AI Insight for Gender */}
+                                        {genderPieData.length > 0 && (
+                                            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                                                {isLoadingAIComments ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {t('generatingInsight')}
+                                                        </p>
+                                                    </div>
+                                                ) : displayAIComments?.gender ? (
+                                                    <div className="flex gap-2">
+                                                        <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                                            {displayAIComments.gender}
+                                                        </p>
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Insights */}
+                            {demographicInsights.length > 0 && (
+                                <Card className="bg-muted/50">
+                                    <CardContent className="pt-6">
+                                        <div className="space-y-2">
+                                            {demographicInsights.map((insight, index) => (
+                                                <p key={index} className="text-sm text-muted-foreground">
+                                                    💡 {insight}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
                     </div>
+
+                    {/* Geographic Distribution Map */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <MapPin className="w-5 h-5" />
+                                {t('demographics.geographicDistribution')}
+                            </CardTitle>
+                            <CardDescription className="text-sm text-muted-foreground">
+                                {t('demographics.followersByCountry')}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="overflow-hidden">
+                            {geographicData.length > 0 ? (
+                                <>
+                                    <div className="h-[350px] w-full relative">
+                                        <ComposableMap
+                                            projection="geoNaturalEarth1"
+                                            projectionConfig={{
+                                                scale: 155,
+                                                center: [20, 0],
+                                                rotate: [-20, 0, 0]
+                                            }}
+                                            width={800}
+                                            height={350}
+                                            style={{
+                                                width: "100%",
+                                                height: "100%"
+                                            }}
+                                        >
+                                            <ZoomableGroup
+                                                zoom={1}
+                                                center={[0, 0]}
+                                                minZoom={1}
+                                                maxZoom={1}
+                                            >
+                                                <Geographies geography="/world-110m.json">
+                                                    {({ geographies }: { geographies: any[] }) => {
+                                                        return geographies.map((geo: any) => {
+                                                            const countryData = geographicData.find(
+                                                                (d: any) => d.country === geo.properties.NAME
+                                                            );
+                                                            const percentage = countryData ? Math.round((countryData.value / totalGeographicFollowers) * 100) : 0;
+                                                            const intensity = countryData ? countryData.value / maxGeographicValue : 0;
+
+                                                            // Generate color based on intensity
+                                                            const getColor = (intensity: number) => {
+                                                                if (intensity === 0) return "#e5e7eb";
+                                                                if (intensity < 0.2) return "#dbeafe";
+                                                                if (intensity < 0.4) return "#93c5fd";
+                                                                if (intensity < 0.6) return "#60a5fa";
+                                                                if (intensity < 0.8) return "#3b82f6";
+                                                                return "#2563eb";
+                                                            };
+
+                                                            return (
+                                                                <Geography
+                                                                    key={geo.rsmKey}
+                                                                    geography={geo}
+                                                                    fill={getColor(intensity)}
+                                                                    stroke="#fff"
+                                                                    strokeWidth={0.5}
+                                                                    style={{
+                                                                        default: {
+                                                                            outline: "none"
+                                                                        },
+                                                                        hover: {
+                                                                            fill: countryData ? "#1d4ed8" : "#d1d5db",
+                                                                            outline: "none",
+                                                                            cursor: countryData ? "pointer" : "default"
+                                                                        },
+                                                                        pressed: {
+                                                                            fill: "#1e40af",
+                                                                            outline: "none"
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            );
+                                                        });
+                                                    }}
+                                                </Geographies>
+                                                {/* Add percentage labels for countries with data */}
+                                                {geographicData.map((country: any) => {
+                                                    const percentage = Math.round((country.value / totalGeographicFollowers) * 100);
+                                                    // Define coordinates for each country (approximate centers)
+                                                    const countryCoordinates: { [key: string]: [number, number] } = {
+                                                        'United States': [-95, 37],
+                                                        'South Korea': [127.5, 37],
+                                                        'Japan': [138, 36],
+                                                        'United Kingdom': [-3, 55],
+                                                        'Germany': [10, 51],
+                                                        'France': [2, 46],
+                                                        'Canada': [-106, 56],
+                                                        'Australia': [133, -27],
+                                                        'Brazil': [-47, -15],
+                                                        'India': [78, 20],
+                                                        'China': [104, 35],
+                                                        'Mexico': [-102, 23]
+                                                    };
+
+                                                    const coordinates = countryCoordinates[country.country];
+                                                    if (!coordinates || percentage < 5) return null; // Only show label for countries > 5%
+
+                                                    return (
+                                                        <Marker key={country.country} coordinates={coordinates}>
+                                                            <text
+                                                                textAnchor="middle"
+                                                                style={{
+                                                                    fontFamily: "system-ui",
+                                                                    fontSize: "14px",
+                                                                    fontWeight: "bold",
+                                                                    fill: "#000",
+                                                                    stroke: "#fff",
+                                                                    strokeWidth: 2,
+                                                                    paintOrder: "stroke"
+                                                                }}
+                                                            >
+                                                                {percentage}%
+                                                            </text>
+                                                        </Marker>
+                                                    );
+                                                })}
+                                            </ZoomableGroup>
+                                        </ComposableMap>
+                                    </div>
+                                    {/* Top Countries List */}
+                                    <div className="mt-4 space-y-2">
+                                        <p className="text-sm font-medium text-muted-foreground">{t('demographics.topCountries')}</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                            {geographicData
+                                                .sort((a: any, b: any) => b.value - a.value)
+                                                .slice(0, 6)
+                                                .map((country: any, index: number) => {
+                                                    const percentage = Math.round((country.value / totalGeographicFollowers) * 100);
+                                                    return (
+                                                        <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                                                            <span className="text-sm font-medium">{country.country}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm text-muted-foreground">{country.value.toLocaleString()}</span>
+                                                                <span className="text-xs font-semibold text-primary">({percentage}%)</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="relative">
+                                    <div className="blur-sm">
+                                        <div className="h-[350px] w-full overflow-hidden relative">
+                                            <ComposableMap
+                                                projection="geoNaturalEarth1"
+                                                projectionConfig={{
+                                                    scale: 155,
+                                                    center: [20, 0],
+                                                    rotate: [-20, 0, 0]
+                                                }}
+                                                width={800}
+                                                height={350}
+                                                style={{
+                                                    width: "100%",
+                                                    height: "100%"
+                                                }}
+                                            >
+                                                <ZoomableGroup
+                                                    zoom={1}
+                                                    center={[0, 0]}
+                                                    minZoom={1}
+                                                    maxZoom={1}
+                                                >
+                                                    <Geographies geography="/world-110m.json">
+                                                        {({ geographies }: { geographies: any[] }) =>
+                                                            geographies.map((geo: any) => {
+                                                                const mockCountries = ['United States', 'Korea, South', 'Japan', 'United Kingdom', 'Germany'];
+                                                                const isMockCountry = mockCountries.includes(geo.properties.NAME);
+                                                                return (
+                                                                    <Geography
+                                                                        key={geo.rsmKey}
+                                                                        geography={geo}
+                                                                        fill={isMockCountry ? "#3b82f6" : "#e5e7eb"}
+                                                                        stroke="#fff"
+                                                                        strokeWidth={0.5}
+                                                                        style={{
+                                                                            default: {
+                                                                                outline: "none",
+                                                                                opacity: isMockCountry ? 0.7 : 1
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                );
+                                                            })
+                                                        }
+                                                    </Geographies>
+                                                </ZoomableGroup>
+                                            </ComposableMap>
+                                        </div>
+                                        {/* Top Countries List - Blurred */}
+                                        <div className="mt-4 space-y-2">
+                                            <p className="text-sm font-medium text-muted-foreground">{t('demographics.topCountries')}</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                                {[
+                                                    { country: 'United States', value: 2500 },
+                                                    { country: 'South Korea', value: 1800 },
+                                                    { country: 'Japan', value: 1200 },
+                                                    { country: 'United Kingdom', value: 800 },
+                                                    { country: 'Germany', value: 600 },
+                                                    { country: 'France', value: 400 }
+                                                ].map((country, index) => (
+                                                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                                                        <span className="text-sm font-medium">{country.country}</span>
+                                                        <span className="text-sm text-muted-foreground">{country.value.toLocaleString()}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80 rounded-lg">
+                                        <div className="text-center px-4">
+                                            <p className="text-sm font-medium text-muted-foreground">
+                                                {t('demographics.requiresFollowers')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
                     {/* Top Posts Section */}
                     <Card>
