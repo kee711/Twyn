@@ -28,12 +28,31 @@
     "signIn": "로그인",
     "signOut": "로그아웃",
     "signInWithGoogle": "Google로 로그인",
+    "signUpWithGoogle": "Google로 회원가입",
     "welcome": "Twyn에 오신 것을 환영합니다!",
     "loginRequired": "로그인이 필요합니다",
     "signInDescription": "계속하려면 계정에 로그인하세요",
+    "signUpDescription": "초대 코드를 입력하여 시작하세요",
     "privacyNotice": "계속하면 다음에 동의하는 것입니다",
     "privacyPolicy": "개인정보 처리방침",
-    "close": "닫기"
+    "close": "닫기",
+    "signUp": "회원가입",
+    "inviteCodePlaceholder": "초대 코드 입력",
+    "inviteCodeRequired": "초대 코드를 입력해주세요",
+    "invalidInviteCode": "유효하지 않은 초대 코드입니다",
+    "expiredInviteCode": "만료된 코드",
+    "inviteCodeError": "초대 코드 확인 중 오류가 발생했습니다",
+    "processing": "처리 중...",
+    "haveAccount": "이미 계정이 있으신가요? 로그인",
+    "noAccount": "계정이 없으신가요? 회원가입",
+    "alreadyRegistered": "이미 가입된 계정입니다. 로그인 페이지로 이동합니다.",
+    "alreadyRegisteredSignIn": "이미 가입된 계정입니다. 로그인해주세요.",
+    "signUpError": "회원가입 중 오류가 발생했습니다",
+    "signInError": "로그인에 실패했습니다. 다시 시도해주세요.",
+    "accountNotFound": "계정이 존재하지 않습니다. 먼저 회원가입을 진행해주세요.",
+    "signInFailedSignUp": "로그인에 실패했습니다. 계정이 없으시면 회원가입을 진행해주세요.",
+    "validInviteCodeRequired": "유효한 초대 코드를 입력해주세요",
+    "signUpPreparationError": "회원가입 준비 중 오류가 발생했습니다"
   },
   "UserOnboarding": {
     "step1Title": "콘텐츠 생성을 시작하게 된 계기는 무엇인가요?",
@@ -119,7 +138,8 @@
     "postNow": "지금 게시",
     "schedulePost": "포스트 예약",
     "premiumPlan": "프리미엄 플랜",
-    "login": "로그인"
+    "login": "로그인",
+    "joinOurCommunity": "커뮤니티에 합류하세요!"
   },
   "SocialAccountSelector": {
     "selectAccount": "계정 선택",
@@ -660,14 +680,14 @@
     "posted": "게시됨"
   },
   "editPostModal": {
-    "title": "콘텐츠 편집",
+    "title": "예약된 콘텐츠 편집",
     "failedStatus": "실패 - 저장 시 재예약됩니다",
     "loadingThreadChain": "스레드 체인을 불러오는 중...",
     "fallbackUsername": "나",
     "selectDate": "날짜 선택",
     "deleteSchedule": "예약 취소",
-    "cancel": "취소",
-    "saveChanges": "저장",
+    "cancel": "닫기",
+    "saveChanges": "저장하기",
     "unsavedChanges": "저장되지 않은 변경사항",
     "unsavedChangesMessage": "저장되지 않은 변경사항이 있습니다. 정말 닫으시겠습니까? 변경사항이 저장되지 않습니다.",
     "close": "닫기",
@@ -675,6 +695,15 @@
     "scheduleUpdated": "일정이 성공적으로 업데이트되었습니다!",
     "scheduledFor": "예약 시간",
     "timePlaceholder": "시간 선택"
+  },
+  "viewPostModal": {
+    "title": "게시물 인사이트",
+    "views": "조회수",
+    "likes": "좋아요",
+    "replies": "답글",
+    "reposts": "리포스트",
+    "shares": "공유",
+    "noInsights": "아직 인사이트가 존재하지 않아요"
   },
   "contentList": {
     "loginRequired": "🔒 콘텐츠를 보려면 로그인이 필요합니다.",

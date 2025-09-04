@@ -185,12 +185,13 @@ async function syncPostsToMyContents(
 
   for (const post of threadsPosts) {
     try {
-      // 기존 게시물 확인 (media_id로 검색)
+      // 기존 게시물 확인 (media_id와 social_id로 검색하여 중복 방지)
       const { data: existingPost } = await supabase
         .from('my_contents')
         .select('*')
         .eq('media_id', post.id)
         .eq('user_id', userId)
+        .eq('social_id', socialId)  // social_id도 함께 확인하여 더 정확한 중복 체크
         .single();
 
       const postData = {
@@ -206,18 +207,10 @@ async function syncPostsToMyContents(
       };
 
       if (existingPost) {
-        // 기존 게시물 업데이트
-        const { data: updated, error } = await supabase
-          .from('my_contents')
-          .update(postData)
-          .eq('my_contents_id', existingPost.my_contents_id)
-          .select()
-          .single();
-
-        // if (!error && updated) {
-        //   syncedPosts.push(updated);
-        //   synchronized++;
-        // }
+        // 기존 게시물 업데이트 - 기존 게시물은 스킵 (이미 존재하므로)
+        console.log(`⏭️ Skipping existing post: ${post.id}`);
+        // 이미 존재하는 게시물은 업데이트하지 않고 스킵
+        continue;
       } else {
         // 새 게시물 추가 (my_contents_id는 UUID 자동 생성)
         console.log("postData", postData);

@@ -7,13 +7,13 @@ export async function checkOnboardingStatus(userId: string) {
     // Check if user has completed onboarding
     const { data: onboardingData, error: onboardingError } = await supabase
       .from('user_onboarding')
-      .select('is_completed')
+      .select('*')
       .eq('user_id', userId)
       .limit(1)
       .order('created_at', { ascending: false })
-      .single();
+      .maybeSingle();
 
-    if (onboardingError && onboardingError.code !== 'PGRST116') {
+    if (onboardingError) {
       throw onboardingError;
     }
 

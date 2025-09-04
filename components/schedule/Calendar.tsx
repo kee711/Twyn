@@ -2,18 +2,18 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { format, isSameDay, startOfMonth } from 'date-fns'
-import { Image, Video, FileText, Images, Users } from 'lucide-react'
+import { Image, Video, FileText, Images } from 'lucide-react'
 import useSocialAccountStore from '@/stores/useSocialAccountStore'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getContents, updateContent } from '@/app/actions/content' // ⭐ 서버 액션 import
 import { updateThreadChain } from '@/app/actions/threadChain' // ⭐ threadChain 업데이트 import
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScheduleHeader } from './ScheduleHeader'
 import { List } from './List'
 import { EditPostModal } from './EditPostModal'
+import { ViewPostModal } from './ViewPostModal'
 import { Event } from './types'
 import { deleteSchedule } from '@/app/actions/schedule'
 import { utcISOToLocalTime } from '@/lib/utils/time'
@@ -31,6 +31,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [draggedEvent, setDraggedEvent] = useState<Event | null>(null)
   const [dropTargetDate, setDropTargetDate] = useState<Date | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -73,6 +74,15 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
               // scheduled 상태면 scheduled_at, posted 상태면 created_at 사용
               const dateField = content.publish_status === 'scheduled' ? content.scheduled_at : content.created_at;
               const eventDate = new Date(dateField);
+
+              // Log posted content's media ID
+              if (content.publish_status === 'posted') {
+                console.log('[Calendar] Posted content:', {
+                  id: content.my_contents_id,
+                  parent_media_id: content.parent_media_id,
+                  publish_status: content.publish_status
+                });
+              }
 
               return {
                 id: content.my_contents_id,
@@ -141,9 +151,11 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   }, [selectedDate, view])
 
   const handleEventClick = (event: Event) => {
+    setSelectedEvent(event)
     if (event.status === 'scheduled' || event.status === 'failed') {
-      setSelectedEvent(event)
       setIsEditModalOpen(true)
+    } else if (event.status === 'posted') {
+      setIsViewModalOpen(true)
     }
   }
 
@@ -384,7 +396,7 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
                                 ? 'bg-white border-gray-200 text-foreground cursor-grab hover:bg-gray-50'
                                 : event.status === 'failed'
                                   ? 'bg-red-50 border-red-200 text-red-700 cursor-grab hover:bg-red-100'
-                                  : 'bg-muted-foreground/5 border-gray-200 text-gray-500',
+                                  : 'bg-muted-foreground/5 border-gray-200 text-gray-500 cursor-pointer hover:bg-muted-foreground/10',
                               draggedEvent?.id === event.id && "opacity-50 ring-2 ring-primary ring-offset-2"
                             )}
                             onClick={() => handleEventClick(event)}
@@ -462,6 +474,17 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
         event={selectedEvent}
         onEventUpdate={handleEventUpdate}
         onEventDelete={handleEventDelete}
+      />
+
+      <ViewPostModal
+        isOpen={isViewModalOpen}
+        onOpenChange={(isOpen) => {
+          setIsViewModalOpen(isOpen)
+          if (!isOpen) {
+            setSelectedEvent(null)
+          }
+        }}
+        event={selectedEvent}
       />
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

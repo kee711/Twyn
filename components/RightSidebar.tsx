@@ -20,6 +20,8 @@ import { usePathname } from 'next/navigation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
 import { useTranslations } from 'next-intl';
+import useAiContentStore from '@/stores/useAiContentStore';
+import { trackUserAction } from '@/lib/analytics/mixpanel';
 
 // 문자열이 아닐 수도 있는 content를 안전하게 문자열로 변환
 function getContentString(value: unknown): string {
@@ -39,6 +41,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
   const pathname = usePathname();
+  const { originalAiContent } = useAiContentStore();
 
   // Use global thread chain store
   const {
@@ -332,6 +335,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
         content: getContentString(threadChain[0]?.content) || '',
         publish_status: "draft",
         social_id: currentSocialId,
+        ai_generated: originalAiContent ? originalAiContent : undefined,
       });
 
       if (error) throw error;
@@ -339,6 +343,13 @@ export function RightSidebar({ className }: RightSidebarProps) {
       // DB 저장 성공 시 localStorage 초기화
       localStorage.removeItem("draftContent");
       toast.success(t('draftSaved'));
+      
+      // Track content saved
+      trackUserAction.contentSaved({
+        type: 'draft',
+        isAiGenerated: !!originalAiContent,
+        threadCount: 1
+      });
     } catch (error) {
       console.error("Error saving draft:", error);
       toast.error(t('draftSaveFailed'));
@@ -385,7 +396,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       const message = validThreads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
       toast.success(message);
 
-      const result = await scheduleThreadChain(validThreads, selectedDateTime);
+      const result = await scheduleThreadChain(validThreads, selectedDateTime, originalAiContent);
 
       if (!result.success) throw new Error(result.error);
 
@@ -394,6 +405,13 @@ export function RightSidebar({ className }: RightSidebarProps) {
       localStorage.removeItem("draftContent");
       fetchScheduledTimes();
       setScheduleTime(null); // Reset schedule time after successful scheduling
+      
+      // Track content scheduled
+      trackUserAction.contentScheduled({
+        scheduledTime: selectedDateTime,
+        threadCount: validThreads.length,
+        isAiGenerated: !!originalAiContent
+      });
     } catch (error) {
       console.error("Error scheduling:", error);
       toast.error(t('scheduleFailed'));
@@ -416,13 +434,40 @@ export function RightSidebar({ className }: RightSidebarProps) {
       clearThreadChain();
       localStorage.removeItem("draftContent");
 
-      // Publish threads
+      // Publish threads - for now, we'll update the database after posting
+      // Since postThreadChain is also used by cron jobs, we'll handle ai_generated separately
       const result = await postThreadChain(validThreads);
 
       if (!result.success) {
         console.error("❌ Publish error:", result.error);
       } else {
         console.log("✅ Published:", result.threadIds);
+        
+        // Track content published
+        trackUserAction.contentPublished({
+          threadCount: validThreads.length,
+          isAiGenerated: !!originalAiContent,
+          publishType: 'immediate'
+        });
+        
+        // If there's AI-generated content and posting was successful, update the database
+        if (originalAiContent && result.parentThreadId) {
+          try {
+            const response = await fetch('/api/contents/update-ai-generated', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                parentMediaId: result.parentThreadId,
+                aiGenerated: originalAiContent
+              })
+            });
+            if (!response.ok) {
+              console.error('Failed to update ai_generated field');
+            }
+          } catch (error) {
+            console.error('Error updating ai_generated field:', error);
+          }
+        }
       }
     } catch (error) {
       console.error("❌ handlePublish error:", error);

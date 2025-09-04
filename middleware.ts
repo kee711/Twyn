@@ -4,13 +4,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { routing } from './i18n/routing'
 import { getToken } from 'next-auth/jwt'
 
-const publicPages = ['/', '/signin', '/privacy', '/data-deletion-policy']
+const publicPages = ['/', '/signin', '/signup', '/error', '/privacy', '/data-deletion-policy']
 
 const intlMiddleware = createIntlMiddleware(routing)
 
 const authMiddleware = withAuth(
   async function onSuccess(req) {
-    const token = await getToken({ req })
+    const token = await getToken({ 
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token'
+    })
     const pathname = req.nextUrl.pathname
 
     // Check if user needs onboarding
@@ -34,18 +40,26 @@ const authMiddleware = withAuth(
     pages: {
       signIn: '/signin',
     },
+    secret: process.env.NEXTAUTH_SECRET,
   }
 )
 
 export default function middleware(req: NextRequest) {
-  const publicPathnameRegex = RegExp(
-    `^(/(${routing.locales.join('|')}))?(${publicPages
-      .flatMap(p => (p === '/' ? ['', '/'] : p))
-      .join('|')})/?$`,
-    'i'
+  const pathname = req.nextUrl.pathname
+  
+  // Remove locale prefix for checking
+  const pathnameWithoutLocale = routing.locales.reduce(
+    (path, locale) => path.replace(new RegExp(`^/${locale}(/|$)`), '/'),
+    pathname
   )
-  const isPublicPage = publicPathnameRegex.test(req.nextUrl.pathname)
-
+  
+  // Check if it's a public page
+  const isPublicPage = publicPages.some(page => 
+    pathnameWithoutLocale === page || 
+    pathnameWithoutLocale.startsWith(`${page}/`)
+  )
+  
+  // Always apply intl middleware for public pages
   if (isPublicPage) {
     return intlMiddleware(req)
   } else {
@@ -54,5 +68,5 @@ export default function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|.*\\..*).*)']
+  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
 }

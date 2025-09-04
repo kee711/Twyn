@@ -5,6 +5,7 @@ import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay
 import { ko } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { EditPostModal } from './EditPostModal'
+import { ViewPostModal } from './ViewPostModal'
 import { Event } from './types' // Event 타입을 별도 파일로 분리했다고 가정
 import { localTimeToUTCISO } from '@/lib/utils/time'
 
@@ -24,6 +25,7 @@ export function List({
 }: ListProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [draggedEvent, setDraggedEvent] = useState<Event | null>(null)
   const [dropTargetDate, setDropTargetDate] = useState<Date | null>(null)
   const dateRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -34,9 +36,11 @@ export function List({
   const allDates = eachDayOfInterval({ start: startDate, end: endDate })
 
   const handleEventClick = (event: Event) => {
+    setSelectedEvent(event)
     if (event.status === 'scheduled' || event.status === 'failed') {
-      setSelectedEvent(event)
       setIsEditModalOpen(true)
+    } else if (event.status === 'posted') {
+      setIsViewModalOpen(true)
     }
   }
 
@@ -131,11 +135,11 @@ export function List({
                     className={cn(
                       'relative flex items-center justify-between p-3 rounded-xl',
                       event.status === 'scheduled'
-                        ? 'bg-blue-100 hover:bg-blue-200 text-foreground cursor-grab'
+                        ? 'bg-white border border-gray-200 text-foreground cursor-grab hover:bg-gray-50'
                         : event.status === 'failed'
-                          ? 'bg-red-100 hover:bg-red-200 text-foreground cursor-grab'
-                          : 'bg-[#D9D9D9] hover:bg-[#CCCCCC] text-foreground',
-                      draggedEvent?.id === event.id && "opacity-50"
+                          ? 'bg-red-50 border-red-200 text-red-700 cursor-grab hover:bg-red-100'
+                          : 'bg-muted-foreground/5 text-gray-500 cursor-pointer hover:bg-muted-foreground/10',
+                      draggedEvent?.id === event.id && "opacity-50 ring-2 ring-primary ring-offset-2"
                     )}
                     draggable={event.status === 'scheduled' || event.status === 'failed'}
                     onDragStart={(e) => handleDragStart(e, event)}
@@ -145,10 +149,10 @@ export function List({
                       className={cn(
                         "absolute top-3 right-3 h-2 w-2 rounded-full",
                         event.status === 'scheduled'
-                          ? "bg-yellow-500 animate-pulse"
+                          ? "bg-green-400 animate-pulse"
                           : event.status === 'failed'
                             ? "bg-red-500 animate-pulse"
-                            : "bg-green-500"
+                            : ""
                       )}
                     />
 
@@ -177,6 +181,17 @@ export function List({
           onEventDelete(eventId)
           setIsEditModalOpen(false)
         }}
+      />
+
+      <ViewPostModal
+        isOpen={isViewModalOpen}
+        onOpenChange={(isOpen) => {
+          setIsViewModalOpen(isOpen)
+          if (!isOpen) {
+            setSelectedEvent(null)
+          }
+        }}
+        event={selectedEvent}
       />
     </div>
   )

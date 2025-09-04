@@ -1,12 +1,13 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { checkOnboardingStatus } from '@/lib/utils/check-onboarding'
 import { SocialButton } from '@/components/signin/buttons/social-button'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
+import { useRouter } from '@/i18n/navigation'
 
 export default function SignInClient() {
   const t = useTranslations('auth')
@@ -15,35 +16,98 @@ export default function SignInClient() {
   const callbackUrl = searchParams.get('callbackUrl') || '/contents/topic-finder'
   const { data: session, status } = useSession()
 
+  // Check for error messages in URL after page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const error = searchParams.get('error')
+      
+      if (error === 'AccessDenied' || error === 'OAuthAccountNotLinked') {
+        // Check if we're coming from a signup attempt by checking for signup cookie
+        fetch('/api/auth/check-signup-intent')
+          .then(res => res.json())
+          .then(data => {
+            if (data.isSignupIntent) {
+              // This was a signup attempt with existing user
+              toast.error(t('alreadyRegisteredSignIn'), {
+                duration: 4000,
+                position: 'top-center'
+              })
+            } else {
+              // Regular sign in failure
+              toast.error(t('accountNotFound'), {
+                duration: 4000,
+                position: 'top-center'
+              })
+            }
+          })
+          .catch(() => {
+            // Fallback error message
+            toast.error(t('signInError'), {
+              duration: 4000,
+              position: 'top-center'
+            })
+          })
+        
+        // Clear the error parameter from URL
+        const newSearchParams = new URLSearchParams(searchParams.toString())
+        newSearchParams.delete('error')
+        const newUrl = newSearchParams.toString() ? `/signin?${newSearchParams.toString()}` : '/signin'
+        router.replace(newUrl)
+      } else if (error === 'Callback' || error === 'Default') {
+        // These are generic NextAuth errors
+        toast.error(t('signInFailedSignUp'), {
+          duration: 4000,
+          position: 'top-center'
+        })
+        
+        // Clear the error parameter from URL
+        const newSearchParams = new URLSearchParams(searchParams.toString())
+        newSearchParams.delete('error')
+        const newUrl = newSearchParams.toString() ? `/signin?${newSearchParams.toString()}` : '/signin'
+        router.replace(newUrl)
+      }
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, [searchParams, router])
+
   // 세션이 있으면 온보딩 상태 확인 후 리다이렉트
   useEffect(() => {
+    // Only redirect if authenticated AND not already redirecting
     if (status === 'authenticated' && session?.user?.id) {
+      // Prevent multiple redirects
+      const isRedirecting = sessionStorage.getItem('redirecting')
+      if (isRedirecting) return
+      
+      sessionStorage.setItem('redirecting', 'true')
+      
       const handleRedirect = async () => {
         try {
           const onboardingStatus = await checkOnboardingStatus(session.user.id)
 
-          // 온보딩이 완료된 사용자는 바로 callbackUrl로 이동
-          if (!onboardingStatus) {
-            console.log('✅ User onboarding complete, redirecting to:', callbackUrl);
-            window.location.href = callbackUrl
-          } else if (onboardingStatus) {
-            console.log('👤 User onboarding needed, redirecting to user onboarding');
-            window.location.href = '/onboarding?type=user'
+          if (onboardingStatus) {
+            console.log('👤 User needs onboarding')
+            // Use router.push instead of window.location.href for better control
+            router.push('/onboarding?type=user')
           } else {
-            console.log('🔄 Fallback case, redirecting to:', callbackUrl);
-            // Fallback - 온보딩 상태가 명확하지 않은 경우 기본 페이지로
-            window.location.href = callbackUrl
+            console.log('✅ Redirecting to:', callbackUrl)
+            // Use router.push for consistent behavior
+            router.push(callbackUrl)
           }
         } catch (error) {
-          console.error('❌ Error checking onboarding status:', error)
-          // Fallback to default redirect
-          window.location.href = callbackUrl
+          console.error('❌ Error checking onboarding:', error)
+          router.push(callbackUrl)
+        } finally {
+          // Clear the redirecting flag after a delay
+          setTimeout(() => {
+            sessionStorage.removeItem('redirecting')
+          }, 1000)
         }
       }
 
       handleRedirect()
     }
-  }, [session, status, router, callbackUrl])
+  }, [session, status, callbackUrl, router])
 
   // 로딩 상태 표시를 위한 상태
   const [isLoading, setIsLoading] = useState(true)
@@ -62,6 +126,15 @@ export default function SignInClient() {
     } else {
       router.push('/')
     }
+  }
+
+  // Google 로그인 핸들러
+  const handleGoogleSignIn = async () => {
+    console.log('🔐 Starting sign in flow')
+    await signIn('google', { 
+      callbackUrl,
+      redirect: true
+    })
   }
 
   // 로딩 중이면 로딩 UI 표시
@@ -104,7 +177,9 @@ export default function SignInClient() {
           </button>
 
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('welcome')}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {t('welcome')}
+            </h1>
             <p className="text-sm text-gray-600 dark:text-gray-300">
               {t('signInDescription')}
             </p>
@@ -115,10 +190,20 @@ export default function SignInClient() {
               social="google"
               theme="brand"
               className="w-full"
-              onClick={() => signIn('google', { callbackUrl })}
+              onClick={handleGoogleSignIn}
             >
               {t('signInWithGoogle')}
             </SocialButton>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => router.push('/signup')}
+                className="text-sm text-primary hover:underline"
+              >
+                {t('noAccount')}
+              </button>
+            </div>
 
             <div className="text-center text-xs text-gray-500">
               {t('privacyNotice')} <a href="/privacy" className="text-primary hover:underline" target="_blank">{t('privacyPolicy')}</a>.

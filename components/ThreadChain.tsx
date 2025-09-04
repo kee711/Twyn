@@ -16,6 +16,7 @@ interface ThreadChainProps {
   onAiClick?: () => void;
   // Default variant props
   className?: string;
+  readOnly?: boolean;
 }
 
 export function ThreadChain({
@@ -28,7 +29,8 @@ export function ThreadChain({
   onAddThread,
   onRemoveThread,
   onAiClick,
-  className = ''
+  className = '',
+  readOnly = false
 }: ThreadChainProps) {
   const isWriting = variant === 'writing';
 
@@ -45,6 +47,7 @@ export function ThreadChain({
           media={thread.media_urls || []}
           onMediaChange={isWriting ? (media) => onThreadMediaChange?.(index, media) : undefined}
           onAiClick={isWriting ? onAiClick : undefined}
+          readOnly={readOnly}
           // Thread chain specific props
           isPartOfChain={true}
           threadIndex={index}

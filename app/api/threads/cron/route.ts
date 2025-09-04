@@ -300,15 +300,25 @@ export async function POST() {
                   recordId: record.my_contents_id,
                   status,
                   mediaId,
-                  threadSequence: record.thread_sequence
+                  threadSequence: record.thread_sequence,
+                  oldParentMediaId: record.parent_media_id,
+                  newParentMediaId: threadChainResult.parentThreadId
                 });
 
+                // Update the parent_media_id with the actual Threads media ID for ALL threads in the chain
+                const updateData: any = {
+                  publish_status: status,
+                  media_id: mediaId
+                };
+                
+                // Update parent_media_id for ALL threads in the chain with the actual Threads media ID
+                if (threadChainResult.parentThreadId) {
+                  updateData.parent_media_id = threadChainResult.parentThreadId;
+                }
+                
                 await supabase
                   .from('my_contents')
-                  .update({
-                    publish_status: status,
-                    media_id: mediaId
-                  })
+                  .update(updateData)
                   .eq('my_contents_id', record.my_contents_id);
               })
             );
@@ -467,12 +477,17 @@ export async function POST() {
             totalPosts
           });
 
-          console.log(`📝 [route.ts:POST:404] Updating single post to 'posted' status`);
+          console.log(`📝 [route.ts:POST:404] Updating single post to 'posted' status with media IDs:`, {
+            oldParentMediaId: post.parent_media_id,
+            newParentMediaId: threadChainResult.parentThreadId
+          });
           await supabase
             .from('my_contents')
             .update({
               publish_status: 'posted',
-              media_id: threadChainResult.parentThreadId || null
+              media_id: threadChainResult.parentThreadId || null,
+              // Also update parent_media_id with the actual Threads media ID
+              parent_media_id: threadChainResult.parentThreadId || null
             })
             .eq('my_contents_id', post.my_contents_id);
 

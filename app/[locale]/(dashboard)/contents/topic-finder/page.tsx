@@ -24,6 +24,8 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { useContentGenerationStore } from '@/lib/stores/content-generation';
 // removed duplicate import
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
+import useAiContentStore from '@/stores/useAiContentStore';
+import { trackUserAction } from '@/lib/analytics/mixpanel';
 
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
@@ -40,6 +42,7 @@ export default function TopicFinderPage() {
     const [selectedHeadline, setSelectedHeadline] = useState<string>('');
     const [givenInstruction, setGivenInstruction] = useState<string>('');
     const { postType, language } = useContentGenerationStore();
+    const { setOriginalAiContent } = useAiContentStore();
 
     // Memoize Supabase client to prevent creating new instances
     const supabase = useMemo(() => createClient(), []);
@@ -264,10 +267,19 @@ export default function TopicFinderPage() {
                         media_type: 'TEXT' as const
                     }));
                     setPendingThreadChain(threadChain);
+                    setOriginalAiContent(threadChain); // Store original AI content
                     setTopicDetail(headline, finalThreads.join('\n\n'));
                     setGenerationStatus(null);
                     clearGenerationPreview();
                     toast.success(t('threadsGenerated', { count: threadChain.length }));
+                    
+                    // Track AI content generation
+                    trackUserAction.aiContentGenerated({
+                        topic: headline,
+                        postType: postType as 'single' | 'thread',
+                        language,
+                        threadCount: threadChain.length
+                    });
                 } else {
                     throw new Error('No threads received');
                 }
@@ -280,10 +292,19 @@ export default function TopicFinderPage() {
                     media_type: 'TEXT' as const
                 }));
                 setPendingThreadChain(threadChain);
+                setOriginalAiContent(threadChain); // Store original AI content
                 setTopicDetail(headline, data.threads.join('\n\n'));
                 setGenerationStatus(null);
                 clearGenerationPreview();
                 toast.success(t('threadsGenerated', { count: threadChain.length }));
+                
+                // Track AI content generation
+                trackUserAction.aiContentGenerated({
+                    topic: headline,
+                    postType: postType as 'single' | 'thread',
+                    language,
+                    threadCount: threadChain.length
+                });
             }
         } catch (e) {
             toast.error(t('failedToGenerateChain'));
