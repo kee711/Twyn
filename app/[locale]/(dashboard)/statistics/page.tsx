@@ -128,7 +128,7 @@ export default function StatisticsPage() {
     useEffect(() => {
         setIsClient(true);
         setSelectedAccount(getSelectedAccount());
-    }, [currentSocialId, getSelectedAccount]);
+    }, [currentSocialId]);
 
     // 30일, 90일 데이터 prefetching
     useEffect(() => {
@@ -244,97 +244,63 @@ export default function StatisticsPage() {
 
     // Process demographic data for charts
     const processAgeDemographics = () => {
-        // MOCK DATA START - Remove this block for production
-        const USE_MOCK_DATA = true; // Set to false to use real data
-        const SIMULATE_NO_DATA = false; // Set to true to test blur UI
-        if (USE_MOCK_DATA && !SIMULATE_NO_DATA) {
-            const mockData = [
-                { name: '18-24', value: 2500 },
-                { name: '25-34', value: 3500 },
-                { name: '35-44', value: 2000 },
-                { name: '45-54', value: 1500 },
-                { name: '55+', value: 500 }
-            ];
-            const total = mockData.reduce((sum, item) => sum + item.value, 0);
-            return mockData.map((item, index) => ({
-                name: item.name,
+        // Check if we have real data (followers >= 100)
+        const followersCount = getInsightValue('followers_count');
+        const hasEnoughFollowers = followersCount >= 100;
+        
+        // If we have real data and enough followers, use it
+        if (hasEnoughFollowers && ageData?.values && ageData.values.length > 0) {
+            const total = ageData.values.reduce((sum: number, item: any) => sum + item.value, 0);
+            return ageData.values.map((item: any, index: number) => ({
+                name: item.name || item.age_range || 'Unknown',
                 value: item.value,
                 percentage: Math.round((item.value / total) * 100),
-                // Using blue gradient for age
                 fill: `hsl(217, 91%, ${70 - index * 10}%)`
             }));
         }
-        if (SIMULATE_NO_DATA) return [];
-        // MOCK DATA END
         
-        if (!ageData?.values) return [];
-        const total = ageData.values.reduce((sum: number, item: any) => sum + item.value, 0);
-        return ageData.values.map((item: any, index: number) => ({
-            name: item.name || item.age_range || 'Unknown',
-            value: item.value,
-            percentage: Math.round((item.value / total) * 100),
-            fill: `hsl(217, 91%, ${70 - index * 10}%)`
-        }));
+        // Return empty array to show blurred mock data
+        return [];
     };
 
     const processGenderDemographics = () => {
-        // MOCK DATA START - Remove this block for production
-        const USE_MOCK_DATA = true; // Set to false to use real data
-        const SIMULATE_NO_DATA = false; // Set to true to test blur UI
-        if (USE_MOCK_DATA && !SIMULATE_NO_DATA) {
-            const mockData = [
-                { name: t('demographics.male'), value: 5600 },
-                { name: t('demographics.female'), value: 4400 }
-            ];
-            const total = mockData.reduce((sum, item) => sum + item.value, 0);
-            return mockData.map((item, index) => ({
-                name: item.name,
+        // Check if we have real data (followers >= 100)
+        const followersCount = getInsightValue('followers_count');
+        const hasEnoughFollowers = followersCount >= 100;
+        
+        // If we have real data and enough followers, use it
+        if (hasEnoughFollowers && genderData?.values && genderData.values.length > 0) {
+            const total = genderData.values.reduce((sum: number, item: any) => sum + item.value, 0);
+            return genderData.values.map((item: any, index: number) => ({
+                name: item.name === 'M' ? t('demographics.male') :
+                    item.name === 'F' ? t('demographics.female') :
+                        t('demographics.unknown'),
                 value: item.value,
                 percentage: Math.round((item.value / total) * 100),
-                // Using purple gradient for gender
                 fill: `hsl(270, 70%, ${65 - index * 15}%)`
             }));
         }
-        if (SIMULATE_NO_DATA) return [];
-        // MOCK DATA END
         
-        if (!genderData?.values) return [];
-        const total = genderData.values.reduce((sum: number, item: any) => sum + item.value, 0);
-        return genderData.values.map((item: any, index: number) => ({
-            name: item.name === 'M' ? t('demographics.male') :
-                item.name === 'F' ? t('demographics.female') :
-                    t('demographics.unknown'),
-            value: item.value,
-            percentage: Math.round((item.value / total) * 100),
-            fill: `hsl(270, 70%, ${65 - index * 15}%)`
-        }));
+        // Return empty array to show blurred mock data
+        return [];
     };
 
     // Process geographic data for map
     const processGeographicData = () => {
-        // MOCK DATA START - Remove this block for production
-        const USE_MOCK_DATA = true; // Set to false to use real data
-        const SIMULATE_NO_DATA = false; // Set to true to test blur UI
-        if (USE_MOCK_DATA && !SIMULATE_NO_DATA) {
-            return [
-                { country: 'United States', value: 3500 },
-                { country: 'South Korea', value: 2800 },
-                { country: 'Japan', value: 1500 },
-                { country: 'United Kingdom', value: 1200 },
-                { country: 'Germany', value: 800 },
-                { country: 'France', value: 600 },
-                { country: 'Canada', value: 500 },
-                { country: 'Australia', value: 400 }
-            ];
-        }
-        if (SIMULATE_NO_DATA) return [];
-        // MOCK DATA END
+        // Check if we have real data (followers >= 100)
+        const followersCount = getInsightValue('followers_count');
+        const hasEnoughFollowers = followersCount >= 100;
         
-        if (!countryData?.values) return [];
-        return countryData.values.map((item: any) => ({
-            country: item.name,
-            value: item.value
-        }));
+        // If we have real data and enough followers, use it
+        if (hasEnoughFollowers && countryData?.values && countryData.values.length > 0) {
+            return countryData.values.map((item: any) => ({
+                country: item.name,
+                value: item.value
+            }));
+        }
+        
+        // Return empty array to show blurred mock data
+        return [];
     };
 
     // Generate insights based on demographics
@@ -379,17 +345,20 @@ export default function StatisticsPage() {
     const genderPieData = processGenderDemographics();
     const geographicData = processGeographicData();
     const demographicInsights = generateDemographicInsights();
-    
+
     // Calculate geographic totals for use in map and list
     const totalGeographicFollowers = geographicData.reduce((sum: number, d: any) => sum + d.value, 0);
     const maxGeographicValue = geographicData.length > 0 ? Math.max(...geographicData.map((d: any) => d.value)) : 0;
-    
+
     // Fetch AI insights for demographics
     const { data: aiComments, isLoading: isLoadingAIComments } = useDemographicInsights(
         agePieData,
         genderPieData,
         locale
     );
+    
+    // Use real AI comments when available, no mock comments needed
+    const displayAIComments = aiComments;
 
     // 메트릭 카드 데이터
     const metricCards = [
@@ -539,7 +508,7 @@ export default function StatisticsPage() {
                             ) : (
                                 <RefreshCw className="h-4 w-4" />
                             )}
-                            {t('refresh')}
+                            <span className="hidden sm:inline">{t('refresh')}</span>
                         </button>
                     </div>
                 </div>
@@ -691,7 +660,7 @@ export default function StatisticsPage() {
                         {/* Demographics Section */}
                         <div className="space-y-4">
                             {/* Age & Gender Charts */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 h-full md:grid-cols-2 gap-4">
                                 {/* Age Distribution */}
                                 <Card>
                                     <CardHeader className="pb-4">
@@ -699,6 +668,9 @@ export default function StatisticsPage() {
                                             <Users className="w-4 h-4" />
                                             {t('demographics.ageDistribution')}
                                         </CardTitle>
+                                        <CardDescription className="text-sm text-muted-foreground">
+                                            {t('charts.forLastDays', { days: selectedDateRange })}
+                                        </CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="h-48 relative">
@@ -706,22 +678,22 @@ export default function StatisticsPage() {
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart data={agePieData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                        <XAxis 
-                                                            dataKey="name" 
+                                                        <XAxis
+                                                            dataKey="name"
                                                             tick={{ fontSize: 12 }}
                                                             stroke="#6b7280"
                                                         />
-                                                        <YAxis 
+                                                        <YAxis
                                                             tick={{ fontSize: 12 }}
                                                             stroke="#6b7280"
                                                             tickFormatter={(value) => `${value}%`}
                                                         />
-                                                        <Tooltip 
+                                                        <Tooltip
                                                             formatter={(value: any) => `${value}%`}
                                                             contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb' }}
                                                         />
-                                                        <Bar 
-                                                            dataKey="percentage" 
+                                                        <Bar
+                                                            dataKey="percentage"
                                                             radius={[8, 8, 0, 0]}
                                                         >
                                                             {agePieData.map((entry: any, index: number) => (
@@ -734,26 +706,33 @@ export default function StatisticsPage() {
                                                 <>
                                                     <div className="h-full blur-sm">
                                                         <ResponsiveContainer width="100%" height="100%">
-                                                            <PieChart>
-                                                                <Pie
-                                                                    data={[
-                                                                        { name: '18-24', value: 25, color: '#3b82f6' },
-                                                                        { name: '25-34', value: 35, color: '#10b981' },
-                                                                        { name: '35-44', value: 20, color: '#f59e0b' },
-                                                                        { name: '45+', value: 20, color: '#ef4444' }
-                                                                    ]}
-                                                                    cx="50%"
-                                                                    cy="50%"
-                                                                    outerRadius={60}
-                                                                    fill="#8884d8"
-                                                                    dataKey="value"
+                                                            <BarChart data={[
+                                                                { name: '18-24', percentage: 25, fill: `hsl(217, 91%, 70%)` },
+                                                                { name: '25-34', percentage: 35, fill: `hsl(217, 91%, 60%)` },
+                                                                { name: '35-44', percentage: 20, fill: `hsl(217, 91%, 50%)` },
+                                                                { name: '45-54', percentage: 15, fill: `hsl(217, 91%, 40%)` },
+                                                                { name: '55+', percentage: 5, fill: `hsl(217, 91%, 30%)` }
+                                                            ]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                                <XAxis
+                                                                    dataKey="name"
+                                                                    tick={{ fontSize: 12 }}
+                                                                    stroke="#6b7280"
+                                                                />
+                                                                <YAxis
+                                                                    tick={{ fontSize: 12 }}
+                                                                    stroke="#6b7280"
+                                                                    tickFormatter={(value) => `${value}%`}
+                                                                />
+                                                                <Bar
+                                                                    dataKey="percentage"
+                                                                    radius={[8, 8, 0, 0]}
                                                                 >
-                                                                    <Cell fill="#3b82f6" />
-                                                                    <Cell fill="#10b981" />
-                                                                    <Cell fill="#f59e0b" />
-                                                                    <Cell fill="#ef4444" />
-                                                                </Pie>
-                                                            </PieChart>
+                                                                    {[0, 1, 2, 3, 4].map((index) => (
+                                                                        <Cell key={`cell-${index}`} fill={`hsl(217, 91%, ${70 - index * 10}%)`} />
+                                                                    ))}
+                                                                </Bar>
+                                                            </BarChart>
                                                         </ResponsiveContainer>
                                                     </div>
                                                     <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80">
@@ -776,11 +755,11 @@ export default function StatisticsPage() {
                                                             {t('generatingInsight')}
                                                         </p>
                                                     </div>
-                                                ) : aiComments?.age ? (
+                                                ) : displayAIComments?.age ? (
                                                     <div className="flex gap-2">
                                                         <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                                                         <p className="text-sm text-muted-foreground leading-relaxed">
-                                                            {aiComments.age}
+                                                            {displayAIComments.age}
                                                         </p>
                                                     </div>
                                                 ) : null}
@@ -796,6 +775,9 @@ export default function StatisticsPage() {
                                             <UserCheck className="w-4 h-4" />
                                             {t('demographics.genderDistribution')}
                                         </CardTitle>
+                                        <CardDescription className="text-sm text-muted-foreground">
+                                            {t('charts.forLastDays', { days: selectedDateRange })}
+                                        </CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="h-48 relative">
@@ -816,7 +798,7 @@ export default function StatisticsPage() {
                                                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                                                             ))}
                                                         </Pie>
-                                                        <Tooltip 
+                                                        <Tooltip
                                                             formatter={(value: any) => `${value}%`}
                                                             contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb' }}
                                                         />
@@ -829,17 +811,19 @@ export default function StatisticsPage() {
                                                             <PieChart>
                                                                 <Pie
                                                                     data={[
-                                                                        { name: 'Male', value: 45, color: '#3b82f6' },
-                                                                        { name: 'Female', value: 55, color: '#ec4899' }
+                                                                        { name: 'Male', percentage: 56, fill: `hsl(270, 70%, 65%)` },
+                                                                        { name: 'Female', percentage: 44, fill: `hsl(270, 70%, 50%)` }
                                                                     ]}
                                                                     cx="50%"
                                                                     cy="50%"
                                                                     outerRadius={60}
                                                                     fill="#8884d8"
-                                                                    dataKey="value"
+                                                                    dataKey="percentage"
+                                                                    label={({ name, percentage }) => `${name}: ${percentage}%`}
+                                                                    labelLine={false}
                                                                 >
-                                                                    <Cell fill="#3b82f6" />
-                                                                    <Cell fill="#ec4899" />
+                                                                    <Cell fill={`hsl(270, 70%, 65%)`} />
+                                                                    <Cell fill={`hsl(270, 70%, 50%)`} />
                                                                 </Pie>
                                                             </PieChart>
                                                         </ResponsiveContainer>
@@ -864,11 +848,11 @@ export default function StatisticsPage() {
                                                             {t('generatingInsight')}
                                                         </p>
                                                     </div>
-                                                ) : aiComments?.gender ? (
+                                                ) : displayAIComments?.gender ? (
                                                     <div className="flex gap-2">
                                                         <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                                                         <p className="text-sm text-muted-foreground leading-relaxed">
-                                                            {aiComments.gender}
+                                                            {displayAIComments.gender}
                                                         </p>
                                                     </div>
                                                 ) : null}
@@ -909,19 +893,27 @@ export default function StatisticsPage() {
                         <CardContent className="overflow-hidden">
                             {geographicData.length > 0 ? (
                                 <>
-                                    <div className="h-[400px] w-full relative" style={{ aspectRatio: '2/1' }}>
+                                    <div className="h-[350px] w-full relative">
                                         <ComposableMap
-                                            projection="geoMercator"
+                                            projection="geoNaturalEarth1"
                                             projectionConfig={{
-                                                scale: 120,
-                                                center: [0, 10]
+                                                scale: 155,
+                                                center: [20, 0],
+                                                rotate: [-20, 0, 0]
                                             }}
+                                            width={800}
+                                            height={350}
                                             style={{
                                                 width: "100%",
                                                 height: "100%"
                                             }}
                                         >
-                                            <ZoomableGroup disablePanning disableZooming zoom={1} center={[0, 0]}>
+                                            <ZoomableGroup
+                                                zoom={1}
+                                                center={[0, 0]}
+                                                minZoom={1}
+                                                maxZoom={1}
+                                            >
                                                 <Geographies geography="/world-110m.json">
                                                     {({ geographies }: { geographies: any[] }) => {
                                                         return geographies.map((geo: any) => {
@@ -930,7 +922,7 @@ export default function StatisticsPage() {
                                                             );
                                                             const percentage = countryData ? Math.round((countryData.value / totalGeographicFollowers) * 100) : 0;
                                                             const intensity = countryData ? countryData.value / maxGeographicValue : 0;
-                                                            
+
                                                             // Generate color based on intensity
                                                             const getColor = (intensity: number) => {
                                                                 if (intensity === 0) return "#e5e7eb";
@@ -940,7 +932,7 @@ export default function StatisticsPage() {
                                                                 if (intensity < 0.8) return "#3b82f6";
                                                                 return "#2563eb";
                                                             };
-                                                            
+
                                                             return (
                                                                 <Geography
                                                                     key={geo.rsmKey}
@@ -985,10 +977,10 @@ export default function StatisticsPage() {
                                                         'China': [104, 35],
                                                         'Mexico': [-102, 23]
                                                     };
-                                                    
+
                                                     const coordinates = countryCoordinates[country.country];
                                                     if (!coordinates || percentage < 5) return null; // Only show label for countries > 5%
-                                                    
+
                                                     return (
                                                         <Marker key={country.country} coordinates={coordinates}>
                                                             <text
@@ -1036,19 +1028,27 @@ export default function StatisticsPage() {
                             ) : (
                                 <div className="relative">
                                     <div className="blur-sm">
-                                        <div className="h-[400px] w-full overflow-hidden relative" style={{ aspectRatio: '2/1' }}>
+                                        <div className="h-[350px] w-full overflow-hidden relative">
                                             <ComposableMap
-                                                projection="geoMercator"
+                                                projection="geoNaturalEarth1"
                                                 projectionConfig={{
-                                                    scale: 120,
-                                                    center: [0, 10]
+                                                    scale: 155,
+                                                    center: [20, 0],
+                                                    rotate: [-20, 0, 0]
                                                 }}
+                                                width={800}
+                                                height={350}
                                                 style={{
                                                     width: "100%",
                                                     height: "100%"
                                                 }}
                                             >
-                                                <ZoomableGroup disablePanning disableZooming zoom={1} center={[0, 0]}>
+                                                <ZoomableGroup
+                                                    zoom={1}
+                                                    center={[0, 0]}
+                                                    minZoom={1}
+                                                    maxZoom={1}
+                                                >
                                                     <Geographies geography="/world-110m.json">
                                                         {({ geographies }: { geographies: any[] }) =>
                                                             geographies.map((geo: any) => {
