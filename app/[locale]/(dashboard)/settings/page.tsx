@@ -174,12 +174,25 @@ export default function SettingsPage() {
       // Clear any localStorage or sessionStorage if needed
       localStorage.clear();
       sessionStorage.clear();
+      
+      // Clear server-side cookies through API
+      try {
+        await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Error clearing cookies:', error);
+      }
     }
     
+    // Use signOut with redirect false first to ensure proper cleanup
     await signOut({ 
-      redirect: true, 
-      callbackUrl: '/' 
-    })
+      redirect: false 
+    });
+    
+    // Then manually redirect to ensure clean state
+    window.location.href = '/';
   }
 
 
