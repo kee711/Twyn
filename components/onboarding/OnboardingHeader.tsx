@@ -10,7 +10,29 @@ export function OnboardingHeader() {
   const t = useTranslations('auth');
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/signin' });
+    // Clear client-side storage
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear server-side cookies through API
+      try {
+        await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Error clearing cookies:', error);
+      }
+    }
+    
+    // Sign out and redirect
+    await signOut({ 
+      redirect: false 
+    });
+    
+    // Manually redirect to ensure clean state
+    window.location.href = '/signin';
   };
 
   return (
