@@ -638,12 +638,13 @@ function RightSidebarContent({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { generationStatus } = useThreadChainStore();
 
+  const isThinking = typeof generationStatus === 'string' && generationStatus.toLowerCase().includes('thinking');
+
   // Animated thinking status (cycles every 3s) and dots
   const [animatedStatus, setAnimatedStatus] = useState<string | null>(null);
   const [dots, setDots] = useState<string>('');
 
   useEffect(() => {
-    const isThinking = typeof generationStatus === 'string' && generationStatus.toLowerCase().includes('thinking');
     let phraseTimer: ReturnType<typeof setInterval> | null = null;
     let dotsTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -673,7 +674,9 @@ function RightSidebarContent({
       if (phraseTimer) clearInterval(phraseTimer);
       if (dotsTimer) clearInterval(dotsTimer);
     };
-  }, [generationStatus]);
+  }, [generationStatus, isThinking, t]);
+
+  const thinkingPlaceholder = isThinking && animatedStatus ? `${animatedStatus}${dots}` : null;
 
   // Check if any thread exceeds character limit
   const hasCharacterLimitViolation = () => {
@@ -741,6 +744,7 @@ function RightSidebarContent({
             onAddThread={addNewThread}
             onRemoveThread={removeThread}
             onAiClick={() => setShowAiInput(!showAiInput)}
+            thinkingPlaceholder={thinkingPlaceholder}
           />
           {/* Divider with Text */}
           <div className="relative">
