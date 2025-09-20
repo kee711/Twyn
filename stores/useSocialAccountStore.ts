@@ -34,8 +34,8 @@ const useSocialAccountStore = create<SocialAccountStore>()(
       accounts: [],
       selectedAccounts: {},
       isLoading: false,
-       currentSocialId: '',
-       currentUsername: '',
+      currentSocialId: '',
+      currentUsername: '',
 
       setAccounts: (accounts, selected) => {
         const nextSelected: SelectedAccountMap = { ...selected };
