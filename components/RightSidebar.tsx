@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ThreadChain } from "@/components/ThreadChain";
 import { cn } from "@/lib/utils";
 import { debugFetch } from "@/lib/utils/debug-fetch";
-import useThreadChainStore from "@/stores/useThreadChainStore";
-import { TextSearch, PencilLine, FileText, PanelRightClose, PanelLeftClose, ChevronDown, FileEdit, Bookmark, Plus } from "lucide-react";
+import useThreadChainStore, { PLATFORM_KEYS, type PlatformKey } from "@/stores/useThreadChainStore";
+import { TextSearch, PencilLine, FileText, PanelRightClose, PanelLeftClose, ChevronDown, FileEdit, Bookmark, Plus, Link2Off, Link2, CircleX } from "lucide-react";
 import { createContent } from "@/app/actions/content";
 import { toast } from "sonner";
 import { postThreadChain, scheduleThreadChain, ThreadContent } from "@/app/actions/threadChain";
@@ -28,6 +28,37 @@ function getContentString(value: unknown): string {
   return typeof value === 'string' ? value : String(value ?? '');
 }
 
+interface PlatformButtonConfig {
+  key: PlatformKey;
+  imageSrc: string;
+  alt: string;
+}
+
+interface PlatformPublishPayload {
+  platform: PlatformKey;
+  threads: ThreadContent[];
+}
+
+const PLATFORM_DISPLAY_NAMES: Record<PlatformKey, string> = {
+  threads: 'Threads',
+  x: 'X',
+  farcaster: 'Farcaster'
+};
+
+const SUPPORTED_IMMEDIATE_PLATFORMS: PlatformKey[] = ['threads', 'farcaster', 'x'];
+const SUPPORTED_SCHEDULE_PLATFORMS: PlatformKey[] = ['threads'];
+
+const cloneThreadsForPayload = (threads: ThreadContent[]): ThreadContent[] =>
+  threads.map((thread) => ({
+    ...thread,
+    media_urls: thread.media_urls ? [...thread.media_urls] : [],
+    media_type: thread.media_type || (thread.media_urls && thread.media_urls.length > 1
+      ? 'CAROUSEL'
+      : thread.media_urls && thread.media_urls.length === 1
+        ? 'IMAGE'
+        : 'TEXT')
+  }));
+
 interface RightSidebarProps {
   className?: string;
 }
@@ -38,7 +69,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const [showAiInput, setShowAiInput] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number>(0);
-  const { currentSocialId, getSelectedAccount } = useSocialAccountStore();
+  const { accounts, currentSocialId, getSelectedAccount } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
   const pathname = usePathname();
   const { originalAiContent } = useAiContentStore();
@@ -54,8 +85,189 @@ export function RightSidebar({ className }: RightSidebarProps) {
     clearThreadChain,
     pendingThreadChain,
     applyPendingThreadChain,
-    generationStatus
+    generationStatus,
+    platformMode,
+    setPlatformMode,
+    activePlatforms,
+    togglePlatformActive,
+    platformContents,
+    setPlatformThreads,
+    updatePlatformThreadContent,
+    updatePlatformThreadMedia,
+    addPlatformThread,
+    removePlatformThread
   } = useThreadChainStore();
+
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey>('threads');
+  const isUnlinked = platformMode === 'unlinked';
+
+  useEffect(() => {
+    if (!isUnlinked) {
+      setSelectedPlatform('threads');
+      return;
+    }
+
+    if (!activePlatforms[selectedPlatform]) {
+      const fallback = PLATFORM_KEYS.find(platform => activePlatforms[platform]) || 'threads';
+      setSelectedPlatform(fallback);
+    }
+  }, [isUnlinked, activePlatforms, selectedPlatform]);
+
+  const handleUnlinkToggle = () => {
+    setPlatformMode(isUnlinked ? 'linked' : 'unlinked');
+  };
+
+  const handlePlatformSelect = (platform: PlatformKey) => {
+    if (isUnlinked) {
+      setSelectedPlatform(platform);
+    }
+  };
+
+  const platformButtons: PlatformButtonConfig[] = [
+    {
+      key: 'threads',
+      imageSrc: '/threads_logo_blk.svg',
+      alt: 'Threads logo'
+    },
+    {
+      key: 'x',
+      imageSrc: '/x-logo.jpg',
+      alt: 'X logo'
+    },
+    {
+      key: 'farcaster',
+      imageSrc: '/farcaster-logo.svg',
+      alt: 'Farcaster logo'
+    }
+  ];
+
+  const handlePlatformToggle = (platform: PlatformKey) => {
+    togglePlatformActive(platform);
+  };
+
+  const getThreadsForPlatform = (platform: PlatformKey): ThreadContent[] => {
+    const sourceThreads = platformMode === 'linked'
+      ? threadChain
+      : platformContents[platform] || [];
+
+    return cloneThreadsForPayload(sourceThreads || []);
+  };
+
+  const threadHasContent = (thread: ThreadContent) => {
+    const contentValue = getContentString(thread.content).trim();
+    return contentValue.length > 0 || (thread.media_urls && thread.media_urls.length > 0);
+  };
+
+  const buildActivePlatformPayloads = (): PlatformPublishPayload[] => {
+    return PLATFORM_KEYS.reduce<PlatformPublishPayload[]>((acc, platform) => {
+      if (!activePlatforms[platform]) {
+        return acc;
+      }
+
+      const threads = getThreadsForPlatform(platform).filter(threadHasContent);
+      if (threads.length === 0) {
+        return acc;
+      }
+
+      acc.push({ platform, threads });
+      return acc;
+    }, []);
+  };
+
+  const getAccountForPlatform = (platform: PlatformKey) => {
+    return accounts.find(account => account.platform?.toLowerCase?.() === platform && account.is_active);
+  };
+
+  const ensureAccountsForPlatforms = (platforms: PlatformKey[]) => {
+    const missing = platforms.filter(platform => {
+      if (platform === 'farcaster') return false;
+      return !getAccountForPlatform(platform);
+    });
+    if (missing.length > 0) {
+      const names = missing.map(platform => PLATFORM_DISPLAY_NAMES[platform]).join(', ');
+      toast.error(t('accountConnectionRequired'), {
+        description: t('connectAccountsList', { platforms: names })
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const notifyUnsupportedPlatforms = (platforms: PlatformKey[], action: 'publish' | 'schedule') => {
+    if (platforms.length === 0) return;
+    const names = platforms.map(platform => PLATFORM_DISPLAY_NAMES[platform]).join(', ');
+    const message = action === 'publish'
+      ? `Publishing to ${names} is not implemented yet.`
+      : `Scheduling for ${names} is not implemented yet.`;
+    toast.info(message);
+  };
+
+  const buildFarcasterText = (threads: ThreadContent[]) => {
+    const parts = threads
+      .map(thread => getContentString(thread.content).trim())
+      .filter(Boolean);
+    if (parts.length === 0) return '';
+    const combined = parts.join('\n\n');
+    return combined.length > 280 ? combined.slice(0, 277) + '...' : combined;
+  };
+
+  const publishToFarcaster = async (threads: ThreadContent[]) => {
+    const text = buildFarcasterText(threads);
+    if (!text) {
+      return { ok: false, error: 'EMPTY_CONTENT' };
+    }
+
+    try {
+      const response = await fetch('/api/farcaster/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.ok === false) {
+        const error = data?.error || `HTTP ${response.status}`;
+        return { ok: false, error };
+      }
+
+      return { ok: true, data };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' };
+    }
+  };
+
+  const buildXText = (threads: ThreadContent[]) => {
+    const parts = threads
+      .map(thread => getContentString(thread.content).trim())
+      .filter(Boolean);
+    if (parts.length === 0) return '';
+    return parts.join('\n\n');
+  };
+
+  const publishToX = async (threads: ThreadContent[]) => {
+    const text = buildXText(threads);
+    if (!text) {
+      return { ok: false, error: 'EMPTY_CONTENT' };
+    }
+
+    try {
+      const response = await fetch('/api/x/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.ok === false) {
+        const error = data?.error || `HTTP ${response.status}`;
+        return { ok: false, error };
+      }
+
+      return { ok: true, data };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' };
+    }
+  };
 
   // Schedule data
   const [publishTimes, setPublishTimes] = useState<string[]>([]);
@@ -358,29 +570,33 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
 
   // Check if social account is connected
-  const checkSocialAccountConnection = () => {
-    const selectedAccount = getSelectedAccount();
-    if (!selectedAccount || !currentSocialId) {
-      toast.error(t('accountConnectionRequired'), {
-        description: t('accountConnectionDescription'),
-        action: {
-          label: t('connectAccount'),
-          onClick: () => window.location.href = "/api/threads/oauth"
-        }
-      });
-      return false;
-    }
-    return true;
+  const checkSocialAccountConnection = (platforms: PlatformKey[]) => {
+    if (platforms.length === 0) return false;
+    return ensureAccountsForPlatforms(platforms);
   };
 
   // Post 예약발행 - Open modal instead of direct scheduling
   const handleSchedule = () => {
-    // Check social account connection
-    if (!checkSocialAccountConnection()) return;
-
-    const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
-    if (validThreads.length === 0) {
+    const payloads = buildActivePlatformPayloads();
+    if (payloads.length === 0) {
       toast.error(t('noContentToSchedule'));
+      return;
+    }
+
+    const activePlatformsList = payloads.map(payload => payload.platform);
+    if (!checkSocialAccountConnection(activePlatformsList)) {
+      return;
+    }
+
+    const schedulablePayloads = payloads.filter(payload => SUPPORTED_SCHEDULE_PLATFORMS.includes(payload.platform));
+    const unsupported = payloads
+      .filter(payload => !SUPPORTED_SCHEDULE_PLATFORMS.includes(payload.platform))
+      .map(payload => payload.platform);
+
+    notifyUnsupportedPlatforms(unsupported, 'schedule');
+
+    if (schedulablePayloads.length === 0) {
+      toast.error(t('threadsOnlySchedule'));
       return;
     }
 
@@ -390,13 +606,26 @@ export function RightSidebar({ className }: RightSidebarProps) {
   // Handle actual scheduling when time is selected
   const handleConfirmSchedule = async (selectedDateTime: string) => {
     try {
-      const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
-      if (validThreads.length === 0) return;
+      const payloads = buildActivePlatformPayloads();
+      const threadPayload = payloads.find(payload => payload.platform === 'threads');
+      const unsupportedPlatforms = payloads
+        .filter(payload => !SUPPORTED_SCHEDULE_PLATFORMS.includes(payload.platform))
+        .map(payload => payload.platform);
 
-      const message = validThreads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
+      if (!threadPayload) {
+        toast.error(t('threadsScheduleMissing'));
+        return;
+      }
+
+      const message = threadPayload.threads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
       toast.success(message);
 
-      const result = await scheduleThreadChain(validThreads, selectedDateTime, originalAiContent);
+      const preservedPlatforms: Partial<Record<PlatformKey, ThreadContent[]>> = {};
+      unsupportedPlatforms.forEach(platform => {
+        preservedPlatforms[platform] = getThreadsForPlatform(platform);
+      });
+
+      const result = await scheduleThreadChain(threadPayload.threads, selectedDateTime, originalAiContent);
 
       if (!result.success) throw new Error(result.error);
 
@@ -405,11 +634,17 @@ export function RightSidebar({ className }: RightSidebarProps) {
       localStorage.removeItem("draftContent");
       fetchScheduledTimes();
       setScheduleTime(null); // Reset schedule time after successful scheduling
+
+      Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
+        if (threads && threads.length > 0) {
+          setPlatformThreads(platform as PlatformKey, threads);
+        }
+      });
       
       // Track content scheduled
       trackUserAction.contentScheduled({
         scheduledTime: selectedDateTime,
-        threadCount: validThreads.length,
+        threadCount: threadPayload.threads.length,
         isAiGenerated: !!originalAiContent
       });
     } catch (error) {
@@ -420,37 +655,58 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
   // Post 즉시 발행
   const handlePublish = async () => {
-    // Check social account connection
-    if (!checkSocialAccountConnection()) return;
+    const payloads = buildActivePlatformPayloads();
+    if (payloads.length === 0) {
+      toast.error(t('noContentToPublish'));
+      return;
+    }
+
+    const activePlatformsList = payloads.map(payload => payload.platform);
+    if (!checkSocialAccountConnection(activePlatformsList)) {
+      return;
+    }
+
+    const unsupported = payloads
+      .filter(payload => !SUPPORTED_IMMEDIATE_PLATFORMS.includes(payload.platform))
+      .map(payload => payload.platform);
+
+    notifyUnsupportedPlatforms(unsupported, 'publish');
+
+    const threadPayload = payloads.find(payload => payload.platform === 'threads');
+    if (!threadPayload) {
+      toast.error(t('threadsOnlyPublish'));
+      return;
+    }
+
+    const preservedPlatforms: Partial<Record<PlatformKey, ThreadContent[]>> = {};
+    unsupported.forEach(platform => {
+      preservedPlatforms[platform] = getThreadsForPlatform(platform);
+    });
+
+    const farcasterPayload = payloads.find(payload => payload.platform === 'farcaster');
+    const xPayload = payloads.find(payload => payload.platform === 'x');
 
     try {
-      const validThreads = threadChain.filter(thread => getContentString(thread.content).trim() !== '');
-      if (validThreads.length === 0) return;
-
-      const message = validThreads.length > 1 ? t('threadChainPublishing') : t('postPublished');
+      const message = threadPayload.threads.length > 1 ? t('threadChainPublishing') : t('postPublished');
       toast.success(message);
 
       // Reset UI immediately
       clearThreadChain();
       localStorage.removeItem("draftContent");
 
-      // Publish threads - for now, we'll update the database after posting
-      // Since postThreadChain is also used by cron jobs, we'll handle ai_generated separately
-      const result = await postThreadChain(validThreads);
+      const result = await postThreadChain(threadPayload.threads);
 
       if (!result.success) {
         console.error("❌ Publish error:", result.error);
       } else {
         console.log("✅ Published:", result.threadIds);
-        
-        // Track content published
+
         trackUserAction.contentPublished({
-          threadCount: validThreads.length,
+          threadCount: threadPayload.threads.length,
           isAiGenerated: !!originalAiContent,
           publishType: 'immediate'
         });
-        
-        // If there's AI-generated content and posting was successful, update the database
+
         if (originalAiContent && result.parentThreadId) {
           try {
             const response = await fetch('/api/contents/update-ai-generated', {
@@ -468,9 +724,35 @@ export function RightSidebar({ className }: RightSidebarProps) {
             console.error('Error updating ai_generated field:', error);
           }
         }
+
+        if (farcasterPayload) {
+          const farcasterResult = await publishToFarcaster(farcasterPayload.threads);
+          if (farcasterResult.ok) {
+            toast.success(t('farcasterPostSuccess'));
+          } else if (farcasterResult.error !== 'EMPTY_CONTENT') {
+            toast.error(t('farcasterPostFailure'));
+            console.error('Farcaster post failed:', farcasterResult.error);
+          }
+        }
+
+        if (xPayload) {
+          const xResult = await publishToX(xPayload.threads);
+          if (xResult.ok) {
+            toast.success(t('xPostSuccess'));
+          } else if (xResult.error !== 'EMPTY_CONTENT') {
+            toast.error(t('xPostFailure'));
+            console.error('X post failed:', xResult.error);
+          }
+        }
       }
     } catch (error) {
       console.error("❌ handlePublish error:", error);
+    } finally {
+      Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
+        if (threads && threads.length > 0) {
+          setPlatformThreads(platform as PlatformKey, threads);
+        }
+      });
     }
   };
 
@@ -514,6 +796,18 @@ export function RightSidebar({ className }: RightSidebarProps) {
             removeThread={removeThread}
             updateThreadContent={updateThreadContent}
             updateThreadMedia={updateThreadMedia}
+            platformButtons={platformButtons}
+            activePlatforms={activePlatforms}
+            isUnlinked={isUnlinked}
+            selectedPlatform={selectedPlatform}
+            onToggleUnlink={handleUnlinkToggle}
+            onSelectPlatform={handlePlatformSelect}
+            onTogglePlatformActive={handlePlatformToggle}
+            platformContents={platformContents}
+            onPlatformThreadContentChange={updatePlatformThreadContent}
+            onPlatformThreadMediaChange={updatePlatformThreadMedia}
+            onPlatformAddThread={addPlatformThread}
+            onPlatformRemoveThread={removePlatformThread}
           />
         )}
       </div>
@@ -562,6 +856,18 @@ export function RightSidebar({ className }: RightSidebarProps) {
               removeThread={removeThread}
               updateThreadContent={updateThreadContent}
               updateThreadMedia={updateThreadMedia}
+              platformButtons={platformButtons}
+              activePlatforms={activePlatforms}
+              isUnlinked={isUnlinked}
+              selectedPlatform={selectedPlatform}
+              onToggleUnlink={handleUnlinkToggle}
+              onSelectPlatform={handlePlatformSelect}
+              onTogglePlatformActive={handlePlatformToggle}
+              platformContents={platformContents}
+              onPlatformThreadContentChange={updatePlatformThreadContent}
+              onPlatformThreadMediaChange={updatePlatformThreadMedia}
+              onPlatformAddThread={addPlatformThread}
+              onPlatformRemoveThread={removePlatformThread}
             />
           </div>
 
@@ -612,6 +918,18 @@ function RightSidebarContent({
   removeThread,
   updateThreadContent,
   updateThreadMedia,
+  platformButtons,
+  activePlatforms,
+  isUnlinked,
+  selectedPlatform,
+  onToggleUnlink,
+  onSelectPlatform,
+  onTogglePlatformActive,
+  platformContents,
+  onPlatformThreadContentChange,
+  onPlatformThreadMediaChange,
+  onPlatformAddThread,
+  onPlatformRemoveThread,
 }: {
   showAiInput: boolean;
   setShowAiInput: (show: boolean) => void;
@@ -632,6 +950,18 @@ function RightSidebarContent({
   removeThread: (index: number) => void;
   updateThreadContent: (index: number, content: string) => void;
   updateThreadMedia: (index: number, media_urls: string[]) => void;
+  platformButtons: PlatformButtonConfig[];
+  activePlatforms: Record<PlatformKey, boolean>;
+  isUnlinked: boolean;
+  selectedPlatform: PlatformKey;
+  onToggleUnlink: () => void;
+  onSelectPlatform: (platform: PlatformKey) => void;
+  onTogglePlatformActive: (platform: PlatformKey) => void;
+  platformContents: Record<PlatformKey, ThreadContent[]>;
+  onPlatformThreadContentChange: (platform: PlatformKey, index: number, content: string) => void;
+  onPlatformThreadMediaChange: (platform: PlatformKey, index: number, media_urls: string[]) => void;
+  onPlatformAddThread: (platform: PlatformKey) => void;
+  onPlatformRemoveThread: (platform: PlatformKey, index: number) => void;
 }) {
   const t = useTranslations('components.rightSidebar');
   const tNav = useTranslations('navigation');
@@ -643,6 +973,85 @@ function RightSidebarContent({
   // Animated thinking status (cycles every 3s) and dots
   const [animatedStatus, setAnimatedStatus] = useState<string | null>(null);
   const [dots, setDots] = useState<string>('');
+
+  const renderPlatformButton = ({ key, imageSrc, alt }: PlatformButtonConfig) => {
+    const isActive = activePlatforms[key];
+    const isSelected = selectedPlatform === key && isUnlinked;
+
+    return (
+      <div
+        key={key}
+        className={cn(
+          'flex items-center gap-2 rounded-full border px-3 py-2 transition-colors',
+          'bg-muted border-border/40',
+          !isActive && 'opacity-60'
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => onSelectPlatform(key)}
+          className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-full border transition-colors',
+            isSelected ? 'border-primary bg-primary/10' : 'border-transparent'
+          )}
+        >
+          <NextImage
+            src={imageSrc}
+            alt={alt}
+            width={24}
+            height={24}
+            className={cn('h-6 w-6 object-contain', !isActive && 'opacity-50')}
+          />
+        </button>
+        <button
+          type="button"
+          onClick={() => onTogglePlatformActive(key)}
+          className={cn(
+            'flex h-8 w-8 items-center justify-center rounded-full bg-muted-foreground/80 text-background transition-colors',
+            !isActive && 'bg-muted text-muted-foreground'
+          )}
+        >
+          <CircleX className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  };
+
+  const displayedThreads = isUnlinked
+    ? platformContents[selectedPlatform] || [{ content: '', media_urls: [], media_type: 'TEXT' }]
+    : threadChain;
+
+  const handleThreadContentChange = (index: number, content: string) => {
+    if (isUnlinked) {
+      onPlatformThreadContentChange(selectedPlatform, index, content);
+    } else {
+      updateThreadContent(index, content);
+    }
+  };
+
+  const handleThreadMediaChange = (index: number, media_urls: string[]) => {
+    if (isUnlinked) {
+      onPlatformThreadMediaChange(selectedPlatform, index, media_urls);
+    } else {
+      updateThreadMedia(index, media_urls);
+    }
+  };
+
+  const handleAddThread = () => {
+    if (isUnlinked) {
+      onPlatformAddThread(selectedPlatform);
+    } else {
+      addNewThread();
+    }
+  };
+
+  const handleRemoveThread = (index: number) => {
+    if (isUnlinked) {
+      onPlatformRemoveThread(selectedPlatform, index);
+    } else {
+      removeThread(index);
+    }
+  };
 
   useEffect(() => {
     let phraseTimer: ReturnType<typeof setInterval> | null = null;
@@ -680,7 +1089,7 @@ function RightSidebarContent({
 
   // Check if any thread exceeds character limit
   const hasCharacterLimitViolation = () => {
-    return threadChain.some(thread => getContentString(thread.content).length > 500);
+    return displayedThreads.some(thread => getContentString(thread.content).length > 500);
   };
 
   const { profilePictureUrl } = useThreadsProfilePicture(currentSocialId);
@@ -688,19 +1097,27 @@ function RightSidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 shadow-lg">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-background">
-        <h2 className="text-sm font-medium">
-          {animatedStatus ? (
-            <span className="bg-gradient-to-r from-gray-300 via-gray-500 to-gray-900 bg-clip-text text-transparent animate-pulse select-none">
-              {animatedStatus}
-              {dots}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-background">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onToggleUnlink}
+            className={cn(
+              'flex items-center gap-2 rounded-full border px-4 py-2 transition-colors',
+              'bg-muted border-border/40 text-muted-foreground',
+              isUnlinked && 'border-primary bg-primary/10 text-primary'
+            )}
+          >
+            {isUnlinked ? <Link2Off className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+            <span className="text-xs font-medium uppercase tracking-wide">
+              {isUnlinked ? t('unlinkMode') : t('linkMode')}
             </span>
-          ) : generationStatus ? (
-            <span className="text-muted-foreground select-none">{generationStatus}</span>
-          ) : (
-            <span className="text-muted-foreground select-none">{tNav('writeOrAddContents')}</span>
-          )}
-        </h2>
+          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {platformButtons.map(renderPlatformButton)}
+          </div>
+        </div>
 
         {/* 모바일에서는 아래로 내리기 버튼, 데스크톱에서는 닫기 버튼 */}
         <Button
@@ -735,14 +1152,14 @@ function RightSidebarContent({
         <div className="space-y-4">
           {/* Always render thread chain */}
           <ThreadChain
-            threads={threadChain}
+            threads={displayedThreads}
             variant="writing"
             avatar={profilePictureUrl || ''}
             username={getSelectedAccount()?.username}
-            onThreadContentChange={updateThreadContent}
-            onThreadMediaChange={updateThreadMedia}
-            onAddThread={addNewThread}
-            onRemoveThread={removeThread}
+            onThreadContentChange={handleThreadContentChange}
+            onThreadMediaChange={handleThreadMediaChange}
+            onAddThread={handleAddThread}
+            onRemoveThread={handleRemoveThread}
             onAiClick={() => setShowAiInput(!showAiInput)}
             thinkingPlaceholder={thinkingPlaceholder}
           />
@@ -827,7 +1244,7 @@ function RightSidebarContent({
             handleSaveToDraft();
             toggleSidebar();
           }}
-          disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
+          disabled={!displayedThreads.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
         >
           {tNav('saveToDraft')}
         </Button>
@@ -839,7 +1256,7 @@ function RightSidebarContent({
               size="xl"
               className="!p-0 w-full bg-black text-white hover:bg-black/90 rounded-xl"
               onClick={handleSchedule}
-              disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
+              disabled={!displayedThreads.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
             >
               <div className="flex-col">
                 <div>{tNav('schedulePost')}</div>
@@ -858,7 +1275,7 @@ function RightSidebarContent({
             size="xl"
             className="bg-black text-white hover:bg-black/90"
             onClick={handlePublish}
-            disabled={!threadChain.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
+            disabled={!displayedThreads.some(thread => getContentString(thread.content).trim() !== '') || hasCharacterLimitViolation()}
           >
             {tNav('postNow')}
           </Button>

@@ -26,7 +26,6 @@ import { useSession, signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { SocialAccountSelector } from '@/components/SocialAccountSelector';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
-import FarcasterConnect from '@/components/FarcasterConnect';
 
 
 // Navigation item type definition
@@ -254,11 +253,6 @@ function SidebarContent({
         {/* 소셜 계정 전환 dropdown */}
         <div className="mb-4">
           <SocialAccountSelector />
-        </div>
-
-        {/* Farcaster 계정 연동 */}
-        <div className="mb-4">
-          <FarcasterConnect />
         </div>
 
         {/* Navigation Menu */}

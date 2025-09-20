@@ -1,8 +1,9 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server';
 import { getThreadsAccessToken } from '@/app/actions/comment';
 import { getRootPostId } from '@/app/actions/comment';
+import { requireSelectedSocialAccount } from '@/lib/server/socialAccounts';
 import axios from 'axios';
 import { authOptions } from "@/lib/auth/authOptions";
 import { getServerSession } from "next-auth/next";
@@ -139,18 +140,16 @@ export async function fetchAndSaveComments() {
     throw new Error("로그인이 필요합니다.");
   }
   const userId = session.user.id;
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    throw new Error('선택된 소셜 계정이 없습니다.');
+  let threadsAccount;
+  try {
+    threadsAccount = await requireSelectedSocialAccount(userId, 'threads');
+  } catch (error) {
+    console.warn('Skipping comment fetch: no Threads account selected');
+    return { saved: false, count: 0 };
   }
+  const selectedSocialId = threadsAccount.social_id;
+
+  const supabase = await createClient();
 
   // 댓글 데이터 fetch
   const mediaIds = await getRootPostId(selectedSocialId);
@@ -199,18 +198,15 @@ export async function fetchAndSaveMentions() {
     throw new Error("로그인이 필요합니다.");
   }
   const userId = session.user.id;
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    throw new Error('선택된 소셜 계정이 없습니다.');
+  let threadsAccount;
+  try {
+    threadsAccount = await requireSelectedSocialAccount(userId, 'threads');
+  } catch (error) {
+    console.warn('Skipping mention fetch: no Threads account selected');
+    return { saved: false, count: 0 };
   }
+  const selectedSocialId = threadsAccount.social_id;
+  const supabase = await createClient();
 
   // 멘션 데이터 fetch
   const mentionData = await getMentionData(selectedSocialId);

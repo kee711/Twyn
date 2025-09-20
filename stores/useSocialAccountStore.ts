@@ -1,134 +1,159 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { createClient } from '@/utils/supabase/client';
 
-// 소셜 계정 정보 타입 정의
-interface SocialAccount {
-  social_id: string
-  platform: string
-  access_token: string
-  owner: string
-  is_active: boolean
-  username?: string
+export type PlatformKey = 'threads' | 'x' | 'farcaster';
+
+export interface SocialAccount {
+  id: string;
+  social_id: string;
+  owner: string;
+  platform: PlatformKey;
+  username?: string | null;
+  is_active: boolean;
 }
 
-// 스토어 타입 정의
+export type SelectedAccountMap = Partial<Record<PlatformKey, string>>;
+
 interface SocialAccountStore {
-  accounts: SocialAccount[]
-  currentSocialId: string // 현재 선택된 계정의 social_id
-  currentUsername: string // 현재 선택된 계정의 username
-  accountInfo: string | null
-  accountTags: string[]
-  accountType?: string | null // 추가: 계정 유형
-
-  setAccounts: (accounts: SocialAccount[]) => void
-  setCurrentAccountInfo: (socialId: string, username: string | null) => void
-  getSelectedAccount: () => SocialAccount | undefined
-
-  // 추가: supabase에서 직접 fetch하는 메서드
-  fetchSocialAccounts: (userId: string) => Promise<void>
-  fetchAccountDetails: (accountId: string) => Promise<void>
+  accounts: SocialAccount[];
+  selectedAccounts: SelectedAccountMap;
+  isLoading: boolean;
+  currentSocialId: string;
+  currentUsername: string;
+  setAccounts: (accounts: SocialAccount[], selected: SelectedAccountMap) => void;
+  fetchAccounts: (userId: string) => Promise<void>;
+  fetchSocialAccounts: (userId: string) => Promise<void>;
+  selectAccount: (userId: string, platform: PlatformKey, socialAccountId: string) => Promise<void>;
+  getSelectedAccount: (platform?: PlatformKey) => SocialAccount | undefined;
 }
 
-// 소셜 계정 전환을 위한 zustand 스토어 생성
 const useSocialAccountStore = create<SocialAccountStore>()(
   persist(
     (set, get) => ({
       accounts: [],
-      currentSocialId: '',
-      currentUsername: '',
-      accountInfo: null,
-      accountTags: [],
-      accountType: null,
+      selectedAccounts: {},
+      isLoading: false,
+       currentSocialId: '',
+       currentUsername: '',
 
-      setAccounts: (accounts) => {
-        console.log("소셜 계정 목록 업데이트:", accounts);
-        const existingSelectedId = get().currentSocialId;
-        const newSelectedId = existingSelectedId || (accounts.length > 0 ? accounts[0].social_id : null);
+      setAccounts: (accounts, selected) => {
+        const nextSelected: SelectedAccountMap = { ...selected };
+        const threadsAccountId = nextSelected.threads;
+        let threadsAccount = threadsAccountId
+          ? accounts.find(acc => acc.id === threadsAccountId)
+          : undefined;
 
-        // 새롭게 선택된 계정의 정보도 업데이트
-        if (newSelectedId) {
-          const selectedAccount = accounts.find(acc => acc.social_id === newSelectedId);
-          if (selectedAccount) {
-            console.log("선택된 계정 정보:", {
-              social_id: selectedAccount.social_id,
-              username: selectedAccount.username
-            });
-
-            set({
-              accounts,
-              currentSocialId: selectedAccount.social_id,
-              currentUsername: selectedAccount.username || selectedAccount.social_id
-            });
-            return;
+        if (!threadsAccount) {
+          threadsAccount = accounts.find(acc => acc.platform === 'threads');
+          if (threadsAccount) {
+            nextSelected.threads = threadsAccount.id;
           }
         }
 
         set({
           accounts,
+          selectedAccounts: nextSelected,
+          currentSocialId: threadsAccount ? threadsAccount.social_id : '',
+          currentUsername: threadsAccount ? (threadsAccount.username || threadsAccount.social_id) : '',
         });
       },
 
-      setCurrentAccountInfo: (socialId, username) => {
-        console.log("현재 계정 정보 업데이트:", { socialId, username });
-        const account = get().accounts.find(acc => acc.social_id === socialId);
-        set({
-          currentSocialId: socialId,
-          currentUsername: username || socialId
-        });
-      },
-
-      getSelectedAccount: () => {
-        const { accounts, currentSocialId } = get();
-        const account = accounts.find(account => account.social_id === currentSocialId);
-        console.log("현재 선택된 계정:", account);
-        return account;
-      },
-
-      // supabase에서 계정 목록 fetch
-      fetchSocialAccounts: async (userId) => {
+      fetchAccounts: async (userId: string) => {
         const supabase = createClient();
-        const { data, error } = await supabase
-          .from('social_accounts')
-          .select('*')
-          .eq('owner', userId);
-        if (!error && data) {
-          get().setAccounts(data);
-        } else {
-          set({ accounts: [] });
-        }
-      },
+        set({ isLoading: true });
+        try {
+          const [{ data: accounts, error: accountsError }, { data: selected, error: selectedError }] = await Promise.all([
+            supabase
+              .from('social_accounts')
+              .select('id, owner, platform, social_id, username, is_active')
+              .eq('owner', userId)
+              .eq('is_active', true),
+            supabase
+              .from('user_selected_accounts')
+              .select('platform, social_account_id')
+              .eq('user_id', userId)
+          ]);
 
-      // supabase에서 계정 상세 fetch
-      fetchAccountDetails: async (accountId) => {
-        const supabase = createClient();
-        const { data: accountData, error: accountError } = await supabase
-          .from('social_accounts')
-          .select('account_type, account_info, account_tags')
-          .eq('social_id', accountId)
-          .single();
-        if (!accountError && accountData) {
-          set({
-            accountType: accountData.account_type || '',
-            accountInfo: accountData.account_info || '',
-            accountTags: accountData.account_tags || []
+          if (accountsError) throw accountsError;
+          if (selectedError) throw selectedError;
+
+          const selectedMap: SelectedAccountMap = {};
+          selected?.forEach(item => {
+            selectedMap[item.platform as PlatformKey] = item.social_account_id;
           });
-        } else {
-          set({ accountType: '', accountInfo: '', accountTags: [] });
+
+          get().setAccounts((accounts || []) as SocialAccount[], selectedMap);
+        } catch (error) {
+          console.error('[useSocialAccountStore] fetchAccounts error', error);
+          set({ accounts: [], selectedAccounts: {} });
+        } finally {
+          set({ isLoading: false });
         }
-      }
+      },
+
+      fetchSocialAccounts: async (userId: string) => {
+        await get().fetchAccounts(userId);
+      },
+
+      selectAccount: async (userId, platform, socialAccountId) => {
+        const supabase = createClient();
+        try {
+          const accountRecord = get().accounts.find(acc => acc.id === socialAccountId) || null;
+
+          const { error } = await supabase
+            .from('user_selected_accounts')
+            .upsert({
+              user_id: userId,
+              platform,
+              social_account_id: socialAccountId,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id,platform' });
+
+          if (error) throw error;
+
+          if (platform === 'threads' && accountRecord) {
+            const { error: profileError } = await supabase
+              .from('user_profiles')
+              .update({ selected_social_id: accountRecord.social_id })
+              .eq('user_id', userId);
+
+            if (profileError) {
+              console.warn('[useSocialAccountStore] failed to update legacy selected_social_id', profileError);
+            }
+          }
+
+          set((state) => ({
+            selectedAccounts: {
+              ...state.selectedAccounts,
+              [platform]: socialAccountId,
+            },
+            currentSocialId: platform === 'threads' && accountRecord ? accountRecord.social_id : state.currentSocialId,
+            currentUsername: platform === 'threads' && accountRecord ? (accountRecord.username || accountRecord.social_id) : state.currentUsername,
+          }));
+        } catch (error) {
+          console.error('[useSocialAccountStore] selectAccount error', error);
+          throw error;
+        }
+      },
+
+      getSelectedAccount: (platform = 'threads') => {
+        const state = get();
+        const accountId = state.selectedAccounts[platform];
+        if (!accountId) return undefined;
+        return state.accounts.find(acc => acc.id === accountId);
+      },
     }),
     {
-      name: 'social-account-store',
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.warn('Failed to rehydrate social account store:', error);
-          // Clear corrupted data
-          localStorage.removeItem('social-account-store');
-        }
-      },
+      name: 'social-account-store-v2',
+      partialize: (state) => ({
+        accounts: state.accounts,
+        selectedAccounts: state.selectedAccounts,
+        currentSocialId: state.currentSocialId,
+        currentUsername: state.currentUsername,
+      }),
     }
   )
-)
+);
 
-export default useSocialAccountStore 
+export default useSocialAccountStore;

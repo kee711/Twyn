@@ -165,3 +165,35 @@ body[data-scroll-locked] {
 .animate-pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
+
+.farcaster-signin-wrapper .fc-authkit-signin-button {
+  width: 100%;
+}
+
+.farcaster-signin-wrapper .fc-authkit-signin-button button {
+  @apply flex w-full items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-left font-medium transition text-foreground hover:border-primary hover:bg-primary/5;
+}
+
+.farcaster-signin-wrapper .fc-authkit-signin-button button svg {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.farcaster-signin-wrapper .fc-authkit-signin-button button span {
+  margin-left: 0 !important;
+  font-size: 1rem !important;
+  color: transparent !important;
+  position: relative;
+}
+
+.farcaster-signin-wrapper .fc-authkit-signin-button button span::before {
+  content: 'Farcaster';
+  color: inherit;
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.farcaster-signin-wrapper .fc-authkit-signin-button button svg path {
+  fill: currentColor !important;
+}

@@ -1,12 +1,13 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server';
 import axios from 'axios';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from '@/lib/auth/authOptions';
 import puppeteer from "puppeteer";
 import { ContentItem } from '@/components/contents-helper/types';
 import { decryptToken } from '@/lib/utils/crypto';
+import { requireSelectedSocialAccount } from '@/lib/server/socialAccounts';
 
 interface OembedContent {
   id: string;
@@ -25,28 +26,8 @@ export async function fetchOembedContents(content_url: string) {
   }
   const userId = session.user.id;
 
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    throw new Error('선택된 소셜 계정이 없습니다.');
-  }
-
-  const { data: account } = await supabase
-    .from('social_accounts')
-    .select('access_token')
-    .eq('social_id', selectedSocialId)
-    .eq('platform', 'threads')
-    .eq('is_active', true)
-    .single();
-
-  const encryptedToken = account?.access_token;
+  const account = await requireSelectedSocialAccount(userId, 'threads');
+  const encryptedToken = account.access_token;
   if (!encryptedToken) {
     throw new Error('Threads access token이 없습니다.');
   }

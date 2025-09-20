@@ -1,282 +1,235 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { PlusCircle, User2, ChevronDown } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-  SelectSeparator,
-} from '@/components/ui/select';
-import useSocialAccountStore from '@/stores/useSocialAccountStore';
-import { createClient } from '@/utils/supabase/client';
+import { useEffect, useMemo, useState } from 'react';
+import { PlusCircle, CheckCircle2, Circle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import useSocialAccountStore, { PlatformKey, SocialAccount } from '@/stores/useSocialAccountStore';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { OnboardingModal } from './OnboardingModal';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import { SignInButton } from '@farcaster/auth-kit';
 
 interface SocialAccountSelectorProps {
   className?: string;
 }
 
+const PLATFORM_LABELS: Record<PlatformKey, string> = {
+  threads: 'Threads',
+  x: 'X',
+  farcaster: 'Farcaster',
+};
+
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
   const t = useTranslations('SocialAccountSelector');
-  const [isLoading, setIsLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [newAccountId, setNewAccountId] = useState<string | null>(null);
+  const [showProviderModal, setShowProviderModal] = useState(false);
   const { data: session } = useSession();
   const {
     accounts,
-    currentSocialId,
-    currentUsername,
-    setAccounts,
-    setCurrentAccountInfo,
+    selectedAccounts,
+    isLoading,
+    fetchAccounts,
+    selectAccount,
   } = useSocialAccountStore();
 
-  // 소셜 계정 목록 가져오기 및 마지막 선택 계정 정보 불러오기
-  const fetchSocialAccounts = async () => {
+  useEffect(() => {
     if (!session?.user?.id) return;
-
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
-      console.log("소셜 계정 목록 조회 시작");
-
-      // 소셜 계정 목록 가져오기
-      const { data, error } = await supabase
-        .from('social_accounts')
-        .select('*')
-        .eq('owner', session.user.id)
-        .eq('platform', 'threads')
-        .eq('is_active', true);
-
-      if (error) throw error;
-
-      console.log("조회된 소셜 계정 목록:", data);
-
-      if (data && data.length > 0) {
-        // user_profiles에서 마지막 선택된 계정 정보 가져오기
-        const { data: userData, error: userError } = await supabase
-          .from('user_profiles')
-          .select('selected_social_id')
-          .eq('user_id', session.user.id)
-          .single();
-
-        if (userError && userError.code !== 'PGRST116') {
-          console.error('사용자 프로필 조회 오류:', userError);
-        }
-
-        console.log("마지막 선택된 소셜 계정:", userData?.selected_social_id);
-
-        // 계정 목록 저장
-        setAccounts(data);
-
-        // 마지막 선택된 계정이 있으면 선택
-        if (userData?.selected_social_id) {
-          const accountToSelect = data.find(acc => acc.social_id === userData.selected_social_id);
-          if (accountToSelect) {
-            console.log("마지막 선택된 계정으로 설정:", accountToSelect);
-            setCurrentAccountInfo(
-              accountToSelect.social_id,
-              accountToSelect.username
-            );
-          } else {
-            console.log("마지막 선택된 계정을 찾을 수 없음, 첫 번째 계정으로 선택");
-          }
-        } else {
-          console.log("마지막 선택된 계정 정보 없음, 첫 번째 계정으로 선택");
-        }
-      } else {
-        console.log("등록된 소셜 계정 없음");
-      }
-    } catch (error) {
-      console.error('소셜 계정 목록 조회 오류:', error);
-      toast.error(t('failedToLoadAccounts'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 소셜 계정 추가 (Threads 인증 페이지로 리다이렉트)
-  const addSocialAccount = () => {
-    console.log("소셜 계정 추가 시작");
-    window.location.href = '/api/threads/oauth';
-  };
-
-  // URL 파라미터 체크하여 계정 추가 완료 시 온보딩 모달 표시
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const accountAdded = urlParams.get('account_added');
-    const accountId = urlParams.get('account_id');
-
-    if (accountAdded === 'true' && accountId) {
-      // URL 파라미터 제거 (히스토리 상태 변경)
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, newUrl);
-
-      setNewAccountId(accountId);
-      setShowOnboarding(true);
-
-      // 새 계정이 선택되도록 설정
-      if (accounts.length > 0) {
-        const newAccount = accounts.find(acc => acc.social_id === accountId);
-        if (newAccount) {
-          setCurrentAccountInfo(
-            newAccount.social_id,
-            newAccount.username || newAccount.social_id
-          );
-        }
-      }
-    }
-  }, [accounts]);
-
-  // 컴포넌트 마운트시 데이터 가져오기
-  useEffect(() => {
-    console.log("SocialAccountSelector 마운트, 세션:", session?.user?.id);
-    fetchSocialAccounts();
+    fetchAccounts(session.user.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
-  // 현재 선택된 계정 정보 로그
   useEffect(() => {
-    console.log("전역 상태 정보:", {
-      currentSocialId,
-      currentUsername,
-      accountsCount: accounts.length
-    });
-  }, [currentSocialId, currentUsername, accounts]);
+    if (typeof window === 'undefined' || !session?.user?.id) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountAdded = urlParams.get('account_added');
+    const accountId = urlParams.get('account_id');
+    if (accountAdded === 'true' && accountId) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setNewAccountId(accountId);
+      setShowOnboarding(true);
+      fetchAccounts(session.user.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
 
-  // 계정 선택 시 user_profiles 테이블의 selected_social_id에 저장
-  const handleAccountSelect = async (accountId: string) => {
-    if (!session?.user?.id) return;
-
-    console.log("계정 선택 변경:", accountId);
-
-    // 계정 추가 버튼을 위한 특수 ID 처리
-    if (accountId === 'add-account') {
-      addSocialAccount();
+  const handleFarcasterSuccess = async (payload: any) => {
+    const fid = payload?.fid;
+    const username = payload?.username;
+    if (!fid || !session?.user?.id) {
+      toast.error(t('farcasterSignInError'));
       return;
     }
 
-    // 선택된 계정의 정보 가져오기
-    const selectedAccount = accounts.find(acc => acc.social_id === accountId);
-    if (!selectedAccount) {
-      console.error("선택된 계정을 찾을 수 없음:", accountId);
-      return;
-    }
-
-    console.log("선택된 계정 정보:", selectedAccount);
-
-    // Zustand 스토어 업데이트
-    setCurrentAccountInfo(
-      selectedAccount.social_id,
-      selectedAccount.username || selectedAccount.social_id
-    );
-    // account_info, account_tags도 가져와서 저장
     try {
-      const supabase = createClient();
-      const { data: details, error: detailsError } = await supabase
-        .from('social_accounts')
-        .select('account_info, account_tags')
-        .eq('social_id', accountId)
-        .single();
-      if (!detailsError && details) {
+      const response = await fetch('/api/farcaster/account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fid, username }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to persist Farcaster account');
       }
-    } catch (err) {
-    }
 
-    // DB의 user_profiles 테이블에도 선택된 계정 ID 저장
-    try {
-      const supabase = createClient();
-
-      // selected_social_id 필드 업데이트
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ selected_social_id: selectedAccount.social_id })
-        .eq('user_id', session.user.id);
-
-      if (updateError) {
-        console.error('소셜 계정 선택 저장 오류:', updateError);
-        toast.error(t('failedToSaveSelection'));
-      } else {
-        console.log("계정 선택 정보 저장 성공:", selectedAccount.social_id);
-      }
+      toast.success(t('farcasterLinkSuccess'));
+      await fetchAccounts(session.user.id);
     } catch (error) {
-      console.error('소셜 계정 선택 처리 오류:', error);
-      toast.error(t('accountSelectionError'));
+      console.error('Farcaster account link failed:', error);
+      toast.error(t('farcasterSignInError'));
+    } finally {
+      setShowProviderModal(false);
     }
   };
 
-  // 온보딩 모달 닫기 핸들러
-  const handleCloseOnboarding = () => {
-    setShowOnboarding(false);
-    setNewAccountId(null);
-    // 계정 목록 새로고침
-    fetchSocialAccounts();
+  const handleFarcasterError = (error?: unknown) => {
+    console.error('Farcaster sign-in error:', error);
+    toast.error(t('farcasterSignInError'));
+    setShowProviderModal(false);
   };
 
-  // 현재 선택된 계정 정보 가져오기
-  const selectedAccount = accounts.find(acc => acc.social_id === currentSocialId);
+  const groupedAccounts = useMemo(() => {
+    const groups: Record<PlatformKey, SocialAccount[]> = {
+      threads: [],
+      x: [],
+      farcaster: [],
+    };
+    accounts.forEach((account) => {
+      if (groups[account.platform as PlatformKey]) {
+        groups[account.platform as PlatformKey].push(account);
+      }
+    });
+    return groups;
+  }, [accounts]);
+
+  const handleSelectAccount = async (platform: PlatformKey, socialAccountId: string) => {
+    if (!session?.user?.id) return;
+    try {
+      await selectAccount(session.user.id, platform, socialAccountId);
+      toast.success(t('selectionSaved'));
+    } catch (error) {
+      console.error('Failed to select account', error);
+      toast.error(t('failedToSaveSelection'));
+    }
+  };
+
+  const openProviderModal = () => setShowProviderModal(true);
+  const closeProviderModal = () => setShowProviderModal(false);
+
+  if (isLoading) {
+    return (
+      <div className={className}>
+        <div className="rounded-xl border border-border/40 bg-muted/10 px-3 py-4 text-sm text-muted-foreground">
+          {t('loadingAccounts')}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-0 mb-4">
-      <Select
-        value={currentSocialId || undefined}
-        onValueChange={handleAccountSelect}
-        disabled={isLoading}
-      >
-        <SelectTrigger className="mt-2 p-4 flex justify-between items-center w-full bg-muted-foreground/10 dark:bg-gray-900 border-0 rounded-xl">
-          <div className="font-medium text-base text-muted-foreground">
-            {selectedAccount
-              ? (selectedAccount.username || selectedAccount.social_id)
-              : t('selectAccount')}
-          </div>
-        </SelectTrigger>
-        <SelectContent>
-          {/* 계정 추가 버튼을 드롭다운 상단에 배치 */}
-          <div
-            className="flex items-center gap-2 px-2 py-2 mb-1 cursor-pointer hover:bg-accent rounded-xl"
-            onClick={addSocialAccount}
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span className="font-medium">{t('addAccount')}</span>
-          </div>
+    <div className={className}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium text-muted-foreground">{t('accountList')}</span>
+        <Button variant="ghost" size="sm" onClick={openProviderModal} className="flex items-center gap-2">
+          <PlusCircle className="h-4 w-4" />
+          {t('addAccount')}
+        </Button>
+      </div>
 
-          {/* 구분선 추가 */}
-          <SelectSeparator />
-
-          {/* 계정 목록 */}
-          <SelectGroup>
-            <SelectLabel>{t('accountList')}</SelectLabel>
-            {accounts.length === 0 ? (
-              <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                {t('noAccountsRegistered')}
+      <div className="space-y-4">
+        {(Object.keys(groupedAccounts) as PlatformKey[]).map((platform) => {
+          const platformAccounts = groupedAccounts[platform];
+          const selection = selectedAccounts[platform];
+          return (
+            <div key={platform} className="rounded-xl border border-border/50 bg-muted/20 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-muted-foreground">{PLATFORM_LABELS[platform]}</span>
+                {selection ? (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="h-4 w-4" />{t('active')}</span>
+                ) : null}
               </div>
-            ) : (
-              accounts.map((account) => (
-                <SelectItem key={account.social_id} value={account.social_id}>
-                  {account.username || account.social_id}
-                </SelectItem>
-              ))
-            )}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+              {platformAccounts.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border/60 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  {t('noAccountsRegistered')}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {platformAccounts.map((account) => {
+                    const isSelected = selection === account.id;
+                    return (
+                      <button
+                        type="button"
+                        key={account.id}
+                        onClick={() => handleSelectAccount(platform, account.id)}
+                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${isSelected ? 'border-primary bg-primary/5 text-foreground' : 'border-border/40 bg-card hover:border-primary'}`}
+                      >
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{account.username || account.social_id}</span>
+                          <span className="text-xs text-muted-foreground">{account.social_id}</span>
+                        </div>
+                        {isSelected ? (
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-      {/* 온보딩 모달 */}
+      <Dialog open={showProviderModal} onOpenChange={setShowProviderModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('choosePlatform')}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <button
+              type="button"
+              onClick={() => { window.location.href = '/api/threads/oauth'; closeProviderModal(); }}
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
+            >
+              <Image src="/threads_logo_blk.svg" alt="Threads logo" width={32} height={32} className="h-8 w-8 object-contain" />
+              <span className="font-medium">Threads</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = '/api/x/oauth'; closeProviderModal(); }}
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
+            >
+              <Image src="/x-logo.jpg" alt="X logo" width={32} height={32} className="h-8 w-8 object-contain" />
+              <span className="font-medium">X</span>
+            </button>
+            <div className="farcaster-signin-wrapper">
+              <SignInButton
+                hideSignOut
+                onSuccess={handleFarcasterSuccess}
+                onError={handleFarcasterError}
+              />
+              Farcaster
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {showOnboarding && newAccountId && (
         <OnboardingModal
           open={showOnboarding}
-          onClose={handleCloseOnboarding}
+          onClose={() => {
+            setShowOnboarding(false);
+            setNewAccountId(null);
+            if (session?.user?.id) fetchAccounts(session.user.id);
+          }}
           socialAccountId={newAccountId}
         />
       )}
     </div>
   );
-} 
+}

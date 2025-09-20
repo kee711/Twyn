@@ -146,7 +146,16 @@
     "addAccount": "계정 추가",
     "noAccount": "등록된 계정이 없습니다",
     "accountList": "계정 목록",
-    "noAccountsRegistered": "등록된 계정이 없습니다"
+    "noAccountsRegistered": "등록된 계정이 없습니다",
+    "choosePlatform": "연결할 소셜 플랫폼을 선택하세요",
+    "failedToLoadAccounts": "계정 정보를 불러오지 못했습니다.",
+    "failedToSaveSelection": "선택한 계정을 저장하지 못했습니다.",
+    "accountSelectionError": "계정 선택 처리 중 오류가 발생했습니다.",
+    "farcasterLinkSuccess": "Farcaster 계정이 연결되었습니다.",
+    "farcasterSignInError": "Farcaster 로그인에 실패했습니다.",
+    "selectionSaved": "계정 설정이 업데이트되었습니다.",
+    "active": "선택됨",
+    "loadingAccounts": "소셜 계정 정보를 불러오는 중입니다..."
   },
   "content": {
     "title": "제목",
@@ -478,7 +487,18 @@
       "scheduleFailed": "예약에 실패했습니다",
       "threadChainPublishing": "스레드 체인을 게시하는 중입니다",
       "postPublished": "포스트가 게시되었습니다",
-      "noContentToSchedule": "예약할 컨텐츠가 없습니다"
+      "noContentToSchedule": "예약할 컨텐츠가 없습니다",
+      "linkMode": "연결 모드",
+      "unlinkMode": "분리 모드",
+      "noContentToPublish": "게시하기 전에 내용을 작성해주세요.",
+      "threadsOnlySchedule": "현재 Threads에만 예약 기능을 제공하고 있어요.",
+      "threadsOnlyPublish": "현재 Threads에만 즉시 게시 기능을 제공하고 있어요.",
+      "threadsScheduleMissing": "예약할 Threads 콘텐츠가 없습니다.",
+      "connectAccountsList": "먼저 다음 계정을 연결해주세요: {platforms}",
+      "farcasterPostSuccess": "Farcaster에 성공적으로 게시했어요.",
+      "farcasterPostFailure": "Farcaster 게시에 실패했어요.",
+      "xPostSuccess": "X에 성공적으로 게시했어요.",
+      "xPostFailure": "X 게시에 실패했어요."
     },
     "selectPublishTime": {
       "selectPublishTime": "게시 시간 선택",
