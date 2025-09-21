@@ -41,7 +41,8 @@ export async function GET() {
       ogTitle: 'twyn | Grow faster on Threads',
       ogDescription: 'Your AI Twin for Contents Creation',
       ogImageUrl: 'https://twyn.sh/opengraph.png',
-      noindex: true
+      noindex: true,
+      buttonTitle: 'Open twyn'
     }
   }
 
