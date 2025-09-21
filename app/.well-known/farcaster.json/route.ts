@@ -37,11 +37,12 @@ export async function GET() {
         'baseapp'
       ],
       heroImageUrl: 'https://twyn.sh/opengraph.png',
-      tagline: 'Your AI Twin for Contents Creation',
+      tagline: 'Create contents nonstop',
       ogTitle: 'twyn | Grow faster on Threads',
       ogDescription: 'Your AI Twin for Contents Creation',
       ogImageUrl: 'https://twyn.sh/opengraph.png',
-      noindex: true
+      noindex: true,
+      buttonTitle: 'Open twyn'
     }
   }
 
