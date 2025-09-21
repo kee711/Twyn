@@ -15,7 +15,7 @@ export async function GET() {
       signature: ''
     },
     baseBuilder: {
-      allowedAddresses: ['']
+      allowedAddresses: ["0xAF820D3a2346C8B4EB328060c398FdbB394F3632"]
     },
     miniapp: {
       version: '1',
