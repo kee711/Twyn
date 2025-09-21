@@ -65,7 +65,25 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // This is the root layout that wraps all pages
-  // The actual HTML structure is in [locale]/layout.tsx
-  return children;
+  return (
+    <html lang="ko" suppressHydrationWarning className="h-full">
+      <head>
+        <meta name="fc:miniapp" content='{
+  "version":"next",
+  "imageUrl":"https://twyn.sh/opengraph.png",
+  "button":{
+      "title":"Open twyn",
+      "action":{
+      "type":"launch_miniapp",
+      "name":"twyn",
+      "url":"https://twyn.sh"
+      }
+  }
+  }' />
+      </head>
+      <body className="h-full">
+        {children}
+      </body>
+    </html>
+  );
 }
