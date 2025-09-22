@@ -30,20 +30,19 @@ export async function getSelectedSocialAccount(userId: string, platform: Platfor
     return null;
   }
 
-  const socialAccountId = selection?.social_account_id;
-  if (!socialAccountId) {
-    return null;
-  }
+  const targetId = selection?.social_account_id;
+  if (!targetId) return null;
 
-  const { data: account, error: accountError } = await supabase
+  const { data: account, error } = await supabase
     .from('social_accounts')
     .select('id, owner, platform, social_id, username, access_token, refresh_token, is_active, expires_at')
-    .eq('id', socialAccountId)
+    .eq('id', targetId)
+    .eq('platform', platform)
     .eq('is_active', true)
     .maybeSingle();
 
-  if (accountError) {
-    console.error('[socialAccounts] account fetch error', accountError);
+  if (error) {
+    console.error('[socialAccounts] account fetch error', error);
     return null;
   }
 
@@ -73,7 +72,6 @@ export async function getSelectedAccessToken(userId: string, platform: PlatformK
   if (!account?.access_token) {
     return null;
   }
-
   try {
     return decryptToken(account.access_token);
   } catch (error) {
@@ -96,12 +94,14 @@ export async function setSelectedSocialAccount(
   socialAccountId: string
 ) {
   const supabase = await createClient();
+
   const { error } = await supabase
     .from('user_selected_accounts')
     .upsert({
       user_id: userId,
       platform,
       social_account_id: socialAccountId,
+      is_primary: true,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,platform' });
 
