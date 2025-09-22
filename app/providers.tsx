@@ -20,23 +20,46 @@ export function Providers({
   // Notify Base Mini App environment that the app is ready
   useEffect(() => {
     let cancelled = false;
-    const maxAttempts = 5;
 
-    const notifyReady = async (attempt = 1) => {
-      try {
-        const inMiniApp = await sdk.isInMiniApp(5000);
-        if (!inMiniApp) {
-          if (!cancelled && attempt < maxAttempts) {
-            setTimeout(() => notifyReady(attempt + 1), 1000);
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), ms);
+      });
+
+    const notifyReady = async () => {
+      let attempt = 0;
+
+      while (!cancelled) {
+        try {
+          const inMiniApp = await sdk.isInMiniApp(2000);
+          if (!inMiniApp) {
+            attempt += 1;
+            if (attempt % 5 === 0) {
+              console.warn('Base mini app: still waiting for host context');
+            }
+
+            if (attempt >= 10) {
+              try {
+                await sdk.actions.ready();
+                break;
+              } catch (readyError) {
+                console.warn('Base mini app: force-ready attempt failed', readyError);
+              }
+            }
+
+            await wait(Math.min(1000 * attempt, 5000));
+            continue;
           }
-          return;
-        }
 
-        await sdk.actions.ready();
-      } catch (error) {
-        console.error('Failed to notify Base mini app host about readiness', error);
-        if (!cancelled && attempt < maxAttempts) {
-          setTimeout(() => notifyReady(attempt + 1), 1000);
+          await sdk.actions.ready();
+          break;
+        } catch (error) {
+          console.error('Failed to notify Base mini app host about readiness', error);
+          attempt += 1;
+          if (attempt % 5 === 0) {
+            console.warn('Base mini app: retrying ready handshake');
+          }
+          await wait(Math.min(1000 * attempt, 5000));
         }
       }
     };
