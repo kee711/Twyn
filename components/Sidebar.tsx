@@ -177,7 +177,7 @@ export function Sidebar({ className }: SidebarProps) {
 
           {/* 모바일 사이드바 */}
           <div className={cn(
-            "fixed left-0 top-0 z-50 h-full w-[280px] transform bg-muted transition-transform duration-300 ease-in-out md:hidden",
+            "fixed left-0 top-0 z-50 h-[100dvh] w-[280px] transform bg-muted transition-transform duration-300 ease-in-out md:hidden",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}>
             {/* 닫기 버튼 */}
@@ -192,7 +192,12 @@ export function Sidebar({ className }: SidebarProps) {
               </Button>
             </div>
 
-            <div className="h-screen overflow-y-auto">
+            <div
+              className="h-[100dvh] overflow-y-auto"
+              style={{
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
+              }}
+            >
               <SidebarContent
                 navigation={navigation}
                 logoSrc={logoSrc}
