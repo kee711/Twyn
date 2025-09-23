@@ -52,6 +52,7 @@ interface PostCardProps {
   hideAddButton?: boolean;
   showGrade?: boolean;
   readOnly?: boolean;
+  thinkingPlaceholder?: string | null;
 
   // Thread chain props
   isPartOfChain?: boolean;
@@ -121,6 +122,7 @@ export function PostCard({
   onRemoveThread,
   isLastInChain = true,
   triggerHeightAdjustment,
+  thinkingPlaceholder,
 }: PostCardProps) {
   const t = useTranslations('components.postCard');
   const [isAiActive, setIsAiActive] = useState(false);
@@ -432,7 +434,11 @@ export function PostCard({
                   onContentChange?.(e.target.value);
                   adjustTextareaHeight();
                 }}
-                placeholder={content.length === 0 ? t('writeContent') : ""}
+                placeholder={
+                  content.length === 0
+                    ? thinkingPlaceholder || t('writeContent')
+                    : ""
+                }
                 rows={1}
                 onFocus={onTextareaFocus}
               />

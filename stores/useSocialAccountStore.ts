@@ -1,134 +1,233 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { createClient } from '@/utils/supabase/client';
 
-// 소셜 계정 정보 타입 정의
-interface SocialAccount {
-  social_id: string
-  platform: string
-  access_token: string
-  owner: string
-  is_active: boolean
-  username?: string
+export type PlatformKey = 'threads' | 'x' | 'farcaster';
+
+export interface SocialAccount {
+  id: string;
+  social_id: string;
+  owner: string;
+  platform: PlatformKey;
+  username?: string | null;
+  is_active: boolean;
 }
 
-// 스토어 타입 정의
+export type SelectedAccountMap = Partial<Record<PlatformKey, string>>;
+
+const PLATFORM_KEYS: PlatformKey[] = ['threads', 'x', 'farcaster'];
+
 interface SocialAccountStore {
-  accounts: SocialAccount[]
-  currentSocialId: string // 현재 선택된 계정의 social_id
-  currentUsername: string // 현재 선택된 계정의 username
-  accountInfo: string | null
-  accountTags: string[]
-  accountType?: string | null // 추가: 계정 유형
-
-  setAccounts: (accounts: SocialAccount[]) => void
-  setCurrentAccountInfo: (socialId: string, username: string | null) => void
-  getSelectedAccount: () => SocialAccount | undefined
-
-  // 추가: supabase에서 직접 fetch하는 메서드
-  fetchSocialAccounts: (userId: string) => Promise<void>
-  fetchAccountDetails: (accountId: string) => Promise<void>
+  accounts: SocialAccount[];
+  selectedAccounts: SelectedAccountMap;
+  isLoading: boolean;
+  currentSocialId: string;
+  currentUsername: string;
+  setAccounts: (accounts: SocialAccount[], selected: SelectedAccountMap) => void;
+  fetchAccounts: (userId: string) => Promise<void>;
+  fetchSocialAccounts: (userId: string) => Promise<void>;
+  selectAccount: (userId: string, platform: PlatformKey, socialAccountId: string) => Promise<void>;
+  getSelectedAccount: (platform?: PlatformKey) => SocialAccount | undefined;
 }
 
-// 소셜 계정 전환을 위한 zustand 스토어 생성
 const useSocialAccountStore = create<SocialAccountStore>()(
   persist(
     (set, get) => ({
       accounts: [],
+      selectedAccounts: {},
+      isLoading: false,
       currentSocialId: '',
       currentUsername: '',
-      accountInfo: null,
-      accountTags: [],
-      accountType: null,
 
-      setAccounts: (accounts) => {
-        console.log("소셜 계정 목록 업데이트:", accounts);
-        const existingSelectedId = get().currentSocialId;
-        const newSelectedId = existingSelectedId || (accounts.length > 0 ? accounts[0].social_id : null);
+      setAccounts: (accounts, selected) => {
+        const nextSelected: SelectedAccountMap = { ...selected };
 
-        // 새롭게 선택된 계정의 정보도 업데이트
-        if (newSelectedId) {
-          const selectedAccount = accounts.find(acc => acc.social_id === newSelectedId);
-          if (selectedAccount) {
-            console.log("선택된 계정 정보:", {
-              social_id: selectedAccount.social_id,
-              username: selectedAccount.username
-            });
-
-            set({
-              accounts,
-              currentSocialId: selectedAccount.social_id,
-              currentUsername: selectedAccount.username || selectedAccount.social_id
-            });
-            return;
+        PLATFORM_KEYS.forEach((platform) => {
+          if (!nextSelected[platform]) {
+            const fallback = accounts.find(acc => acc.platform === platform);
+            if (fallback) {
+              nextSelected[platform] = fallback.id;
+            }
           }
-        }
+        });
+
+        const threadsAccountId = nextSelected.threads;
+        const threadsAccount = threadsAccountId
+          ? accounts.find(acc => acc.id === threadsAccountId)
+          : accounts.find(acc => acc.platform === 'threads') || null;
 
         set({
           accounts,
+          selectedAccounts: nextSelected,
+          currentSocialId: threadsAccount ? threadsAccount.social_id : '',
+          currentUsername: threadsAccount ? (threadsAccount.username || threadsAccount.social_id) : '',
         });
       },
 
-      setCurrentAccountInfo: (socialId, username) => {
-        console.log("현재 계정 정보 업데이트:", { socialId, username });
-        const account = get().accounts.find(acc => acc.social_id === socialId);
-        set({
-          currentSocialId: socialId,
-          currentUsername: username || socialId
-        });
-      },
-
-      getSelectedAccount: () => {
-        const { accounts, currentSocialId } = get();
-        const account = accounts.find(account => account.social_id === currentSocialId);
-        console.log("현재 선택된 계정:", account);
-        return account;
-      },
-
-      // supabase에서 계정 목록 fetch
-      fetchSocialAccounts: async (userId) => {
+      fetchAccounts: async (userId: string) => {
         const supabase = createClient();
-        const { data, error } = await supabase
-          .from('social_accounts')
-          .select('*')
-          .eq('owner', userId);
-        if (!error && data) {
-          get().setAccounts(data);
-        } else {
-          set({ accounts: [] });
-        }
-      },
+        set({ isLoading: true });
+        try {
+          const nowIso = new Date().toISOString();
 
-      // supabase에서 계정 상세 fetch
-      fetchAccountDetails: async (accountId) => {
-        const supabase = createClient();
-        const { data: accountData, error: accountError } = await supabase
-          .from('social_accounts')
-          .select('account_type, account_info, account_tags')
-          .eq('social_id', accountId)
-          .single();
-        if (!accountError && accountData) {
-          set({
-            accountType: accountData.account_type || '',
-            accountInfo: accountData.account_info || '',
-            accountTags: accountData.account_tags || []
+          const { data: accountsData, error: accountsError } = await supabase
+            .from('social_accounts')
+            .select('id, owner, platform, social_id, username, is_active')
+            .eq('owner', userId)
+            .in('platform', PLATFORM_KEYS)
+            .eq('is_active', true);
+
+          if (accountsError) {
+            throw accountsError;
+          }
+
+          const accounts: SocialAccount[] = (accountsData || [])
+            .filter((a: any) => PLATFORM_KEYS.includes(a.platform as PlatformKey))
+            .map((a: any) => ({
+              id: a.id,
+              owner: a.owner,
+              platform: a.platform as PlatformKey,
+              social_id: a.social_id,
+              username: a.username,
+              is_active: a.is_active,
+            }));
+
+          const { data: selectionRows, error: selectionError } = await supabase
+            .from('user_selected_accounts')
+            .select('platform, social_account_id')
+            .eq('user_id', userId);
+
+          if (selectionError) {
+            console.warn('[useSocialAccountStore] selection fetch error', selectionError);
+          }
+
+          const accountsByPlatform: Record<PlatformKey, SocialAccount[]> = {
+            threads: [],
+            x: [],
+            farcaster: [],
+          };
+
+          accounts.forEach((account) => {
+            accountsByPlatform[account.platform].push(account);
           });
-        } else {
-          set({ accountType: '', accountInfo: '', accountTags: [] });
+
+          const selectedMap: SelectedAccountMap = {};
+          const rowsByPlatform = new Map<PlatformKey, string>();
+
+          (selectionRows || []).forEach((row: any) => {
+            const platform = row.platform as PlatformKey;
+            const socialAccountId = row.social_account_id as string | null;
+            if (!platform || !socialAccountId) return;
+            if (!PLATFORM_KEYS.includes(platform)) return;
+            rowsByPlatform.set(platform, socialAccountId);
+          });
+
+          const upsertPayloads: Array<Record<string, unknown>> = [];
+
+          PLATFORM_KEYS.forEach((platform) => {
+            const platformAccounts = accountsByPlatform[platform];
+            const platformSelection = rowsByPlatform.get(platform);
+
+            if (platformSelection && platformAccounts.some(account => account.id === platformSelection)) {
+              selectedMap[platform] = platformSelection;
+              return;
+            }
+
+            const fallback = platformAccounts[0];
+            if (!fallback) return;
+
+            selectedMap[platform] = fallback.id;
+            upsertPayloads.push({
+              user_id: userId,
+              platform,
+              social_account_id: fallback.id,
+              is_primary: true,
+              updated_at: nowIso,
+            });
+          });
+
+          if (upsertPayloads.length > 0) {
+            const { error: upsertError } = await supabase
+              .from('user_selected_accounts')
+              .upsert(upsertPayloads, { onConflict: 'user_id,platform' });
+            if (upsertError) {
+              console.warn('[useSocialAccountStore] failed to seed selections', upsertError);
+            }
+          }
+
+          get().setAccounts(accounts, selectedMap);
+        } catch (error) {
+          console.error('[useSocialAccountStore] fetchAccounts error', error);
+          set({ accounts: [], selectedAccounts: {} });
+        } finally {
+          set({ isLoading: false });
         }
-      }
+      },
+
+      fetchSocialAccounts: async (userId: string) => {
+        await get().fetchAccounts(userId);
+      },
+
+      selectAccount: async (userId, platform, socialAccountId) => {
+        const supabase = createClient();
+        try {
+          const accountRecord = get().accounts.find(acc => acc.id === socialAccountId) || null;
+
+          const payload = {
+            user_id: userId,
+            platform,
+            social_account_id: socialAccountId,
+            is_primary: true,
+            updated_at: new Date().toISOString(),
+          };
+
+          const { error: upsertError } = await supabase
+            .from('user_selected_accounts')
+            .upsert(payload, { onConflict: 'user_id,platform' });
+
+          if (upsertError) throw upsertError;
+
+          if (platform === 'threads' && accountRecord) {
+            const { error: profileError } = await supabase
+              .from('user_profiles')
+              .update({ selected_social_id: accountRecord.social_id })
+              .eq('user_id', userId);
+            if (profileError) {
+              console.warn('[useSocialAccountStore] failed to update legacy selected_social_id', profileError);
+            }
+          }
+
+          set((state) => ({
+            selectedAccounts: {
+              ...state.selectedAccounts,
+              [platform]: socialAccountId,
+            },
+            currentSocialId: platform === 'threads' && accountRecord ? accountRecord.social_id : state.currentSocialId,
+            currentUsername: platform === 'threads' && accountRecord ? (accountRecord.username || accountRecord.social_id) : state.currentUsername,
+          }));
+        } catch (error) {
+          console.error('[useSocialAccountStore] selectAccount error', error);
+          throw error;
+        }
+      },
+
+      getSelectedAccount: (platform = 'threads') => {
+        const state = get();
+        const accountId = state.selectedAccounts[platform];
+        if (!accountId) return undefined;
+        return state.accounts.find(acc => acc.id === accountId);
+      },
     }),
     {
-      name: 'social-account-store',
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.warn('Failed to rehydrate social account store:', error);
-          // Clear corrupted data
-          localStorage.removeItem('social-account-store');
-        }
-      },
+      name: 'social-account-store-v2',
+      partialize: (state) => ({
+        accounts: state.accounts,
+        selectedAccounts: state.selectedAccounts,
+        currentSocialId: state.currentSocialId,
+        currentUsername: state.currentUsername,
+      }),
     }
   )
-)
+);
 
-export default useSocialAccountStore 
+export default useSocialAccountStore;
