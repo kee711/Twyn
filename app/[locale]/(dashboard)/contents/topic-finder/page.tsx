@@ -1,6 +1,5 @@
 'use client';
 
-import { ProfileDescriptionDropdown } from '@/components/contents-helper/ProfileDescriptionDropdown';
 import { HeadlineInput } from '@/components/contents-helper/HeadlineInput';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
 import { ThreadsProfilePicture } from '@/components/ThreadsProfilePicture';
@@ -26,6 +25,10 @@ import { useContentGenerationStore } from '@/lib/stores/content-generation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import useAiContentStore from '@/stores/useAiContentStore';
 import { trackUserAction } from '@/lib/analytics/mixpanel';
+import { useSession } from 'next-auth/react';
+import { PreferenceCard, PreferenceOption } from '@/components/topic-finder/PreferenceCard';
+import { CreatePreferenceModal } from '@/components/topic-finder/CreatePreferenceModal';
+import { AddOnCard, AddOnOption } from '@/components/topic-finder/AddOnCard';
 
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
@@ -37,15 +40,383 @@ export default function TopicFinderPage() {
     const { openRightSidebar, isRightSidebarOpen } = useMobileSidebar();
     const queryClient = useQueryClient();
 
+    const { data: session } = useSession();
+    const userId = session?.user?.id || null;
+
     const { currentSocialId, currentUsername } = useSocialAccountStore()
-    const [profileDescription, setProfileDescription] = useState('')
     const [selectedHeadline, setSelectedHeadline] = useState<string>('');
     const [givenInstruction, setGivenInstruction] = useState<string>('');
+    const [personas, setPersonas] = useState<PreferenceOption[]>([]);
+    const [audiences, setAudiences] = useState<PreferenceOption[]>([]);
+    const [objectives, setObjectives] = useState<PreferenceOption[]>([]);
+    const [addOns, setAddOns] = useState<AddOnOption[]>([]);
+    const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+    const [selectedAudienceId, setSelectedAudienceId] = useState<string | null>(null);
+    const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
+    const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
+    const [preferenceId, setPreferenceId] = useState<string | null>(null);
+    const [isPreferenceLoading, setIsPreferenceLoading] = useState(false);
+    const [modalState, setModalState] = useState<{ type: 'persona' | 'audience' | 'objective' | 'addOn' | null; open: boolean }>({ type: null, open: false });
+    const [modalSaving, setModalSaving] = useState(false);
     const { postType, language } = useContentGenerationStore();
     const { setOriginalAiContent } = useAiContentStore();
 
     // Memoize Supabase client to prevent creating new instances
     const supabase = useMemo(() => createClient(), []);
+
+    const selectedPersona = useMemo(() => personas.find(item => item.id === selectedPersonaId) || null, [personas, selectedPersonaId]);
+    const selectedAudience = useMemo(() => audiences.find(item => item.id === selectedAudienceId) || null, [audiences, selectedAudienceId]);
+    const selectedObjective = useMemo(() => objectives.find(item => item.id === selectedObjectiveId) || null, [objectives, selectedObjectiveId]);
+    const selectedAddOnsList = useMemo(() => addOns.filter(item => selectedAddOnIds.includes(item.id)), [addOns, selectedAddOnIds]);
+
+    const ensurePreference = useCallback(async () => {
+        if (!userId) return null;
+        if (preferenceId) return preferenceId;
+
+        const { data, error } = await supabase
+            .from('topic_finder_preferences')
+            .insert({ user_account_id: userId })
+            .select('id')
+            .single();
+
+        if (error) {
+            toast.error('Failed to initialize preferences');
+            console.error('Failed to initialize preferences', error);
+            return null;
+        }
+
+        setPreferenceId(data.id);
+        return data.id;
+    }, [preferenceId, supabase, userId]);
+
+    const loadPreferenceSelections = useCallback(async () => {
+        if (!userId) return;
+        setIsPreferenceLoading(true);
+        try {
+            const { data: preferenceData, error } = await supabase
+                .from('topic_finder_preferences')
+                .select('id, persona_id, audience_id, objective_id')
+                .eq('user_account_id', userId)
+                .maybeSingle();
+
+            if (!error && preferenceData) {
+                setPreferenceId(preferenceData.id);
+                setSelectedPersonaId(preferenceData.persona_id || null);
+                setSelectedAudienceId(preferenceData.audience_id || null);
+                setSelectedObjectiveId(preferenceData.objective_id || null);
+
+                const { data: addOnSelections, error: addOnError } = await supabase
+                    .from('topic_finder_preference_add_ons')
+                    .select('add_on_id')
+                    .eq('preference_id', preferenceData.id);
+
+                if (!addOnError && addOnSelections) {
+                    setSelectedAddOnIds(addOnSelections.map(item => item.add_on_id));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load preferences', error);
+        } finally {
+            setIsPreferenceLoading(false);
+        }
+    }, [supabase, userId]);
+
+    const loadPreferenceOptions = useCallback(async () => {
+        if (!userId) return;
+        try {
+            const [personaRes, audienceRes, objectiveRes, addOnRes] = await Promise.all([
+                supabase
+                    .from('personas')
+                    .select('id, name, description, is_public')
+                    .or(`is_public.eq.true,user_account_id.eq.${userId}`)
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('audiences')
+                    .select('id, name, description, is_public')
+                    .or(`is_public.eq.true,user_account_id.eq.${userId}`)
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('objectives')
+                    .select('id, name, description, is_public')
+                    .or(`is_public.eq.true,user_account_id.eq.${userId}`)
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('add_ons')
+                    .select('id, name, description, is_public')
+                    .or(`is_public.eq.true,user_account_id.eq.${userId},user_account_id.is.null`)
+                    .order('created_at', { ascending: false }),
+            ]);
+
+            if (!personaRes.error && personaRes.data) setPersonas(personaRes.data as PreferenceOption[]);
+            if (!audienceRes.error && audienceRes.data) setAudiences(audienceRes.data as PreferenceOption[]);
+            if (!objectiveRes.error && objectiveRes.data) setObjectives(objectiveRes.data as PreferenceOption[]);
+            if (!addOnRes.error && addOnRes.data) setAddOns(addOnRes.data as AddOnOption[]);
+
+            if (personaRes.error) console.error('Failed to load personas', personaRes.error);
+            if (audienceRes.error) console.error('Failed to load audiences', audienceRes.error);
+            if (objectiveRes.error) console.error('Failed to load objectives', objectiveRes.error);
+            if (addOnRes.error) console.error('Failed to load add-ons', addOnRes.error);
+        } catch (error) {
+            console.error('Failed to load preference options', error);
+        }
+    }, [supabase, userId]);
+
+    const contextSummary = useMemo(() => {
+        const segments: string[] = [];
+        if (selectedPersona) {
+            segments.push(`Persona: ${selectedPersona.name}` + (selectedPersona.description ? `\n${selectedPersona.description}` : ''));
+        }
+        if (selectedAudience) {
+            segments.push(`Audience: ${selectedAudience.name}` + (selectedAudience.description ? `\n${selectedAudience.description}` : ''));
+        }
+        if (selectedObjective) {
+            segments.push(`Objective: ${selectedObjective.name}` + (selectedObjective.description ? `\n${selectedObjective.description}` : ''));
+        }
+        if (selectedAddOnsList.length > 0) {
+            const addOnSummary = selectedAddOnsList
+                .map(item => `${item.name}${item.description ? ` - ${item.description}` : ''}`)
+                .join('\n');
+            segments.push(`Add-ons:\n${addOnSummary}`);
+        }
+        return segments.join('\n\n');
+    }, [selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList]);
+
+    const modalConfig = useMemo(() => {
+        switch (modalState.type) {
+            case 'persona':
+                return {
+                    title: 'Persona',
+                    namePlaceholder: 'e.g. Insightful marketing expert',
+                    descriptionPlaceholder: 'Describe the persona voice, experience, and tone.',
+                    includePublicToggle: false,
+                };
+            case 'audience':
+                return {
+                    title: 'Audience',
+                    namePlaceholder: 'e.g. Aspiring SaaS founders',
+                    descriptionPlaceholder: 'Who are you writing for? Mention goals, pain points, and preferences.',
+                    includePublicToggle: false,
+                };
+            case 'objective':
+                return {
+                    title: 'Objective',
+                    namePlaceholder: 'e.g. Drive sign-ups for beta launch',
+                    descriptionPlaceholder: 'Clarify the campaign goal, CTA, and success metrics.',
+                    includePublicToggle: false,
+                };
+            case 'addOn':
+                return {
+                    title: 'Add-on',
+                    namePlaceholder: 'e.g. Include storytelling hook',
+                    descriptionPlaceholder: 'Explain how this add-on should influence the generated content.',
+                    includePublicToggle: true,
+                };
+            default:
+                return {
+                    title: '',
+                    namePlaceholder: '',
+                    descriptionPlaceholder: '',
+                    includePublicToggle: false,
+                };
+        }
+    }, [modalState.type]);
+
+    const structuredContext = useMemo(() => ({
+        persona: selectedPersona ? { id: selectedPersona.id, name: selectedPersona.name, description: selectedPersona.description || '' } : null,
+        audience: selectedAudience ? { id: selectedAudience.id, name: selectedAudience.name, description: selectedAudience.description || '' } : null,
+        objective: selectedObjective ? { id: selectedObjective.id, name: selectedObjective.name, description: selectedObjective.description || '' } : null,
+        addOns: selectedAddOnsList.map(addOn => ({ id: addOn.id, name: addOn.name, description: addOn.description || '' })),
+    }), [selectedAddOnsList, selectedAudience, selectedObjective, selectedPersona]);
+
+    const updatePreference = useCallback(
+        async (payload: Partial<{ persona_id: string | null; audience_id: string | null; objective_id: string | null }>) => {
+            if (!userId) {
+                toast.error('Please sign in to manage preferences.');
+                return null;
+            }
+            const id = await ensurePreference();
+            if (!id) return null;
+
+            const { data, error } = await supabase
+                .from('topic_finder_preferences')
+                .update(payload)
+                .eq('id', id)
+                .select('persona_id, audience_id, objective_id')
+                .single();
+
+            if (error) {
+                toast.error('Failed to save preference.');
+                console.error('Failed to update preferences', error);
+                return null;
+            }
+
+            if (payload.persona_id !== undefined) setSelectedPersonaId(data.persona_id || null);
+            if (payload.audience_id !== undefined) setSelectedAudienceId(data.audience_id || null);
+            if (payload.objective_id !== undefined) setSelectedObjectiveId(data.objective_id || null);
+
+            return data;
+        },
+        [ensurePreference, supabase, userId]
+    );
+
+    const handlePersonaSelect = useCallback(
+        async (option: PreferenceOption) => {
+            setIsPreferenceLoading(true);
+            try {
+                await updatePreference({ persona_id: option.id });
+            } finally {
+                setIsPreferenceLoading(false);
+            }
+        },
+        [updatePreference]
+    );
+
+    const handleAudienceSelect = useCallback(
+        async (option: PreferenceOption) => {
+            setIsPreferenceLoading(true);
+            try {
+                await updatePreference({ audience_id: option.id });
+            } finally {
+                setIsPreferenceLoading(false);
+            }
+        },
+        [updatePreference]
+    );
+
+    const handleObjectiveSelect = useCallback(
+        async (option: PreferenceOption) => {
+            setIsPreferenceLoading(true);
+            try {
+                await updatePreference({ objective_id: option.id });
+            } finally {
+                setIsPreferenceLoading(false);
+            }
+        },
+        [updatePreference]
+    );
+
+    const handleToggleAddOn = useCallback(
+        async (option: AddOnOption) => {
+            if (!userId) {
+                toast.error('Please sign in to manage preferences.');
+                return;
+            }
+            const id = await ensurePreference();
+            if (!id) return;
+
+            const isActive = selectedAddOnIds.includes(option.id);
+            setIsPreferenceLoading(true);
+            try {
+                if (isActive) {
+                    const { error } = await supabase
+                        .from('topic_finder_preference_add_ons')
+                        .delete()
+                        .eq('preference_id', id)
+                        .eq('add_on_id', option.id);
+                    if (error) {
+                        toast.error('Failed to remove add-on.');
+                        console.error('Failed to remove add-on', error);
+                        return;
+                    }
+                    setSelectedAddOnIds(prev => prev.filter(addOnId => addOnId !== option.id));
+                } else {
+                    const { error } = await supabase
+                        .from('topic_finder_preference_add_ons')
+                        .upsert({ preference_id: id, add_on_id: option.id, last_selected_at: new Date().toISOString() }, { onConflict: 'preference_id,add_on_id' });
+                    if (error) {
+                        toast.error('Failed to add add-on.');
+                        console.error('Failed to add add-on', error);
+                        return;
+                    }
+                    setSelectedAddOnIds(prev => [...prev, option.id]);
+                }
+            } finally {
+                setIsPreferenceLoading(false);
+            }
+        },
+        [ensurePreference, selectedAddOnIds, supabase, userId]
+    );
+
+    const openCreateModal = useCallback((type: 'persona' | 'audience' | 'objective' | 'addOn') => {
+        setModalState({ type, open: true });
+    }, []);
+
+    const closeCreateModal = useCallback(() => {
+        setModalState({ type: null, open: false });
+    }, []);
+
+    const handleCreatePreferenceItem = useCallback(
+        async ({ name, description, isPublic }: { name: string; description: string; isPublic?: boolean }) => {
+            if (!modalState.type || !userId) {
+                toast.error('Please sign in to manage preferences.');
+                return;
+            }
+
+            const tableMap = {
+                persona: 'personas',
+                audience: 'audiences',
+                objective: 'objectives',
+                addOn: 'add_ons'
+            } as const;
+
+            const titleMap = {
+                persona: 'Persona',
+                audience: 'Audience',
+                objective: 'Objective',
+                addOn: 'Add-on'
+            } as const;
+
+            const table = tableMap[modalState.type];
+            setModalSaving(true);
+
+            try {
+                const payload: Record<string, any> = {
+                    name,
+                    description: description || null,
+                    user_account_id: userId,
+                };
+
+                if (modalState.type === 'addOn') {
+                    payload.is_public = !!isPublic;
+                } else {
+                    payload.is_public = false;
+                }
+
+                const { data, error } = await supabase
+                    .from(table)
+                    .insert(payload)
+                    .select('id, name, description, is_public')
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                if (modalState.type === 'persona') {
+                    setPersonas(prev => [data as PreferenceOption, ...prev]);
+                    await handlePersonaSelect(data as PreferenceOption);
+                } else if (modalState.type === 'audience') {
+                    setAudiences(prev => [data as PreferenceOption, ...prev]);
+                    await handleAudienceSelect(data as PreferenceOption);
+                } else if (modalState.type === 'objective') {
+                    setObjectives(prev => [data as PreferenceOption, ...prev]);
+                    await handleObjectiveSelect(data as PreferenceOption);
+                } else if (modalState.type === 'addOn') {
+                    setAddOns(prev => [data as AddOnOption, ...prev]);
+                    await handleToggleAddOn(data as AddOnOption);
+                }
+
+                toast.success(`${titleMap[modalState.type]} created.`);
+                closeCreateModal();
+            } catch (error) {
+                console.error('Failed to create preference item', error);
+                toast.error('Failed to create item.');
+            } finally {
+                setModalSaving(false);
+            }
+        },
+        [closeCreateModal, handleAudienceSelect, handleObjectiveSelect, handlePersonaSelect, handleToggleAddOn, modalState.type, supabase, userId]
+    );
 
     // topicResults zustand store
     const {
@@ -61,6 +432,16 @@ export default function TopicFinderPage() {
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (!userId) return;
+        loadPreferenceOptions();
+    }, [userId, loadPreferenceOptions]);
+
+    useEffect(() => {
+        if (!userId) return;
+        loadPreferenceSelections();
+    }, [userId, loadPreferenceSelections]);
 
     // 토픽 변경 핸들러
     const handleTopicChange = (idx: number, newVal: string) => {
@@ -93,6 +474,17 @@ export default function TopicFinderPage() {
             toast.error(t('writeOrAddTopic'));
             return;
         }
+        if (!selectedPersona || !selectedAudience || !selectedObjective) {
+            toast.error('Select persona, audience, and objective first.');
+            return;
+        }
+
+        const contextInfo = contextSummary.trim();
+        if (!contextInfo) {
+            toast.error('Please provide context before generating.');
+            return;
+        }
+
         const headline = selectedHeadline;
         setTopicLoading(headline, true);
         setIsGeneratingDetails(true);
@@ -109,11 +501,12 @@ export default function TopicFinderPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    accountInfo: profileDescription,
+                    accountInfo: contextInfo,
                     topic: headline,
                     instruction: givenInstruction,
                     postType,
-                    language
+                    language,
+                    context: structuredContext
                 })
             });
             if (!res.ok) throw new Error('API error');
@@ -272,7 +665,7 @@ export default function TopicFinderPage() {
                     setGenerationStatus(null);
                     clearGenerationPreview();
                     toast.success(t('threadsGenerated', { count: threadChain.length }));
-                    
+
                     // Track AI content generation
                     trackUserAction.aiContentGenerated({
                         topic: headline,
@@ -297,7 +690,7 @@ export default function TopicFinderPage() {
                 setGenerationStatus(null);
                 clearGenerationPreview();
                 toast.success(t('threadsGenerated', { count: threadChain.length }));
-                
+
                 // Track AI content generation
                 trackUserAction.aiContentGenerated({
                     topic: headline,
@@ -342,34 +735,6 @@ export default function TopicFinderPage() {
         // 페이지 로드 시 한 번만 실행
         syncMyContents();
     }, []); // 빈 의존성 배열로 마운트 시에만 실행
-
-    // 계정 정보 로드
-    useEffect(() => {
-        if (!currentSocialId) return
-
-        const fetchAccountDetails = async () => {
-            setIsLoading(true)
-            try {
-                const { data: accountData, error: accountError } = await supabase
-                    .from('social_accounts')
-                    .select('account_type, profile_description')
-                    .eq('social_id', currentSocialId)
-                    .single()
-
-                if (!accountError && accountData) {
-                    setProfileDescription(accountData.profile_description || '')
-                } else {
-                    setProfileDescription('')
-                }
-            } catch (error) {
-                toast.error('계정 정보를 불러오는 중 오류가 발생했습니다.')
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchAccountDetails()
-    }, [currentSocialId, supabase])
 
     // Optimized background prefetch with priority control
     useEffect(() => {
@@ -470,8 +835,13 @@ export default function TopicFinderPage() {
 
     // 토픽 생성 함수
     const generateTopics = async () => {
-        if (!profileDescription) {
-            toast.error(t('noProfileDescription'));
+        if (!selectedPersona || !selectedAudience || !selectedObjective) {
+            toast.error('Select persona, audience, and objective first.');
+            return;
+        }
+
+        if (!contextSummary.trim()) {
+            toast.error('Please provide context before generating topics.');
             return;
         }
         setIsGeneratingTopics(true);
@@ -480,7 +850,14 @@ export default function TopicFinderPage() {
             const res = await fetch('/api/generate-topics', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profileDescription, language })
+                body: JSON.stringify({
+                    persona: structuredContext.persona,
+                    audience: structuredContext.audience,
+                    objective: structuredContext.objective,
+                    addOns: structuredContext.addOns,
+                    contextSummary,
+                    language
+                })
             });
             if (!res.ok) throw new Error('API error');
             const data = await res.json();
@@ -517,8 +894,8 @@ export default function TopicFinderPage() {
             <div className="flex flex-col items-center justify-center h-full">
                 <div className="w-full mx-auto pt-32 pb-48 flex flex-col items-center overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {/* 중앙 정렬 인사말 */}
-                    <div className="px-6 md:px-4 text-center md:text-left">
-                        <div className="flex flex-col md:flex-row items-center gap-2 mb-1">
+                    <div className="font-headline px-6 mb-6 md:px-4 text-center">
+                        <div className="flex flex-row items-center justify-center gap-2 mb-1">
                             {/* 프로필 이미지 - 동적으로 가져오기 */}
                             {mounted && (
                                 <ThreadsProfilePicture
@@ -527,25 +904,54 @@ export default function TopicFinderPage() {
                                     className="w-8 h-8 rounded-full"
                                 />
                             )}
-                            <h2 className="text-xl md:text-2xl font-semibold text-center md:text-left">
+                            <h2 className="text-xl md:text-2xl font-medium text-center">
                                 {t('greeting', { username: mounted ? (currentUsername || t('defaultUser')) : t('defaultUser') })}
                             </h2>
                         </div>
-                        <h2 className="text-xl md:text-2xl font-semibold text-center md:text-left whitespace-normal break-keep">{t('question')}</h2>
+                        <h2 className="text-xl md:text-2xl font-medium text-center md:text-left whitespace-normal break-keep">{t('question')}</h2>
                     </div>
                     {/* Headline 입력 및 태그 */}
-                    <div className="w-full max-w-3xl">
-                        {/* Profile Description Dropdown */}
-                        {mounted && currentSocialId && (
-                            <div className="w-full px-4 md:px-6 mt-3 flex justify-between transition-all duration-300">
-                                <ProfileDescriptionDropdown
-                                    accountId={currentSocialId}
-                                    initialDescription={profileDescription || ''}
-                                    // profileDescription 업데이트 핸들러 전달
-                                    onSave={(newDescription) => setProfileDescription(newDescription)}
-                                />
-                            </div>
-                        )}
+                    <div className="w-full max-w-3xl space-y-3">
+                        <div className="grid w-full grid-cols-4 gap-2 md:grid-cols-2 xl:grid-cols-4">
+                            <PreferenceCard
+                                title="Persona"
+                                options={personas}
+                                selectedId={selectedPersonaId}
+                                onSelect={handlePersonaSelect}
+                                onCreateNew={() => openCreateModal('persona')}
+                                placeholder="Select persona"
+                                disabled={!userId}
+                                loading={isPreferenceLoading && personas.length === 0}
+                            />
+                            <PreferenceCard
+                                title="Audience"
+                                options={audiences}
+                                selectedId={selectedAudienceId}
+                                onSelect={handleAudienceSelect}
+                                onCreateNew={() => openCreateModal('audience')}
+                                placeholder="Select audience"
+                                disabled={!userId}
+                                loading={isPreferenceLoading && audiences.length === 0}
+                            />
+                            <PreferenceCard
+                                title="Objective"
+                                options={objectives}
+                                selectedId={selectedObjectiveId}
+                                onSelect={handleObjectiveSelect}
+                                onCreateNew={() => openCreateModal('objective')}
+                                placeholder="Select objective"
+                                disabled={!userId}
+                                loading={isPreferenceLoading && objectives.length === 0}
+                            />
+                            <AddOnCard
+                                options={addOns}
+                                selectedIds={selectedAddOnIds}
+                                onToggle={handleToggleAddOn}
+                                onCreateNew={() => openCreateModal('addOn')}
+                                disabled={!userId}
+                                loading={isPreferenceLoading && addOns.length === 0}
+                            />
+                        </div>
                         <HeadlineInput value={selectedHeadline} onChange={setSelectedHeadline} />
                     </div>
 
@@ -612,6 +1018,20 @@ export default function TopicFinderPage() {
 
                         </div>
                     </div>
+                    <CreatePreferenceModal
+                        open={modalState.open}
+                        title={modalConfig.title}
+                        onOpenChange={open => {
+                            if (!open) {
+                                closeCreateModal();
+                            }
+                        }}
+                        onSave={handleCreatePreferenceItem}
+                        loading={modalSaving}
+                        includePublicToggle={modalConfig.includePublicToggle}
+                        namePlaceholder={modalConfig.namePlaceholder}
+                        descriptionPlaceholder={modalConfig.descriptionPlaceholder}
+                    />
                 </div>
             </div>
         </div>
