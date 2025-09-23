@@ -13,14 +13,14 @@
     "version": "1",
     "name": "twyn",
     "homeUrl": "https://twyn.sh",
-    "iconUrl": "https://twyn.sh/opengraph.png",
-    "splashImageUrl": "https://twyn.sh/opengraph.png",
-    "splashBackgroundColor": "#000000",
+    "iconUrl": "https://twyn.sh/icon.png",
+    "splashImageUrl": "https://twyn.sh/splash.png",
+    "splashBackgroundColor": "#FFFFFF",
     "webhookUrl": "https://twyn.sh/api/webhook",
     "subtitle": "Grow faster on Threads",
-    "description": "AI가 콘텐츠를 생성하고 최적 시간에 자동 게시합니다.",
+    "description": "Your AI Twin for Contents Creation",
     "screenshotUrls": [
-      "https://twyn.sh/opengraph.png"
+      "https://twyn.sh/screen.png"
     ],
     "primaryCategory": "social",
     "tags": [
@@ -33,6 +33,6 @@
     "ogTitle": "twyn | Grow faster on Threads",
     "ogDescription": "Your AI Twin for Contents Creation",
     "ogImageUrl": "https://twyn.sh/opengraph.png",
-    "noindex": true
+    "noindex": false
   }
 }
