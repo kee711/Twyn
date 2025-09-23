@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 
+import { fcMiniAppMetadata, miniAppName } from '@/config/miniapp'
+
+const baseTitle = `${miniAppName} | Grow faster on Threads`
+
 export const metadata: Metadata = {
-  title: "twyn | Grow faster on Threads",
+  title: baseTitle,
   description: "스레드에서 더 빠르게 성장하세요. AI가 콘텐츠를 생성하고 최적의 시간에 자동 게시해드립니다.",
   keywords: ['threads', 'social media', 'ai', 'content creation', 'automation', 'marketing', '스레드', '소셜미디어', '마케팅'],
-  authors: [{ name: 'twyn' }],
-  creator: 'twyn',
-  publisher: 'twyn',
+  authors: [{ name: miniAppName }],
+  creator: miniAppName,
+  publisher: miniAppName,
   metadataBase: new URL('https://twyn.sh'),
   alternates: {
     canonical: '/',
@@ -32,7 +36,7 @@ export const metadata: Metadata = {
   },
   manifest: '/site.webmanifest',
   openGraph: {
-    title: 'twyn | Grow faster on Threads',
+    title: baseTitle,
     description: '스레드에서 더 빠르게 성장하세요. AI가 콘텐츠를 생성하고 최적의 시간에 자동 게시해드립니다.',
     url: 'https://twyn.sh',
     siteName: 'twyn',
@@ -49,7 +53,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'twyn | Grow faster on Threads',
+    title: baseTitle,
     description: '스레드에서 더 빠르게 성장하세요. AI가 콘텐츠를 생성하고 최적의 시간에 자동 게시해드립니다.',
     images: '/opengraph.png',
     creator: '@twyn',
@@ -58,6 +62,9 @@ export const metadata: Metadata = {
     google: 'google-site-verification-code',
   },
   category: 'technology',
+  other: {
+    'fc:miniapp': JSON.stringify(fcMiniAppMetadata),
+  },
 };
 
 export default function RootLayout({
@@ -65,7 +72,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // This is the root layout that wraps all pages
-  // The actual HTML structure is in [locale]/layout.tsx
-  return children;
+  return (
+    <html lang="ko" suppressHydrationWarning className="h-full">
+      <body className="h-full">
+        {children}
+      </body>
+    </html>
+  );
 }

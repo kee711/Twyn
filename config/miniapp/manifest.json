@@ -1,0 +1,37 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEzMzY0OTcsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg2NzA1YjNkZmExM0NkN0Y4MDk1MzgxOTg1MjI4ZEU3Nzg2RDU4NGM3In0",
+    "payload": "eyJkb21haW4iOiJ0d3luLnNoIn0",
+    "signature": "MHhhNzk1MGQxOGNkYWY3MTEzZDEwOTI5NTc1ZDU3ZGRhNjY0ZDQwNmNlM2M2NTQ5MWE4NWQ5ZDNhOWVmZjY1NTA0NDhjOWM1ZGIzNGQyNjhkZjRiZWQxMzAwMTE1MTczODdiZGFlZDY5NTZkMGU4NTljZWM0NTI4YTExNWZkMDU0NDFj"
+  },
+  "baseBuilder": {
+    "allowedAddresses": [
+      "0xAF820D3a2346C8B4EB328060c398FdbB394F3632"
+    ]
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "twyn",
+    "homeUrl": "https://twyn.sh",
+    "iconUrl": "https://twyn.sh/icon.png",
+    "splashImageUrl": "https://twyn.sh/splash.png",
+    "splashBackgroundColor": "#FFFFFF",
+    "webhookUrl": "https://twyn.sh/api/webhook",
+    "subtitle": "Grow faster on Social Media",
+    "description": "Your AI Twin for Contents Creation",
+    "screenshotUrls": [
+      "https://twyn.sh/screen.png"
+    ],
+    "primaryCategory": "social",
+    "tags": [
+      "twyn",
+      "miniapp",
+      "baseapp"
+    ],
+    "heroImageUrl": "https://twyn.sh/opengraph.png",
+    "tagline": "Create contents nonstop",
+    "ogTitle": "Grow faster on Social Media",
+    "ogDescription": "Your AI Twin for Contents Creation",
+    "ogImageUrl": "https://twyn.sh/opengraph.png"
+  }
+}
