@@ -367,7 +367,7 @@
         "writingDraft": "Writing draft...",
         "greeting": "Hi {username},",
         "defaultUser": "User",
-        "question": "What would you like to write?",
+        "question": "What would you like to write about?",
         "writeOrAddTopic": "Please write or add a topic",
         "threadsGenerated": "Generated {count} threads! Check the writing sidebar to publish.",
         "failedToGenerateChain": "Failed to generate thread chain",

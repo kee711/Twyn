@@ -49,7 +49,6 @@ export function HeadlineButtons({ onCreateDetails, onGenerateTopics, IsIdeasLoad
                   </span>
                   <Switch
                     id="post-type"
-                    defaultChecked={postType === 'single'}
                     checked={postType === 'thread'}
                     onCheckedChange={(checked) => setPostType(checked ? 'thread' : 'single')}
                   />

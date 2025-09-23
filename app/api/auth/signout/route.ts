@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-
-const isProduction = process.env.NODE_ENV === 'production';
-const cookieDomain = isProduction ? '.twyn.sh' : undefined;
+import { cookies } from 'next/headers';
 
 export async function POST() {
   try {
-    const response = NextResponse.json({ success: true, url: '/' }, { status: 200 });
-
-    const sessionCookies = [
+    const cookieStore = await cookies();
+    
+    // Delete all NextAuth related cookies
+    const cookieNames = [
       'next-auth.session-token',
       '__Secure-next-auth.session-token',
       'next-auth.csrf-token',
@@ -17,57 +16,53 @@ export async function POST() {
       '__Host-next-auth.csrf-token',
     ];
 
-    const baseOptions = {
-      path: '/',
-      expires: new Date(0),
-      httpOnly: true,
-      sameSite: 'lax' as const,
-      secure: isProduction,
-    };
-
-    for (const name of sessionCookies) {
-      response.cookies.set({
+    // Delete cookies with various domain configurations
+    for (const name of cookieNames) {
+      // Delete cookie without domain
+      cookieStore.delete({
         name,
-        value: '',
-        ...baseOptions,
+        path: '/',
       });
-
-      if (cookieDomain) {
-        response.cookies.set({
-          name,
-          value: '',
-          ...baseOptions,
-          domain: cookieDomain,
-        });
-      }
-    }
-
-    const customCookies = [
-      'signup_intent',
-      'signup_invite_code',
-      'signup_invite_code_id',
-    ];
-
-    for (const name of customCookies) {
-      response.cookies.set({
+      
+      // Delete cookie with domain
+      cookieStore.set({
         name,
         value: '',
         path: '/',
         expires: new Date(0),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        domain: '.twyn.sh'
       });
-
-      if (cookieDomain) {
-        response.cookies.set({
-          name,
-          value: '',
-          path: '/',
-          expires: new Date(0),
-          domain: cookieDomain,
-        });
-      }
+      
+      // Also try without domain specification
+      cookieStore.set({
+        name,
+        value: '',
+        path: '/',
+        expires: new Date(0),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
     }
 
-    return response;
+    // Clear any custom signup-related cookies
+    const customCookies = [
+      'signup_intent',
+      'signup_invite_code',
+      'signup_invite_code_id'
+    ];
+
+    for (const name of customCookies) {
+      cookieStore.delete({
+        name,
+        path: '/',
+      });
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('Error clearing cookies:', error);
     return NextResponse.json({ success: false, error: 'Failed to clear cookies' }, { status: 500 });
