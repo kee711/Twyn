@@ -76,6 +76,46 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
       }
 
       toast.success(t('farcasterLinkSuccess'));
+
+      // Singer Flow Autostart after login
+
+      // const signerStart = await fetch('/api/farcaster/signer/start', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ fid: Number(fid) }),
+      // });
+
+      // if (signerStart.ok) {
+      //   const startData = await signerStart.json().catch(() => ({}));
+      //   const token: string | undefined = startData?.token;
+      //   const deeplinkUrl: string | undefined = startData?.deeplinkUrl;
+
+      //   if (deeplinkUrl) {
+      //     const win = window.open(deeplinkUrl, '_blank', 'noopener');
+      //     if (!win) {
+      //       window.location.href = deeplinkUrl;
+      //     }
+      //     toast.info('Warpcast 앱에서 signer 승인을 완료해주세요.');
+      //   }
+
+      //   if (token) {
+      //     const result = await pollSignerStatus(token);
+      //     if (result === 'completed') {
+      //       toast.success('Farcaster signer가 활성화되었습니다.');
+      //     } else if (result === 'expired') {
+      //       toast.error('Signer 요청이 만료되었습니다. 다시 시도해주세요.');
+      //     } else if (result === 'revoked') {
+      //       toast.error('Signer 요청이 취소되었습니다. 다시 시도해주세요.');
+      //     } else if (result === 'timeout') {
+      //       toast.info('Signer 승인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
+      //     }
+      //   }
+      // } else {
+      //   const errorData = await signerStart.json().catch(() => ({}));
+      //   console.error('Failed to start Farcaster signer flow', errorData);
+      //   toast.error('Signer 요청을 시작하지 못했습니다. 다시 시도해주세요.');
+      // }
+
       await fetchAccounts(session.user.id);
     } catch (error) {
       console.error('Farcaster account link failed:', error);
@@ -89,6 +129,45 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
     console.error('Farcaster sign-in error:', error);
     toast.error(t('farcasterSignInError'));
     setShowProviderModal(false);
+  };
+
+  const pollSignerStatus = async (token: string) => {
+    const maxAttempts = 20;
+    const delayMs = 3000;
+
+    const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await wait(delayMs);
+      try {
+        const res = await fetch(`/api/farcaster/signer/status?token=${encodeURIComponent(token)}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data?.ok === false) {
+          continue;
+        }
+
+        const state: string | undefined = data?.signedKeyRequest?.state;
+        if (!state) continue;
+
+        if (state === 'completed') {
+          if (session?.user?.id) {
+            await fetchAccounts(session.user.id);
+          }
+          return 'completed';
+        }
+
+        if (state === 'expired' || state === 'revoked') {
+          if (session?.user?.id) {
+            await fetchAccounts(session.user.id);
+          }
+          return state as 'expired' | 'revoked';
+        }
+      } catch (error) {
+        console.error('Failed to poll signer status', error);
+      }
+    }
+
+    return 'timeout';
   };
 
   const groupedAccounts = useMemo(() => {

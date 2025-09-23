@@ -36,10 +36,10 @@ export async function POST(req: Request) {
     const supabase = await createClient();
 
     const { data: fa } = await supabase
-      .from("farcaster_account")
-      .select("fid")
-      .eq("owner", session.user.id)
-      .order("updated_at", { ascending: false })
+      .from('farcaster_accounts')
+      .select('fid, username, custody_address')
+      .eq('owner', session.user.id)
+      .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -98,21 +98,29 @@ export async function POST(req: Request) {
     }
 
     // 4) Persist signer (encrypted)
-    const encryptedPriv = encryptToken(Buffer.from(privateKeyBytes).toString("base64"));
+    const encryptedPriv = encryptToken(Buffer.from(privateKeyBytes).toString('base64'));
+    const expiresAtIso = new Date(deadline * 1000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    const basePayload: Record<string, unknown> = {
+      owner: session.user.id,
+      fid: Number(userFid),
+      signer_public_key_hex: publicKeyHex,
+      signer_private_key_enc: encryptedPriv,
+      signed_key_request_token: token,
+      signed_key_request_state: 'pending',
+      signed_key_request_expires_at: expiresAtIso,
+      signer_approved_at: null,
+      is_active: false,
+      updated_at: nowIso,
+    };
+
+    if (fa?.username) basePayload.username = fa.username;
+    if (fa?.custody_address) basePayload.custody_address = fa.custody_address;
+
     const { error: upErr } = await supabase
-      .from("farcaster_account")
-      .upsert(
-        {
-          owner: session.user.id,
-          fid: Number(userFid),
-          signer_public_key_hex: publicKeyHex,
-          signer_private_key_enc: encryptedPriv,
-          signed_key_request_token: token,
-          is_active: false,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "owner,fid" }
-      );
+      .from('farcaster_accounts')
+      .upsert(basePayload, { onConflict: 'owner,fid' });
 
     if (upErr) {
       return NextResponse.json({ ok: false, error: `DB error: ${upErr.message}` }, { status: 500 });
@@ -123,5 +131,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
   }
 }
-
-

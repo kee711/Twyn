@@ -13,17 +13,36 @@ export async function POST(req: Request) {
     if (!fid) return NextResponse.json({ ok: false, error: "Missing fid" }, { status: 400 });
 
     const supabase = await createClient();
+    const { data: existingAccount, error: fetchError } = await supabase
+      .from('farcaster_accounts')
+      .select('custody_address, signer_public_key_hex, signer_private_key_enc, signed_key_request_token, signed_key_request_state, signed_key_request_expires_at, signer_approved_at, is_active')
+      .eq('owner', session.user.id)
+      .eq('fid', Number(fid))
+      .maybeSingle();
+
+    if (fetchError) {
+      return NextResponse.json({ ok: false, error: fetchError.message }, { status: 500 });
+    }
+
+    const payload: Record<string, unknown> = {
+      owner: session.user.id,
+      fid: Number(fid),
+      username: typeof username === 'string' ? username : null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existingAccount?.custody_address) payload.custody_address = existingAccount.custody_address;
+    if (existingAccount?.signer_public_key_hex) payload.signer_public_key_hex = existingAccount.signer_public_key_hex;
+    if (existingAccount?.signer_private_key_enc) payload.signer_private_key_enc = existingAccount.signer_private_key_enc;
+    if (existingAccount?.signed_key_request_token) payload.signed_key_request_token = existingAccount.signed_key_request_token;
+    if (existingAccount?.signed_key_request_state) payload.signed_key_request_state = existingAccount.signed_key_request_state;
+    if (existingAccount?.signed_key_request_expires_at) payload.signed_key_request_expires_at = existingAccount.signed_key_request_expires_at;
+    if (existingAccount?.signer_approved_at) payload.signer_approved_at = existingAccount.signer_approved_at;
+    if (typeof existingAccount?.is_active === 'boolean') payload.is_active = existingAccount.is_active;
+
     const { error } = await supabase
-      .from("farcaster_accounts")
-      .upsert(
-        {
-          owner: session.user.id,
-          fid: Number(fid),
-          username: typeof username === "string" ? username : null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "owner,fid" }
-      );
+      .from('farcaster_accounts')
+      .upsert(payload, { onConflict: 'owner,fid' });
 
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 

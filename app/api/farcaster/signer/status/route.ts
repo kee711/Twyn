@@ -25,15 +25,52 @@ export async function GET(req: Request) {
     const skr = data?.result?.signedKeyRequest;
     if (!skr) return NextResponse.json({ ok: false, error: "Invalid response" }, { status: 502 });
 
-    if (skr.state === "completed" && skr.userFid) {
-      const supabase = await createClient();
-      const { error: upErr } = await supabase
-        .from("farcaster_account")
-        .update({ is_active: true, updated_at: new Date().toISOString() })
-        .eq("owner", session.user.id)
-        .eq("fid", Number(skr.userFid))
-        .eq("signed_key_request_token", token);
-      if (upErr) return NextResponse.json({ ok: false, error: `DB error: ${upErr.message}` }, { status: 500 });
+    const supabase = await createClient();
+
+    const { data: account, error: fetchError } = await supabase
+      .from('farcaster_accounts')
+      .select('id, fid')
+      .eq('owner', session.user.id)
+      .eq('signed_key_request_token', token)
+      .maybeSingle();
+
+    if (fetchError) {
+      return NextResponse.json({ ok: false, error: `DB error: ${fetchError.message}` }, { status: 500 });
+    }
+
+    if (!account) {
+      return NextResponse.json({ ok: false, error: 'Signer request not found' }, { status: 404 });
+    }
+    const nowIso = new Date().toISOString();
+    const updates: Record<string, unknown> = {
+      signed_key_request_state: skr.state,
+      signed_key_request_token: skr.token ?? token,
+      signed_key_request_expires_at: skr.expiresAt ? new Date(skr.expiresAt).toISOString() : null,
+      updated_at: nowIso,
+    };
+
+    if (skr.userFid) {
+      updates.fid = Number(skr.userFid);
+    }
+
+    if (skr.state === 'completed') {
+      updates.is_active = true;
+      updates.signer_approved_at = nowIso;
+    }
+
+    if (skr.state === 'expired' || skr.state === 'revoked') {
+      updates.is_active = false;
+      updates.signer_approved_at = null;
+    }
+
+    const { error: upErr } = await supabase
+      .from('farcaster_accounts')
+      .update(updates)
+      .eq('owner', session.user.id)
+      .eq('signed_key_request_token', token);
+
+    if (upErr) {
+      return NextResponse.json({ ok: false, error: `DB error: ${upErr.message}` }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, signedKeyRequest: skr });
@@ -41,7 +78,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
   }
 }
-
-
-
 

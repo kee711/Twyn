@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     const supabase = await createClient();
     const { data: acct } = await supabase
-      .from("farcaster_account")
+      .from("farcaster_accounts")
       .select("fid, signer_private_key_enc")
       .eq("owner", session.user.id)
       .eq("is_active", true)
@@ -88,7 +88,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
   }
 }
-
 
 
 
