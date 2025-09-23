@@ -8,12 +8,64 @@ export const runtime = 'edge';
 
 const ai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+type PreferenceContext = {
+    id?: string;
+    name: string;
+    description?: string;
+};
+
 export async function POST(req: NextRequest) {
-    const { profileDescription, language = 'en' }: { profileDescription: string; language?: string } = await req.json();
+    const {
+        persona,
+        audience,
+        objective,
+        addOns = [],
+        contextSummary,
+        language = 'en',
+    }: {
+        persona?: PreferenceContext | null;
+        audience?: PreferenceContext | null;
+        objective?: PreferenceContext | null;
+        addOns?: PreferenceContext[];
+        contextSummary?: string;
+        language?: string;
+    } = await req.json();
+
+    const buildSection = (label: string, context?: PreferenceContext | null) => {
+        if (!context) return null;
+        const details = [context.name];
+        if (context.description) details.push(context.description);
+        return `${label}:\n${details.join('\n')}`;
+    };
+
+    const contextParts = [
+        buildSection('Persona', persona),
+        buildSection('Audience', audience),
+        buildSection('Objective', objective),
+    ];
+
+    if (Array.isArray(addOns) && addOns.length > 0) {
+        const addOnDescription = addOns
+            .map(addOn => `${addOn.name}${addOn.description ? ` - ${addOn.description}` : ''}`)
+            .join('\n');
+        contextParts.push(`Add-ons:\n${addOnDescription}`);
+    }
+
+    if (contextSummary) {
+        contextParts.push(`Additional Context:\n${contextSummary}`);
+    }
+
+    const composedContext = contextParts.filter(Boolean).join('\n\n').trim();
+
+    if (!composedContext) {
+        const response = NextResponse.json({ error: 'Missing topic finder context' }, { status: 400 });
+        return handleCors(response);
+    }
+
     const reqId = Math.random().toString(36).slice(2, 8) + '-' + Date.now();
     console.log(`[generate-topics][${reqId}] start`, {
-        hasProfileDescription: !!profileDescription,
-        profileDescriptionLen: profileDescription?.length ?? 0,
+        hasContext: !!composedContext,
+        contextLen: composedContext.length,
         language,
         edgeRuntime: true,
         openaiKeySet: !!process.env.OPENAI_API_KEY
@@ -32,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     const prompt = [
         COMMON_SETTINGS,
-        USER_SETTINGS(profileDescription),
+        USER_SETTINGS(composedContext),
         INSTRUCTIONS,
         languageInstruction[language] || languageInstruction['en']
     ].join('\n\n');
