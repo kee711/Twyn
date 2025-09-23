@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+
+const isProduction = process.env.NODE_ENV === 'production';
+const cookieDomain = isProduction ? '.twyn.sh' : undefined;
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-    
-    // Delete all NextAuth related cookies
-    const cookieNames = [
+    const response = NextResponse.json({ success: true, url: '/' }, { status: 200 });
+
+    const sessionCookies = [
       'next-auth.session-token',
       '__Secure-next-auth.session-token',
       'next-auth.csrf-token',
@@ -16,53 +17,57 @@ export async function POST() {
       '__Host-next-auth.csrf-token',
     ];
 
-    // Delete cookies with various domain configurations
-    for (const name of cookieNames) {
-      // Delete cookie without domain
-      cookieStore.delete({
-        name,
-        path: '/',
-      });
-      
-      // Delete cookie with domain
-      cookieStore.set({
-        name,
-        value: '',
-        path: '/',
-        expires: new Date(0),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        domain: '.twyn.sh'
-      });
-      
-      // Also try without domain specification
-      cookieStore.set({
+    const baseOptions = {
+      path: '/',
+      expires: new Date(0),
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure: isProduction,
+    };
+
+    for (const name of sessionCookies) {
+      response.cookies.set({
         name,
         value: '',
-        path: '/',
-        expires: new Date(0),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        ...baseOptions,
       });
+
+      if (cookieDomain) {
+        response.cookies.set({
+          name,
+          value: '',
+          ...baseOptions,
+          domain: cookieDomain,
+        });
+      }
     }
 
-    // Clear any custom signup-related cookies
     const customCookies = [
       'signup_intent',
       'signup_invite_code',
-      'signup_invite_code_id'
+      'signup_invite_code_id',
     ];
 
     for (const name of customCookies) {
-      cookieStore.delete({
+      response.cookies.set({
         name,
+        value: '',
         path: '/',
+        expires: new Date(0),
       });
+
+      if (cookieDomain) {
+        response.cookies.set({
+          name,
+          value: '',
+          path: '/',
+          expires: new Date(0),
+          domain: cookieDomain,
+        });
+      }
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return response;
   } catch (error) {
     console.error('Error clearing cookies:', error);
     return NextResponse.json({ success: false, error: 'Failed to clear cookies' }, { status: 500 });
