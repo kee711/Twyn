@@ -1,11 +1,18 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { authOptions } from "@/lib/auth/authOptions";
-import { getServerSession } from "next-auth/next";
-import { decryptToken } from '@/lib/utils/crypto';
-import { ContentItem } from "@/components/contents-helper/types";
 import axios from 'axios';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth/authOptions';
+import { createClient } from '@/lib/supabase/server';
+import { decryptToken } from '@/lib/utils/crypto';
+import { getSelectedSocialAccount, getSelectedAccessToken } from '@/lib/server/socialAccounts';
+import type { ContentItem } from '@/components/contents-helper/types';
+
+interface PostComment {
+  media_type: string;
+  text: string;
+  reply_to_id: string;
+}
 
 interface Comment {
   id: string;
@@ -18,132 +25,88 @@ interface Comment {
   root_post_content?: ContentItem;
 }
 
-interface PostComment {
-  media_type: string,
+interface MentionRecord {
+  id: string;
   text: string;
-  reply_to_id: string;
+  username: string;
+  timestamp: string;
+  is_replied: boolean;
+  root_post: string | null;
+  replies?: PostComment[];
+  root_post_content?: ContentItem;
 }
 
-// Threads access_token 가져오기
-export async function getThreadsAccessToken() {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
-    throw new Error("로그인이 필요합니다.");
+async function ensureThreadsContext(userId: string) {
+  const account = await getSelectedSocialAccount(userId, 'threads');
+  if (!account) {
+    throw new Error('Threads 계정이 선택되지 않았습니다.');
   }
-  const userId = session.user.id;
-  const supabase = await createClient();
-
-  // user_profiles에서 선택된 소셜 계정 id 가져오기
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    throw new Error('선택된 소셜 계정이 없습니다.');
-  }
-
-  // social_accounts에서 access_token 가져오기
-  const { data: account } = await supabase
-    .from('social_accounts')
-    .select('access_token')
-    .eq('social_id', selectedSocialId)
-    .eq('platform', 'threads')
-    .eq('is_active', true)
-    .single();
-
-  const encryptedToken = account?.access_token;
-  if (!encryptedToken) {
+  if (!account.access_token) {
     throw new Error('Threads access token이 없습니다.');
   }
 
-  // 토큰 복호화
-  const accessToken = decryptToken(encryptedToken);
-  return accessToken;
+  const accessToken = decryptToken(account.access_token);
+  return { account, accessToken };
 }
 
-// 사용자 포스트 ID 불러오기
-export async function getRootPostId(id: string) { // 사용자 id
-  const supabase = await createClient();
-
-  try {
-    const { data, error } = await supabase
-      .from('my_contents')
-      .select('*')
-      .eq('social_id', id)
-      .eq('publish_status', 'posted');
-
-    if (error) {
-      throw new Error(`내 게시물 조회 중 오류 발생: ${error.message}`);
-    }
-
-    return data || [];
-  } catch (error) {
-    throw error;
+export async function getThreadsAccessToken() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error('로그인이 필요합니다.');
   }
+
+  const token = await getSelectedAccessToken(session.user.id, 'threads');
+  if (!token) {
+    throw new Error('Threads 계정이 선택되지 않았습니다.');
+  }
+
+  return token;
 }
 
-// 댓글 불러오기
-export async function getComment(id: string, userId: string) { // root post id & user id
+export async function getRootPostId(id: string) {
   const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('my_contents')
+    .select('*')
+    .eq('social_id', id)
+    .eq('publish_status', 'posted');
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    throw new Error('선택된 소셜 계정이 없습니다.');
+  if (error) {
+    throw new Error(`내 게시물 조회 중 오류 발생: ${error.message}`);
   }
-  // social_accounts에서 username 가져오기
-  const { data: account } = await supabase
-    .from('social_accounts')
-    .select('username')
-    .eq('social_id', selectedSocialId)
-    .eq('platform', 'threads')
-    .eq('is_active', true)
-    .single();
 
-  const username = account?.username;
+  return data || [];
+}
+
+export async function getComment(id: string, userId: string) {
+  const supabase = await createClient();
+  const { account } = await ensureThreadsContext(userId);
+
+  const username = account.username;
   if (!username) {
     throw new Error('Threads username이 없습니다.');
   }
 
-  try {
-    const { data, error } = await supabase
-      .from('comment')
-      .select('*')
-      .eq('root_post', id)
-      .not('hide_status', 'is', true)
-      .order('timestamp', { ascending: false })
-    //.limit(10);
+  const { data, error } = await supabase
+    .from('comment')
+    .select('*')
+    .eq('root_post', id)
+    .not('hide_status', 'is', true)
+    .order('timestamp', { ascending: false });
 
-    if (error) {
-      throw new Error(`댓글 조회 중 오류 발생: ${error.message}`);
-    }
-
-    const filtered_data = (data ?? []).filter((c) => c.username !== username);
-    // 자신의 댓글은 제외하고 가져오기
-
-    return filtered_data || [];
-  } catch (error) {
-    throw error;
+  if (error) {
+    throw new Error(`댓글 조회 중 오류 발생: ${error.message}`);
   }
+
+  return (data || []).filter((c: Comment) => c.username !== username);
 }
 
-// 답글 단 경우, is_replied = true로 업데이트 및 replies에 사용자 답글 추가
 export async function markCommentAsReplied(commentId: string, reply: PostComment) {
-  const supabase = await createClient()
-
-  // 기존 댓글 불러오기
+  const supabase = await createClient();
   const { data: existing, error: fetchError } = await supabase
-    .from("comment")
-    .select("replies")
-    .eq("id", commentId)
+    .from('comment')
+    .select('replies')
+    .eq('id', commentId)
     .single();
 
   if (fetchError) {
@@ -152,337 +115,189 @@ export async function markCommentAsReplied(commentId: string, reply: PostComment
 
   const updatedReplies = [...(existing?.replies || []), reply];
 
-  // is_replied 및 replies 업데이트
   const { error: updateError } = await supabase
-    .from("comment")
+    .from('comment')
     .update({
       is_replied: true,
       replies: updatedReplies,
     })
-    .eq("id", commentId);
+    .eq('id', commentId);
 
   if (updateError) {
     throw new Error('답글을 저장하는 중 오류가 발생했습니다.');
   }
 }
 
-// 댓글 작성하기
 export async function postComment({ media_type, text, reply_to_id }: PostComment) {
-  const apiUrl = 'https://graph.threads.net/v1.0/me/threads';
+  const session = await getServerSession(authOptions);
 
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user?.id) {
-      throw new Error("로그인이 필요합니다.");
-    }
-    const userId = session.user.id;
-    const supabase = await createClient();
-
-    // user_profiles에서 선택된 소셜 계정 id 가져오기
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('selected_social_id')
-      .eq('user_id', userId)
-      .single();
-
-    const selectedSocialId = profile?.selected_social_id;
-    if (!selectedSocialId) {
-      throw new Error('선택된 소셜 계정이 없습니다.');
-    }
-
-    // social_accounts에서 access_token 가져오기
-    const { data: account } = await supabase
-      .from('social_accounts')
-      .select('access_token')
-      .eq('social_id', selectedSocialId)
-      .eq('platform', 'threads')
-      .eq('is_active', true)
-      .single();
-
-    const encryptedToken = account?.access_token;
-    if (!encryptedToken) {
-      throw new Error('Threads access token이 없습니다.');
-    }
-
-    // 토큰 복호화
-    const token = decryptToken(encryptedToken);
-
-    // 댓글 media container 생성
-    const payload = new URLSearchParams({
-      media_type: media_type,
-      text: text,
-      reply_to_id: reply_to_id,
-      access_token: token,
-    });
-    
-    const createResponse = await axios.post(apiUrl, payload);
-
-    if (createResponse.status === 200) {
-      const mediaContainerId = createResponse.data.id;
-
-      const publishUrl = `https://graph.threads.net/v1.0/${selectedSocialId}/threads_publish`;
-      const params = new URLSearchParams({
-        creation_id: mediaContainerId,
-        access_token: token,
-      });
-
-      // 업로드 준비될 때까지 반복
-      const maxAttempts = 10;
-      let attempt = 0;
-
-      while (attempt < maxAttempts) {
-        try {
-          const publishResponse = await axios.post(publishUrl, params);
-
-          if (publishResponse.status === 200) {
-            return publishResponse.data; // 성공 결과 반환
-          }
-        } catch (error) {
-          // Error during publish attempt
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 15000)); // 15초 대기
-        attempt++;
-      }
-
-      throw new Error('Failed to publish post after multiple attempts.');
-    } else {
-      throw new Error('Failed to create thread.');
-    }
-  } catch (error) {
-    throw error; // 호출한 쪽에서 핸들링
-  }
-}
-
-// 댓글 숨김 (threads_manage_replies 권한용)
-export async function hideComment(commentId: string) {
-  const token = await getThreadsAccessToken();
-
-  if (!token) {
-    throw new Error('Access token is missing.');
+  if (!session?.user?.id) {
+    throw new Error('로그인이 필요합니다.');
   }
 
-  const apiUrl = `https://graph.threads.net/v1.0/${commentId}/manage_reply`;
+  const userId = session.user.id;
+  const { account, accessToken } = await ensureThreadsContext(userId);
 
   const payload = new URLSearchParams({
-    hide: 'true',
-    access_token: token,
+    media_type,
+    text,
+    reply_to_id,
+    access_token: accessToken,
   });
 
-  try {
-    const response = await axios.post(apiUrl, payload, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    const supabase = await createClient();
-    const { error: updateError } = await supabase
-      .from('comment')
-      .update({ hide_status: true })
-      .eq('id', commentId);
-    if (updateError) {
-      throw new Error('댓글 hide_status 업데이트 중 오류가 발생했습니다.');
-    }
+  const createResponse = await axios.post('https://graph.threads.net/v1.0/me/threads', payload);
 
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(`Failed to hide reply: ${error.response?.status}`);
-    } else {
-      throw error;
+  if (createResponse.status !== 200) {
+    throw new Error('Failed to create thread.');
+  }
+
+  const mediaContainerId = createResponse.data.id;
+  const publishUrl = `https://graph.threads.net/v1.0/${account.social_id}/threads_publish`;
+  const publishParams = new URLSearchParams({
+    creation_id: mediaContainerId,
+    access_token: accessToken,
+  });
+
+  const maxAttempts = 10;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const publishResponse = await axios.post(publishUrl, publishParams);
+      if (publishResponse.status === 200) {
+        return publishResponse.data;
+      }
+    } catch (error) {
+      // retry
     }
+    await new Promise((resolve) => setTimeout(resolve, 15000));
+  }
+
+  throw new Error('Failed to publish post after multiple attempts.');
+}
+
+export async function hideComment(commentId: string) {
+  const accessToken = await getThreadsAccessToken();
+  const endpoint = `https://graph.threads.net/v1.0/${commentId}`;
+  const params = new URLSearchParams({ access_token: accessToken, hide: 'true' });
+
+  const response = await axios.post(endpoint, params);
+  if (response.status !== 200) {
+    throw new Error('Failed to hide comment.');
   }
 }
 
-// 멘션 불러오기
-export async function getMention(userId: string) { // root post id & user id
-  const supabase = await createClient()
+export async function unhideComment(commentId: string) {
+  const accessToken = await getThreadsAccessToken();
+  const endpoint = `https://graph.threads.net/v1.0/${commentId}`;
+  const params = new URLSearchParams({ access_token: accessToken, hide: 'false' });
 
-  try {
-    const { data, error } = await supabase
-      .from('mention')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(10);
-
-    if (error) {
-      throw new Error(`댓글 조회 중 오류 발생: ${error.message}`);
-    }
-
-    const filtered_data = (data ?? []).filter((c) => c.user_id !== userId);
-    return filtered_data || [];
-  } catch (error) {
-    throw error;
+  const response = await axios.post(endpoint, params);
+  if (response.status !== 200) {
+    throw new Error('Failed to unhide comment.');
   }
 }
 
-// 멘션 달린 포스트 불러오기
-export async function getMentionRootPost(Id: string) { // root post id & user id
-  const supabase = await createClient();
-
-  try {
-    const { data, error } = await supabase
-      .from('my_contents')
-      .select('*')
-      .eq('media_id', Id);
-
-    if (error) {
-      throw new Error(`포스트 조회 중 오류 발생: ${error.message}`);
-    }
-    return data || [];
-  } catch (error) {
-    throw error;
-  }
-}
-
-// 멘션에 답글 단 경우, is_replied = true로 업데이트 및 replies에 사용자 답글 추가
-export async function markMentionAsReplied(commentId: string, reply: PostComment) {
-  const supabase = await createClient();
-
-  // 기존 댓글 불러오기
-  const { data: existing, error: fetchError } = await supabase
-    .from("mention")
-    .select("replies")
-    .eq("id", commentId)
-    .single();
-
-  if (fetchError) {
-    throw new Error('멘션 데이터를 가져오는 중 오류가 발생했습니다.');
-  }
-
-  const updatedReplies = [...(existing?.replies || []), reply];
-
-  // is_replied 및 replies 업데이트
-  const { error: updateError } = await supabase
-    .from("mention")
-    .update({
-      is_replied: true,
-      replies: updatedReplies,
-    })
-    .eq("id", commentId);
-
-  if (updateError) {
-    throw new Error('답글을 저장하는 중 오류가 발생했습니다.');
-  }
-}
-
-// 댓글 반환 전체 로직
 export async function getAllCommentsWithRootPosts() {
-  const supabase = await createClient();
-
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
-    throw new Error("로그인이 필요합니다.");
-  }
-  const userId = session.user.id;
-
-  // user_profiles에서 선택된 소셜 계정 id 가져오기
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    throw new Error('선택된 소셜 계정이 없습니다.');
+  if (!session?.user?.id) {
+    throw new Error('로그인이 필요합니다.');
   }
 
-  const rootPosts: ContentItem[] = await getRootPostId(selectedSocialId);
-  const allData = await Promise.all(
-    rootPosts.map((post) => getComment(post.media_id ?? '', userId))
-  );
-  const flatData: Comment[] = allData.flat();
+  let account;
+  try {
+    account = await requireSelectedSocialAccount(session.user.id, 'threads');
+  } catch (error) {
+    console.warn('getAllCommentsWithRootPosts: Threads 계정 미선택으로 빈 결과 반환');
+    return { comments: [], postsWithComments: [], hiddenComments: [] };
+  }
 
-  const commentsWithRootPost = flatData.map((comment) => {
-    const rootPost = rootPosts.find(
-      (post) => post.media_id === comment.root_post
-    );
-    return {
-      ...comment,
-      replies: comment.replies || [],
-      root_post_content: rootPost,
-    };
-  });
+  const rootPosts: ContentItem[] = await getRootPostId(account.social_id);
+  if (!rootPosts.length) {
+    return { comments: [], postsWithComments: [], hiddenComments: [] };
+  }
 
-  const uniqueComments = Array.from(
-    new Map(commentsWithRootPost.map((item) => [item.id, item])).values()
-  );
+  const results = await Promise.all(rootPosts.map(async (post) => {
+    try {
+      return await getComment(post.media_id ?? '', session.user!.id);
+    } catch (error) {
+      console.warn('Failed to fetch comments for post', post.media_id, error);
+      return [] as Comment[];
+    }
+  }));
 
-  const totalHiddenIds = uniqueComments
-    .filter((item) => item.is_replied)
-    .map((item) => item.id);
+  const flatData: Comment[] = results.flat();
+  const commentsWithRoot = flatData.map((comment) => ({
+    ...comment,
+    replies: comment.replies || [],
+    root_post_content: rootPosts.find(post => post.media_id === comment.root_post),
+  }));
 
-  // 댓글이 달린 게시물만 필터링
-  const commentedPostIds = new Set(
-    uniqueComments.map((c) => c.root_post_content?.media_id)
-  );
-  const filteredRootPosts = rootPosts.filter((post) =>
-    commentedPostIds.has(post.media_id)
-  );
+  const uniqueComments = Array.from(new Map(commentsWithRoot.map(item => [item.id, item])).values());
+  const hiddenComments = uniqueComments.filter(item => item.is_replied).map(item => item.id);
+
+  const commentedMediaIds = new Set(uniqueComments.map(item => item.root_post_content?.media_id));
+  const postsWithComments = rootPosts.filter(post => commentedMediaIds.has(post.media_id));
 
   return {
     comments: uniqueComments,
-    postsWithComments: filteredRootPosts,
-    hiddenComments: totalHiddenIds,
+    postsWithComments,
+    hiddenComments,
   };
 }
 
-// 멘션 반환 전체 로직
 export async function getAllMentionsWithRootPosts() {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
-    throw new Error("로그인이 필요합니다.");
+  if (!session?.user?.id) {
+    throw new Error('로그인이 필요합니다.');
   }
-  const userId = session.user.id;
+
+  let account;
+  try {
+    account = await requireSelectedSocialAccount(session.user.id, 'threads');
+  } catch (error) {
+    console.warn('getAllMentionsWithRootPosts: Threads 계정 미선택으로 빈 결과 반환');
+    return { mentions: [], hiddenMentions: [] };
+  }
+
   const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    throw new Error('선택된 소셜 계정이 없습니다.');
-  }
 
   const { data: mentions, error: mentionError } = await supabase
     .from('mention')
     .select('*')
-    .eq('mentioned_user_id', selectedSocialId)
+    .eq('mentioned_user_id', account.social_id)
     .order('timestamp', { ascending: false });
 
   if (mentionError) {
     throw new Error(mentionError.message);
   }
 
-  const rootPostIds = Array.from(new Set((mentions ?? []).map(m => m.root_post)));
-
-  const { data: rootPosts, error: rootError } = await supabase
-    .from('my_contents')
-    .select('*')
-    .in('media_id', rootPostIds);
-
-  if (rootError) {
-    throw new Error(rootError.message);
+  if (!mentions?.length) {
+    return { mentions: [], hiddenMentions: [] };
   }
 
-  const mentionsWithRoot = (mentions ?? []).map(m => ({
-    ...m,
-    root_post_content: (rootPosts ?? []).find(rp => rp.media_id === m.root_post)
+  const rootIds = Array.from(new Set(mentions.map(m => m.root_post).filter(Boolean))) as string[];
+  let rootPosts: ContentItem[] = [];
+  if (rootIds.length > 0) {
+    const { data: rootData, error: rootError } = await supabase
+      .from('my_contents')
+      .select('*')
+      .in('media_id', rootIds);
+
+    if (rootError) {
+      throw new Error(rootError.message);
+    }
+    rootPosts = rootData || [];
+  }
+
+  const mentionsWithRoot: MentionRecord[] = mentions.map((mention) => ({
+    ...mention,
+    replies: mention.replies || [],
+    root_post_content: rootPosts.find(post => post.media_id === mention.root_post) || null,
   }));
 
   const hiddenMentions = mentionsWithRoot.filter(m => m.is_replied).map(m => m.id);
 
-  //const mentionedPostIds = new Set(mentionsWithRoot.map(m => m.root_post_content?.id));
-  //const filteredRootPosts = (rootPosts ?? []).filter(post => mentionedPostIds.has(post.id));
-
   return {
     mentions: mentionsWithRoot,
-    //postsWithMentions: filteredRootPosts,
     hiddenMentions,
   };
 }

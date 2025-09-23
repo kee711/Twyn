@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/authOptions";
 import { createClient } from "@/lib/supabase/server";
 import { decryptToken } from '@/lib/utils/crypto';
+import { getSelectedSocialAccount } from '@/lib/server/socialAccounts';
 
 /**
  * My Contents Sync API
@@ -66,41 +67,17 @@ interface ThreadsApiError {
 
 // 현재 사용자의 선택된 Threads 계정 액세스 토큰 조회
 async function getThreadsAccessToken(userId: string): Promise<{ accessToken: string, socialId: string } | null> {
-  const supabase = await createClient();
-
-  // user_profiles에서 선택된 소셜 계정 ID 가져오기
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('selected_social_id')
-    .eq('user_id', userId)
-    .single();
-
-  const selectedSocialId = profile?.selected_social_id;
-  if (!selectedSocialId) {
-    console.error('선택된 소셜 계정이 없습니다.');
+  const account = await getSelectedSocialAccount(userId, 'threads');
+  if (!account?.access_token) {
+    console.warn('선택된 Threads 계정이 없거나 토큰이 없습니다.');
     return null;
   }
 
-  // social_accounts에서 access_token 가져오기
-  const { data: account, error } = await supabase
-    .from('social_accounts')
-    .select('access_token, social_id')
-    .eq('social_id', selectedSocialId)
-    .eq('platform', 'threads')
-    .eq('is_active', true)
-    .single();
-
-  if (error || !account?.access_token) {
-    console.error('Threads access token 조회 실패:', error);
-    return null;
-  }
-
-  // 토큰 복호화
   const decryptedToken = decryptToken(account.access_token);
-  
+
   return {
     accessToken: decryptedToken,
-    socialId: account.social_id
+    socialId: account.social_id,
   };
 }
 

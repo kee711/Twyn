@@ -146,7 +146,16 @@
     "addAccount": "Add Account",
     "noAccount": "No account",
     "accountList": "Account List",
-    "noAccountsRegistered": "No accounts registered"
+    "noAccountsRegistered": "No accounts registered",
+    "choosePlatform": "Choose a social platform",
+    "failedToLoadAccounts": "Failed to load accounts.",
+    "failedToSaveSelection": "Failed to save selection.",
+    "accountSelectionError": "Unable to update the selected account.",
+    "farcasterLinkSuccess": "Farcaster account linked.",
+    "farcasterSignInError": "Could not complete Farcaster sign-in.",
+    "selectionSaved": "Account preference updated.",
+    "active": "Active",
+    "loadingAccounts": "Loading social accounts..."
   },
   "content": {
     "title": "Title",
@@ -476,7 +485,18 @@
       "scheduleFailed": "Schedule failed",
       "threadChainPublishing": "Your thread chain is being published",
       "postPublished": "Your post is published",
-      "noContentToSchedule": "No content to schedule"
+      "noContentToSchedule": "No content to schedule",
+      "linkMode": "Linked",
+      "unlinkMode": "Unlinked",
+      "noContentToPublish": "Add content before publishing.",
+      "threadsOnlySchedule": "Scheduling is currently available for Threads only.",
+      "threadsOnlyPublish": "Publishing is currently available for Threads only.",
+      "threadsScheduleMissing": "No Threads content available to schedule.",
+      "connectAccountsList": "Connect the following accounts first: {platforms}.",
+      "farcasterPostSuccess": "Farcaster cast posted successfully.",
+      "farcasterPostFailure": "Failed to post to Farcaster.",
+      "xPostSuccess": "Posted to X successfully.",
+      "xPostFailure": "Failed to post to X."
     },
     "selectPublishTime": {
       "selectPublishTime": "Select Publish Time",
