@@ -715,7 +715,7 @@ export default function StatisticsPage() {
                         {/* Demographics Section */}
                         <div className="space-y-4">
                             {/* Age & Gender Charts */}
-                            <div className="grid grid-cols-1 h-full md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 h-fit md:grid-cols-2 gap-4">
                                 {/* Age Distribution */}
                                 <Card>
                                     <CardHeader className="pb-4">
@@ -728,7 +728,7 @@ export default function StatisticsPage() {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="h-48 relative">
+                                        <div className="h-60 relative">
                                             {agePieData.length > 0 ? (
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart data={agePieData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -835,7 +835,7 @@ export default function StatisticsPage() {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="h-48 relative">
+                                        <div className="h-60 relative">
                                             {genderPieData.length > 0 ? (
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <PieChart>
@@ -917,7 +917,7 @@ export default function StatisticsPage() {
                                 </Card>
                             </div>
 
-                            {/* Insights */}
+                            {/* Insights
                             {demographicInsights.length > 0 && (
                                 <Card className="bg-muted/50">
                                     <CardContent className="pt-6">
@@ -930,7 +930,7 @@ export default function StatisticsPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            )}
+                            )} */}
                         </div>
                     </div>
 
