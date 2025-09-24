@@ -147,6 +147,39 @@ body[data-scroll-locked] {
   background-position: center;
 }
 
+/* AI 버튼 하단 타원형 블루 그라디언트 글로우 */
+.ai-glow {
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+  /* 새로운 스태킹 컨텍스트 생성 */
+}
+
+/* 버튼 내부 아이콘/텍스트를 오버레이 위로 */
+.ai-glow>* {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-glow::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -35%;
+  transform: translateX(-50%);
+  width: 180%;
+  height: 140%;
+  background: radial-gradient(ellipse at center bottom,
+      rgba(28, 73, 255, 0.85) 0%,
+      rgba(28, 73, 255, 0.45) 35%,
+      rgba(28, 73, 255, 0.20) 60%,
+      rgba(28, 73, 255, 0.00) 75%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 0;
+  /* 오버레이는 부모 콘텐츠 아래 */
+}
+
 /* 상태 인디케이터 애니메이션 */
 @keyframes pulse {
   0% {
