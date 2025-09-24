@@ -143,7 +143,7 @@
   },
   "SocialAccountSelector": {
     "selectAccount": "계정 선택",
-    "addAccount": "계정 추가",
+    "addAccount": "계정을 추가하세요",
     "noAccount": "등록된 계정이 없습니다",
     "accountList": "계정 목록",
     "noAccountsRegistered": "등록된 계정이 없습니다",
