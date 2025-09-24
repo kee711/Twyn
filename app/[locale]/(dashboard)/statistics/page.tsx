@@ -244,84 +244,151 @@ export default function StatisticsPage() {
 
     // Process demographic data for charts
     const processAgeDemographics = () => {
-        // If we have real data from API, use it
-        if (ageData?.values && ageData.values.length > 0) {
-            const total = ageData.values.reduce((sum: number, item: any) => sum + item.value, 0);
-            return ageData.values.map((item: any, index: number) => ({
-                name: item.name || item.age_range || 'Unknown',
-                value: item.value,
-                percentage: Math.round((item.value / total) * 100),
-                fill: `hsl(217, 91%, ${70 - index * 10}%)`
+        if (!ageData?.values || ageData.values.length === 0) {
+            return [];
+        }
+
+        // Normalize possible shapes: direct array, nested array in first.value, or object map in first.value
+        let items: Array<{ name: string; value: number }> = [];
+        const first = ageData.values[0];
+
+        if (Array.isArray(first?.value)) {
+            items = first.value.map((v: any) => ({
+                name: v.name || v.age_range || v.key || String(v.label || 'Unknown'),
+                value: typeof v.value === 'number' ? v.value : (typeof v.count === 'number' ? v.count : 0)
+            }));
+        } else if (first && typeof first.value === 'object' && first.value !== null) {
+            items = Object.entries(first.value).map(([k, v]: [string, any]) => ({
+                name: k,
+                value: typeof v === 'number' ? v : 0
+            }));
+        } else if (Array.isArray(ageData.values)) {
+            items = ageData.values.map((v: any) => ({
+                name: v.name || v.age_range || 'Unknown',
+                value: typeof v.value === 'number' ? v.value : 0
             }));
         }
 
-        // Return empty array to show blurred mock data
-        return [];
+        items = items.filter((it) => typeof it.value === 'number' && it.value > 0);
+        const total = items.reduce((sum: number, it) => sum + it.value, 0);
+        if (total <= 0) return [];
+
+        return items.map((item, index) => ({
+            name: item.name,
+            value: item.value,
+            percentage: Math.round((item.value / total) * 100),
+            fill: `hsl(217, 91%, ${70 - index * 10}%)`
+        }));
     };
 
     const processGenderDemographics = () => {
-        // If we have real data from API, use it
-        if (genderData?.values && genderData.values.length > 0) {
-            const total = genderData.values.reduce((sum: number, item: any) => sum + item.value, 0);
-            return genderData.values.map((item: any, index: number) => ({
-                name: item.name === 'M' ? t('demographics.male') :
-                    item.name === 'F' ? t('demographics.female') :
-                        t('demographics.unknown'),
-                value: item.value,
-                percentage: Math.round((item.value / total) * 100),
-                fill: `hsl(270, 70%, ${65 - index * 15}%)`
+        if (!genderData?.values || genderData.values.length === 0) {
+            return [];
+        }
+
+        // Normalize possible shapes
+        let items: Array<{ name: string; value: number }> = [];
+        const first = genderData.values[0];
+
+        if (Array.isArray(first?.value)) {
+            items = first.value.map((v: any) => ({
+                name: v.name || v.gender || v.key || 'Unknown',
+                value: typeof v.value === 'number' ? v.value : (typeof v.count === 'number' ? v.count : 0)
+            }));
+        } else if (first && typeof first.value === 'object' && first.value !== null) {
+            items = Object.entries(first.value).map(([k, v]: [string, any]) => ({
+                name: k,
+                value: typeof v === 'number' ? v : 0
+            }));
+        } else if (Array.isArray(genderData.values)) {
+            items = genderData.values.map((v: any) => ({
+                name: v.name || v.gender || 'Unknown',
+                value: typeof v.value === 'number' ? v.value : 0
             }));
         }
 
-        // Return empty array to show blurred mock data
-        return [];
+        items = items.filter((it) => typeof it.value === 'number' && it.value > 0);
+        const total = items.reduce((sum: number, it) => sum + it.value, 0);
+        if (total <= 0) return [];
+
+        return items.map((item, index) => ({
+            name: item.name === 'M' ? t('demographics.male') :
+                item.name === 'F' ? t('demographics.female') :
+                    t('demographics.unknown'),
+            value: item.value,
+            percentage: Math.round((item.value / total) * 100),
+            fill: `hsl(270, 70%, ${65 - index * 15}%)`
+        }));
     };
 
     // Process geographic data for map
     const processGeographicData = () => {
-        // If we have real data from API, use it
-        if (countryData?.values && countryData.values.length > 0) {
-            return countryData.values.map((item: any) => ({
-                country: item.name,
-                value: item.value
+        if (!countryData?.values || countryData.values.length === 0) {
+            return [];
+        }
+
+        // Normalize possible shapes for country breakdown
+        let items: Array<{ name: string; value: number }> = [];
+        const first = countryData.values[0];
+
+        if (Array.isArray(first?.value)) {
+            items = first.value.map((v: any) => ({
+                name: v.name || v.country || v.key || 'Unknown',
+                value: typeof v.value === 'number' ? v.value : (typeof v.count === 'number' ? v.count : 0)
+            }));
+        } else if (first && typeof first.value === 'object' && first.value !== null) {
+            items = Object.entries(first.value).map(([k, v]: [string, any]) => ({
+                name: k,
+                value: typeof v === 'number' ? v : 0
+            }));
+        } else if (Array.isArray(countryData.values)) {
+            items = countryData.values.map((v: any) => ({
+                name: v.name || v.country || 'Unknown',
+                value: typeof v.value === 'number' ? v.value : 0
             }));
         }
 
-        // Return empty array to show blurred mock data
-        return [];
+        items = items.filter((it) => typeof it.value === 'number' && it.value > 0);
+        if (items.length === 0) return [];
+
+        return items.map((item) => ({
+            country: item.name,
+            value: item.value
+        }));
     };
 
-    // Generate insights based on demographics
+    // Generate insights based on normalized demographics
     const generateDemographicInsights = () => {
-        const insights = [];
+        const insights: string[] = [];
 
-        // Gender insight
-        if (genderData?.values && genderData.values.length > 0) {
-            const sortedGender = [...genderData.values].sort((a: any, b: any) => b.value - a.value);
+        // Gender insight from normalized genderPieData
+        if (genderPieData.length > 0) {
+            const total = genderPieData.reduce((sum: number, g: any) => sum + (g.value || 0), 0);
+            const sortedGender = [...genderPieData].sort((a: any, b: any) => b.value - a.value);
             const topGender = sortedGender[0];
-            const percentage = Math.round((topGender.value / genderData.values.reduce((sum: number, item: any) => sum + item.value, 0)) * 100);
+            const percentage = total > 0 ? Math.round((topGender.value / total) * 100) : 0;
 
-            if (topGender.name === 'M' && percentage > 55) {
+            if ((topGender.name === t('demographics.male') || topGender.name === 'M') && percentage > 55) {
                 insights.push(t('demographics.insights.malePopular', { percentage }));
-            } else if (topGender.name === 'F' && percentage > 55) {
+            } else if ((topGender.name === t('demographics.female') || topGender.name === 'F') && percentage > 55) {
                 insights.push(t('demographics.insights.femalePopular', { percentage }));
             } else {
                 insights.push(t('demographics.insights.balancedGender'));
             }
         }
 
-        // Age insight
-        if (ageData?.values && ageData.values.length > 0) {
-            const sortedAge = [...ageData.values].sort((a: any, b: any) => b.value - a.value);
+        // Age insight from normalized agePieData
+        if (agePieData.length > 0) {
+            const sortedAge = [...agePieData].sort((a: any, b: any) => b.value - a.value);
             const topAge = sortedAge[0];
-            insights.push(t('demographics.insights.topAgeGroup', { ageGroup: topAge.name || topAge.age_range }));
+            insights.push(t('demographics.insights.topAgeGroup', { ageGroup: topAge.name }));
         }
 
-        // Country insight
-        if (countryData?.values && countryData.values.length > 0) {
-            const sortedCountry = [...countryData.values].sort((a: any, b: any) => b.value - a.value);
+        // Country insight from normalized geographicData
+        if (geographicData.length > 0) {
+            const sortedCountry = [...geographicData].sort((a: any, b: any) => b.value - a.value);
             const topCountry = sortedCountry[0];
-            insights.push(t('demographics.insights.topCountry', { country: topCountry.name }));
+            insights.push(t('demographics.insights.topCountry', { country: topCountry.country }));
         }
 
         return insights;
@@ -905,8 +972,10 @@ export default function StatisticsPage() {
                                                 <Geographies geography="/world-110m.json">
                                                     {({ geographies }: { geographies: any[] }) => {
                                                         return geographies.map((geo: any) => {
+                                                            const geoName = geo.properties?.NAME;
+                                                            const iso2 = (geo.properties?.ISO_A2 || geo.properties?.ISO_A2_EH || '').toUpperCase();
                                                             const countryData = geographicData.find(
-                                                                (d: any) => d.country === geo.properties.NAME
+                                                                (d: any) => d.country === geoName || d.country === iso2
                                                             );
                                                             const percentage = countryData ? Math.round((countryData.value / totalGeographicFollowers) * 100) : 0;
                                                             const intensity = countryData ? countryData.value / maxGeographicValue : 0;
