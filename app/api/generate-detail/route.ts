@@ -90,12 +90,12 @@ export async function POST(req: NextRequest) {
             });
 
             const result = streamText({
-                model: ai(postType === 'single' ? 'gpt-5-nano-2025-08-07' : 'gpt-5') as any,
+                model: ai(postType === 'single' ? 'gpt-4o-mini' : 'gpt-4o-mini') as any,
                 prompt: postType === 'single'
                     ? promptParts
                     : promptParts + '\n\nReturn your response strictly as a JSON array of strings only.',
-                temperature: 0.7,
-                maxTokens: postType === 'single' ? 800 : 1200,
+                temperature: 0.5,
+                maxTokens: postType === 'single' ? 120 : 1200,
                 onChunk() {
                     writer.write({
                         type: 'data-status',
