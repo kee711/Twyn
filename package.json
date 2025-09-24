@@ -97,6 +97,7 @@
     "@types/pg": "^8.15.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-simple-maps": "^3.0.6",
     "@vitest/browser": "^3.0.9",
     "@vitest/coverage-v8": "^3.0.9",
     "autoprefixer": "^10.4.18",
