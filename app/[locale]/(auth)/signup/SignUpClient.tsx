@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { SocialButton } from '@/components/signin/buttons/social-button'
 import { useTranslations } from 'next-intl'
-import { Input } from '@/components/ui/input'
+// import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { useRouter } from '@/i18n/navigation'
 
@@ -12,9 +12,9 @@ export default function SignUpClient() {
   const t = useTranslations('auth')
   const router = useRouter()
   const { data: session, status } = useSession()
-  const [inviteCode, setInviteCode] = useState('')
-  const [inviteCodeError, setInviteCodeError] = useState('')
-  const [isCodeValid, setIsCodeValid] = useState(false)
+  // const [inviteCode, setInviteCode] = useState('')
+  // const [inviteCodeError, setInviteCodeError] = useState('')
+  // const [isCodeValid, setIsCodeValid] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   // 이미 로그인된 경우 리다이렉트 (signup 진행 중이 아닌 경우만)
@@ -65,74 +65,66 @@ export default function SignUpClient() {
     }
   }, [router])
 
-  // 초대 코드 검증
-  const validateInviteCode = async (code: string) => {
-    if (!code.trim()) {
-      setInviteCodeError(t('inviteCodeRequired'))
-      setIsCodeValid(false)
-      return
-    }
+  // // 초대 코드 검증
+  // const validateInviteCode = async (code: string) => {
+  //   if (!code.trim()) {
+  //     setInviteCodeError(t('inviteCodeRequired'))
+  //     setIsCodeValid(false)
+  //     return
+  //   }
+  //
+  //   setInviteCodeError('')
+  //
+  //   try {
+  //     const response = await fetch('/api/auth/validate-invite-code', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ code })
+  //     })
+  //
+  //     const data = await response.json()
+  //
+  //     if (data.success) {
+  //       setIsCodeValid(true)
+  //       setInviteCodeError('')
+  //       sessionStorage.setItem('inviteCodeId', data.inviteCodeId)
+  //       sessionStorage.setItem('inviteCode', code)
+  //     } else {
+  //       setIsCodeValid(false)
+  //       setInviteCodeError(data.error || t('invalidInviteCode'))
+  //     }
+  //   } catch (error) {
+  //     setIsCodeValid(false)
+  //     setInviteCodeError(t('inviteCodeError'))
+  //   }
+  // }
 
-    setInviteCodeError('')
-
-    try {
-      const response = await fetch('/api/auth/validate-invite-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setIsCodeValid(true)
-        setInviteCodeError('')
-        sessionStorage.setItem('inviteCodeId', data.inviteCodeId)
-        sessionStorage.setItem('inviteCode', code)
-      } else {
-        setIsCodeValid(false)
-        setInviteCodeError(data.error || t('invalidInviteCode'))
-      }
-    } catch (error) {
-      setIsCodeValid(false)
-      setInviteCodeError(t('inviteCodeError'))
-    }
-  }
-
-  // 초대 코드 입력 변경 처리
-  const handleInviteCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const code = e.target.value
-    setInviteCode(code)
-
-    if (code.length > 0) {
-      validateInviteCode(code)
-    } else {
-      setIsCodeValid(false)
-      setInviteCodeError('')
-    }
-  }
+  // // 초대 코드 입력 변경 처리
+  // const handleInviteCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const code = e.target.value
+  //   setInviteCode(code)
+  //
+  //   if (code.length > 0) {
+  //     validateInviteCode(code)
+  //   } else {
+  //     setIsCodeValid(false)
+  //     setInviteCodeError('')
+  //   }
+  // }
 
   // Google 회원가입 핸들러
   const handleGoogleSignUp = async () => {
-    if (!isCodeValid) {
-      toast.error(t('validInviteCodeRequired'))
-      return
-    }
-
     setIsLoading(true)
-    
+
     try {
       // Mark signup process as in progress
       sessionStorage.setItem('signup_in_progress', 'true')
-      
+
       // 1. 먼저 signup 준비 API를 호출하여 서버에 signup 의도를 알림
       const prepResponse = await fetch('/api/auth/prepare-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inviteCode,
-          inviteCodeId: sessionStorage.getItem('inviteCodeId')
-        })
+        body: JSON.stringify({})
       })
 
       const prepData = await prepResponse.json()
@@ -186,7 +178,7 @@ export default function SignUpClient() {
           </div>
 
           <div className="space-y-4">
-            <div className="relative">
+            {/* <div className="relative">
               <Input
                 type="text"
                 placeholder={t('inviteCodePlaceholder')}
@@ -212,14 +204,14 @@ export default function SignUpClient() {
                   </svg>
                 )}
               </div>
-            </div>
+            </div> */}
 
             <SocialButton
               social="google"
               theme="brand"
-              className={`w-full ${!isCodeValid || isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={handleGoogleSignUp}
-              disabled={!isCodeValid || isLoading}
+              disabled={isLoading}
             >
               {isLoading ? t('processing') : t('signUpWithGoogle')}
             </SocialButton>
