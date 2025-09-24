@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from 'next/font/google';
 
 import { fcMiniAppMetadata, miniAppName } from '@/config/miniapp'
 
@@ -67,6 +68,8 @@ export const metadata: Metadata = {
   },
 };
 
+const inter = Inter({ subsets: ['latin'] });
+
 export default function RootLayout({
   children,
 }: {
@@ -74,7 +77,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning className="h-full">
-      <body className="h-full">
+      <body className={`h-full bg-muted ${inter.className}`}>
         {children}
       </body>
     </html>
