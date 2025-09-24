@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
                    Second age group: ${secondAge?.name} (${secondAge?.percentage}%)
                    
                    Rules:
-                   - 2-3 sentences max
+                   - 3 short sentences max
                    - Trendy and casual tone
                    - Include practical insight
                    - No emojis
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
                     model: 'gpt-4o-mini',
                     messages: ageMessages as any,
                     temperature: 0.8,
-                    max_tokens: 50,
+                    max_tokens: 120,
                 });
                 insights.age = ageResponse.choices?.[0]?.message?.content || '';
             } catch (e) {
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
                    Male: ${maleData?.percentage || 0}%, Female: ${femaleData?.percentage || 0}%
                    
                    Rules:
-                   - 2-3 sentences max
+                   - 3 short sentences max
                    - Insight about gender balance or preference
                    - Include content strategy suggestion
                    - No emojis
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
                     model: 'gpt-4o-mini',
                     messages: genderMessages as any,
                     temperature: 0.8,
-                    max_tokens: 50,
+                    max_tokens: 120,
                 });
                 insights.gender = genderResponse.choices?.[0]?.message?.content || '';
             } catch (e) {
