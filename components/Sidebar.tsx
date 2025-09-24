@@ -166,7 +166,7 @@ export function Sidebar({ className }: SidebarProps) {
         { name: t('topicFinder'), href: '/contents/topic-finder', icon: TrendingUp },
         // { name: t('postRadar'), href: '/contents/post-radar', icon: Newspaper },
         { name: t('draft'), href: '/contents/draft', icon: FileText },
-        { name: t('saved'), href: '/contents/saved', icon: Bookmark },
+        // { name: t('saved'), href: '/contents/saved', icon: Bookmark },
       ],
     },
     {
