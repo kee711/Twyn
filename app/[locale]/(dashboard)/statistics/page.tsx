@@ -244,12 +244,8 @@ export default function StatisticsPage() {
 
     // Process demographic data for charts
     const processAgeDemographics = () => {
-        // Check if we have real data (followers >= 100)
-        const followersCount = getInsightValue('followers_count');
-        const hasEnoughFollowers = followersCount >= 100;
-        
-        // If we have real data and enough followers, use it
-        if (hasEnoughFollowers && ageData?.values && ageData.values.length > 0) {
+        // If we have real data from API, use it
+        if (ageData?.values && ageData.values.length > 0) {
             const total = ageData.values.reduce((sum: number, item: any) => sum + item.value, 0);
             return ageData.values.map((item: any, index: number) => ({
                 name: item.name || item.age_range || 'Unknown',
@@ -258,18 +254,14 @@ export default function StatisticsPage() {
                 fill: `hsl(217, 91%, ${70 - index * 10}%)`
             }));
         }
-        
+
         // Return empty array to show blurred mock data
         return [];
     };
 
     const processGenderDemographics = () => {
-        // Check if we have real data (followers >= 100)
-        const followersCount = getInsightValue('followers_count');
-        const hasEnoughFollowers = followersCount >= 100;
-        
-        // If we have real data and enough followers, use it
-        if (hasEnoughFollowers && genderData?.values && genderData.values.length > 0) {
+        // If we have real data from API, use it
+        if (genderData?.values && genderData.values.length > 0) {
             const total = genderData.values.reduce((sum: number, item: any) => sum + item.value, 0);
             return genderData.values.map((item: any, index: number) => ({
                 name: item.name === 'M' ? t('demographics.male') :
@@ -280,25 +272,21 @@ export default function StatisticsPage() {
                 fill: `hsl(270, 70%, ${65 - index * 15}%)`
             }));
         }
-        
+
         // Return empty array to show blurred mock data
         return [];
     };
 
     // Process geographic data for map
     const processGeographicData = () => {
-        // Check if we have real data (followers >= 100)
-        const followersCount = getInsightValue('followers_count');
-        const hasEnoughFollowers = followersCount >= 100;
-        
-        // If we have real data and enough followers, use it
-        if (hasEnoughFollowers && countryData?.values && countryData.values.length > 0) {
+        // If we have real data from API, use it
+        if (countryData?.values && countryData.values.length > 0) {
             return countryData.values.map((item: any) => ({
                 country: item.name,
                 value: item.value
             }));
         }
-        
+
         // Return empty array to show blurred mock data
         return [];
     };
@@ -356,7 +344,7 @@ export default function StatisticsPage() {
         genderPieData,
         locale
     );
-    
+
     // Use real AI comments when available, no mock comments needed
     const displayAIComments = aiComments;
 
