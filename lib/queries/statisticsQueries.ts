@@ -434,6 +434,36 @@ export const useDemographicInsights = (
   });
 };
 
+// Views insights (based on chart data and last 3 posts)
+export const fetchViewsInsights = async (chartData: any[], topPosts: any[], locale: string): Promise<{ insight?: string }> => {
+  try {
+    const response = await fetch('/api/generate-views-insights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chartData, topPosts, locale }),
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return {};
+  } catch (e) {
+    console.error('Error fetching views insights:', e);
+    return {};
+  }
+};
+
+export const useViewsInsights = (chartData: any[] | undefined, topPosts: any[], locale: string) => {
+  return useQuery({
+    queryKey: ['viewsInsights', chartData, topPosts, locale],
+    queryFn: () => fetchViewsInsights(chartData || [], topPosts || [], locale),
+    enabled: !!(chartData && chartData.length > 0 && topPosts && topPosts.length > 0),
+    staleTime: 60 * 60 * 1000,
+    gcTime: 2 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+};
+
 // 변화율 계산이 포함된 통합 hook
 export const useStatisticsWithChanges = (accountId: string, dateRange: number) => {
   // 현재 기간 데이터

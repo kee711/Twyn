@@ -13,7 +13,8 @@ import {
     fetchUserInsights,
     fetchTopPosts,
     useDemographicData,
-    useDemographicInsights
+    useDemographicInsights,
+    useViewsInsights
 } from "@/lib/queries/statisticsQueries";
 import { statisticsKeys } from "@/lib/queries/statisticsKeys";
 import {
@@ -709,6 +710,10 @@ export default function StatisticsPage() {
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 </div>
+                                {/* Views AI Insight */}
+                                {Array.isArray(chartData) && chartData.length > 0 && sortedTopPosts.length > 0 && (
+                                    <ViewsInsightBlock chartData={chartData} topPosts={sortedTopPosts} locale={locale} />
+                                )}
                             </CardContent>
                         </Card>
 
@@ -1204,4 +1209,28 @@ export default function StatisticsPage() {
             )}
         </div>
     );
-} 
+}
+
+function ViewsInsightBlock({ chartData, topPosts, locale }: { chartData: any[]; topPosts: any[]; locale: string }) {
+    const t = useTranslations('components.statistics');
+    const { data, isLoading } = useViewsInsights(chartData, topPosts, locale);
+    if (isLoading) {
+        return (
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">{t('generatingInsight')}</p>
+                </div>
+            </div>
+        );
+    }
+    if (!data?.insight) return null;
+    return (
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex gap-2">
+                <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{data.insight}</p>
+            </div>
+        </div>
+    );
+}
