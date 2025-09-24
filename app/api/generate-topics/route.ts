@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { COMMON_SETTINGS, USER_SETTINGS, INSTRUCTIONS } from '@/lib/prompts';
 import { handleOptions, handleCors } from '@/lib/utils/cors';
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export const runtime = 'edge';
 
@@ -95,36 +96,32 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-        console.log(`[generate-topics][${reqId}] calling model`, { model: 'gpt-5', temperature: 0.7, maxTokens: 1200 });
-        const { text } = await generateText({
-            model: ai('gpt-5-nano-2025-08-07') as any,
-            // AI SDK v5: prompt 또는 messages가 반드시 필요
-            prompt,
-            temperature: 0.7,
-            maxTokens: 1200
-        } as any);
-        console.log(`[generate-topics][${reqId}] model responded`, {
-            textLen: text?.length ?? 0,
-            textHead: (text || '').slice(0, 300)
+        console.log(`[generate-topics][${reqId}] calling model`, { model: 'gpt-4o-mini', temperature: 0.5, maxTokens: 300 });
+
+        // 정확히 5개의 주제를 강제하는 구조화 출력 스키마 (문자열 또는 { topic } 객체 허용)
+        const TopicsSchema = z.object({
+            topics: z.array(
+                z.union([
+                    z.string().min(1),
+                    z.object({ topic: z.string().min(1) })
+                ])
+            ).length(5)
         });
 
-        // JSON만 추출해서 반환
-        try {
-            const json = JSON.parse(text);
-            console.log(`[generate-topics][${reqId}] json parse OK`, {
-                isArray: Array.isArray(json),
-                length: Array.isArray(json) ? json.length : undefined,
-            });
-            const response = NextResponse.json(json);
-            return handleCors(response);
-        } catch (e: any) {
-            console.error(`[generate-topics][${reqId}] json parse FAILED`, {
-                message: e?.message,
-                textHead: (text || '').slice(0, 500)
-            });
-            const response = NextResponse.json({ error: 'Invalid JSON from model', raw: text }, { status: 500 });
-            return handleCors(response);
-        }
+        const result = await generateObject({
+            model: ai('gpt-4o-mini') as any,
+            prompt,
+            temperature: 0.5,
+            maxTokens: 300,
+            schema: TopicsSchema
+        } as any);
+
+        const raw = result.object as z.infer<typeof TopicsSchema>;
+        const topics = (raw.topics || []).map((item: any) => typeof item === 'string' ? item : item.topic);
+        console.log(`[generate-topics][${reqId}] object normalized`, { count: topics.length });
+
+        const response = NextResponse.json({ topics });
+        return handleCors(response);
     } catch (error: any) {
         console.error(`[generate-topics][${reqId}] model call FAILED`, {
             message: error?.message,

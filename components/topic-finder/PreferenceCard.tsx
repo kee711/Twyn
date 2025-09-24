@@ -57,7 +57,7 @@ export function PreferenceCard({
                         {title}
                     </div>
                     <div className="flex items-center justify-between rounded-xl bg-neutral-100/80 sm:px-3 px-2 py-2 text-xs font-medium text-neutral-700">
-                        <span className="truncate">
+                        <span className="!truncate">
                             {loading
                                 ? 'Loading...'
                                 : selectedOption?.name || placeholder || `Select ${title}`}

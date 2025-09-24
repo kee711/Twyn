@@ -1167,17 +1167,17 @@ function RightSidebarContent({
             thinkingPlaceholder={thinkingPlaceholder}
           />
           {/* Divider with Text */}
-          <div className="relative">
+          {/* <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center">
               <span className="bg-background px-4 text-sm text-gray-400">{tNav('addContentsFrom')}</span>
             </div>
-          </div>
+          </div> */}
 
           {/* Navigation Buttons */}
-          <div className="grid gap-2 grid-cols-3">
+          {/* <div className="grid gap-2 grid-cols-3">
             <Link
               href="/contents/topic-finder"
               onClick={() => toggleSidebar()}
@@ -1233,7 +1233,7 @@ function RightSidebarContent({
               <span className="text-xs">{tNav('saved')}</span>
             </Link>
 
-          </div>
+          </div> */}
         </div>
       </div>
 

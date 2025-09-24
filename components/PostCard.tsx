@@ -576,7 +576,8 @@ export function PostCard({
                 // variant="toggle"
                 size="sm"
                 data-state={isAiActive ? "on" : "off"}
-                className={`flex items-center gap-1 rounded-full px-3 pr-4 text-sm font-[400] ${showAiInput ? "bg-black text-white hover:bg-black/40" : "bg-gray-200 text-gray-400"}`}
+                // flex items-center gap-1.5 px-3 py-2 rounded-full text-white font-semibold text-sm relative overflow-hidden ai-glow
+                className={`flex items-center gap-1 rounded-full px-3 pr-4 text-sm text-white font-[400] ai-glow ${showAiInput ? "bg-black hover:bg-black/40" : "bg-gray-300"}`}
                 onClick={() => setShowAiInput(!showAiInput)} // Toggle AI Input Dropdown
               >
                 <Sparkles className="h-4 w-4" />

@@ -84,7 +84,7 @@ export function HeadlineButtons({ onCreateDetails, onGenerateTopics, IsIdeasLoad
           onClick={onGenerateTopics}
           disabled={IsIdeasLoading}
           className={`
-            bg-black rounded-full py-2 px-3 flex justify-center gap-1.5 cursor-pointer relative overflow-hidden
+            bg-black rounded-full py-2 px-3 flex justify-center gap-1.5 cursor-pointer relative overflow-hidden ai-glow
             ${IsIdeasLoading ? 'animate-pulse' : ''}
           `}
         >
@@ -95,14 +95,14 @@ export function HeadlineButtons({ onCreateDetails, onGenerateTopics, IsIdeasLoad
         </Button>
         <Button
           className={`
-            flex items-center gap-1.5 px-3 py-2 rounded-full text-white font-semibold text-sm relative overflow-hidden
+            flex items-center gap-1.5 px-3 py-2 rounded-full text-white font-semibold text-sm relative overflow-hidden ai-glow
             ${IsCreateDetailsLoading ? 'animate-pulse' : ''} ${!hasHeadline ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800'}
           `}
           onClick={onCreateDetails}
           disabled={!hasHeadline || IsCreateDetailsLoading}
         >
           <Sparkles className="w-4 h-4" />
-          {t('createDetails')}
+          <span>{t('createDetails')}</span>
         </Button>
       </div>
     </div>
