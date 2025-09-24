@@ -101,7 +101,75 @@ export const fetchDemographicData = async (
     );
     if (response.ok) {
       const data = await response.json();
-      return data.data?.[0] || null;
+      const raw = data.data?.[0];
+
+      if (!raw) return null;
+
+      // Preferred: Threads Graph API shape under total_value.breakdowns[0].results
+      const results = raw?.total_value?.breakdowns?.[0]?.results;
+      if (Array.isArray(results)) {
+        const values = results.map((r: any) => {
+          const label = Array.isArray(r?.dimension_values)
+            ? r.dimension_values[0]
+            : r?.dimension_values;
+          return { name: label, value: Number(r?.value ?? 0) };
+        });
+        return { ...raw, values };
+      }
+
+      // Fallback: legacy/alternative shapes using raw.values
+      if (Array.isArray((raw as any).values)) {
+        const candidate = (raw as any).values;
+        const flattened =
+          candidate.length === 1 && Array.isArray(candidate[0]?.value)
+            ? candidate[0].value
+            : candidate;
+
+        if (Array.isArray(flattened)) {
+          const normalised = flattened
+            .map((item: any, index: number) => {
+              const value = Number(item?.value ?? item?.percentage ?? 0);
+              const name = (() => {
+                switch (breakdown) {
+                  case 'age':
+                    return (
+                      item?.name ||
+                      item?.age_range ||
+                      item?.follower_age ||
+                      item?.follower_gender_age ||
+                      `Group ${index + 1}`
+                    );
+                  case 'gender':
+                    return item?.name || item?.follower_gender || item?.gender || 'Unknown';
+                  case 'country':
+                    return item?.name || item?.country || item?.country_code || 'Unknown';
+                  case 'city':
+                    return (
+                      item?.name ||
+                      item?.city ||
+                      (item?.country && item?.city ? `${item.country} - ${item.city}` : undefined) ||
+                      'Unknown'
+                    );
+                  default:
+                    return item?.name || 'Unknown';
+                }
+              })();
+
+              return {
+                ...item,
+                name,
+                value: Number.isFinite(value) ? value : 0,
+              };
+            })
+            .filter((item: any) => Number.isFinite(item.value));
+
+          if (normalised.length > 0) {
+            return { ...raw, values: normalised };
+          }
+        }
+      }
+
+      return null;
     }
     return null;
   } catch (error) {
@@ -338,7 +406,7 @@ export const fetchDemographicInsights = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ageData, genderData, locale }),
     });
-    
+
     if (response.ok) {
       const data = await response.json();
       return data.insights || {};
@@ -361,6 +429,36 @@ export const useDemographicInsights = (
     enabled: !!(ageData.length > 0 || genderData.length > 0),
     staleTime: 60 * 60 * 1000, // 1시간
     gcTime: 2 * 60 * 60 * 1000, // 2시간
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+};
+
+// Views insights (based on chart data and last 3 posts)
+export const fetchViewsInsights = async (chartData: any[], topPosts: any[], locale: string): Promise<{ insight?: string }> => {
+  try {
+    const response = await fetch('/api/generate-views-insights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chartData, topPosts, locale }),
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return {};
+  } catch (e) {
+    console.error('Error fetching views insights:', e);
+    return {};
+  }
+};
+
+export const useViewsInsights = (chartData: any[] | undefined, topPosts: any[], locale: string) => {
+  return useQuery({
+    queryKey: ['viewsInsights', chartData, topPosts, locale],
+    queryFn: () => fetchViewsInsights(chartData || [], topPosts || [], locale),
+    enabled: !!(chartData && chartData.length > 0 && topPosts && topPosts.length > 0),
+    staleTime: 60 * 60 * 1000,
+    gcTime: 2 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

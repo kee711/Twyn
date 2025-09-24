@@ -12,9 +12,35 @@ export async function POST(request: NextRequest) {
 
         const { ageData, genderData, locale = 'en' } = await request.json();
 
-        const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+        const buildFallbackInsights = (ageDataParam?: any[], genderDataParam?: any[], localeParam: string = 'en') => {
+            const insights: { age?: string; gender?: string } = {};
+
+            if (Array.isArray(ageDataParam) && ageDataParam.length > 0) {
+                const sorted = [...ageDataParam].sort((a: any, b: any) => (b.percentage ?? 0) - (a.percentage ?? 0));
+                const top = sorted[0];
+                const second = sorted[1];
+                insights.age = localeParam === 'ko'
+                    ? `${top?.name} 연령대 비중이 가장 높아요(${top?.percentage ?? 0}%). ${second?.name ? `다음은 ${second.name} (${second.percentage ?? 0}%)` : ''} 중심의 톤과 관심사를 반영하면 도달과 반응이 좋아집니다.`.trim()
+                    : `Your top age group is ${top?.name} (${top?.percentage ?? 0}%). ${second?.name ? `Next is ${second.name} (${second.percentage ?? 0}%). ` : ''}Lean into their interests and tone for better reach and engagement.`.trim();
+            }
+
+            if (Array.isArray(genderDataParam) && genderDataParam.length > 0) {
+                const male = genderDataParam.find((g: any) => `${g.name}`.toLowerCase().includes('male') || `${g.name}`.includes('남성'));
+                const female = genderDataParam.find((g: any) => `${g.name}`.toLowerCase().includes('female') || `${g.name}`.includes('여성'));
+                const malePct = male?.percentage ?? 0;
+                const femalePct = female?.percentage ?? 0;
+                insights.gender = localeParam === 'ko'
+                    ? `성별 분포는 남성 ${malePct}%, 여성 ${femalePct}% 수준이에요. 타깃 성별의 관심 주제와 사례 중심 포맷을 늘리면 전환 효율이 개선됩니다.`
+                    : `Gender split is Male ${malePct}% and Female ${femalePct}%. Tailor topics and examples toward the leading segment to improve conversion.`;
+            }
+
+            return insights;
+        };
+
+        const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
         if (!apiKey) {
-            return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+            // 폴백 코멘트로 성공 응답 반환 (UI가 항상 표시되도록)
+            return NextResponse.json({ insights: buildFallbackInsights(ageData, genderData, locale) }, { status: 200 });
         }
 
         const openai = new OpenAI({
@@ -31,78 +57,91 @@ export async function POST(request: NextRequest) {
         if (ageData && ageData.length > 0) {
             const topAge = ageData.sort((a: any, b: any) => b.percentage - a.percentage)[0];
             const secondAge = ageData[1];
-            
-            const agePrompt = locale === 'ko' 
-                ? `다음 연령대 분포 데이터를 보고 위트있고 인사이트 있는 한국어 코멘트를 작성해주세요. 
-                   최고 연령대: ${topAge.name} (${topAge.percentage}%)
-                   두번째 연령대: ${secondAge?.name} (${secondAge?.percentage}%)
-                   
-                   규칙:
-                   - 2-3문장으로 간결하게
-                   - 트렌디하고 캐주얼한 톤
-                   - 인사이트와 함께 실용적인 조언 포함
-                   - 이모지 사용 금지
-                   - 예시: "25-34살 연령대 분들에게 인기가 많으시네요! 젊은 트렌드를 빠르게 캐치하고 있다는 뜻이에요"`
-                : `Write a witty and insightful comment about this age distribution data.
+
+            const agePrompt = `Write a witty and insightful comment about this age distribution data.
+                   Give insightful ideas about how to target the top age group.
                    Top age group: ${topAge.name} (${topAge.percentage}%)
                    Second age group: ${secondAge?.name} (${secondAge?.percentage}%)
                    
                    Rules:
-                   - 2-3 sentences max
+                   - 3 short sentences max
                    - Trendy and casual tone
                    - Include practical insight
                    - No emojis
-                   - Example: "Your content resonates most with the 25-34 crowd! They're the sweet spot for engagement and growth potential."`;
+                   - Structure : 
+                   First sentence: Explain the top age group, 
+                   Second sentence: Explain their characteristics & traits, 
+                   Third sentence: Practical advice for targeting them
+                `;
 
-            const ageResponse = await openai.chat.completions.create({
-                model: 'gpt-4-turbo-preview',
-                messages: [{ role: 'user', content: agePrompt }],
-                temperature: 0.8,
-                max_tokens: 150,
-            });
-
-            insights.age = ageResponse.choices[0].message.content || '';
+            try {
+                const ageMessages = locale === 'ko'
+                    ? [
+                        { role: 'system', content: 'Answer in Korean only.' },
+                        { role: 'user', content: agePrompt }
+                    ]
+                    : [
+                        { role: 'user', content: agePrompt }
+                    ];
+                const ageResponse = await openai.chat.completions.create({
+                    model: 'gpt-4o-mini',
+                    messages: ageMessages as any,
+                    temperature: 0.8,
+                    max_tokens: 120,
+                });
+                insights.age = ageResponse.choices?.[0]?.message?.content || '';
+            } catch (e) {
+                // 폴백 코멘트
+                insights.age = buildFallbackInsights(ageData, undefined, locale).age || '';
+            }
         }
 
         // Generate gender insight
         if (genderData && genderData.length > 0) {
             const maleData = genderData.find((g: any) => g.name.includes('Male') || g.name.includes('남성'));
             const femaleData = genderData.find((g: any) => g.name.includes('Female') || g.name.includes('여성'));
-            
-            const genderPrompt = locale === 'ko'
-                ? `다음 성별 분포 데이터를 보고 위트있고 인사이트 있는 한국어 코멘트를 작성해주세요.
-                   남성: ${maleData?.percentage || 0}%, 여성: ${femaleData?.percentage || 0}%
-                   
-                   규칙:
-                   - 2-3문장으로 간결하게
-                   - 성별 균형이나 특정 성별 선호도에 대한 인사이트
-                   - 콘텐츠 전략 제안 포함
-                   - 이모지 사용 금지`
-                : `Write a witty and insightful comment about this gender distribution.
+
+            const genderPrompt = `Write a witty and insightful comment about this gender distribution.
+                   Give insightful ideas about how to target the top gender group.
                    Male: ${maleData?.percentage || 0}%, Female: ${femaleData?.percentage || 0}%
                    
                    Rules:
-                   - 2-3 sentences max
+                   - 3 short sentences max
                    - Insight about gender balance or preference
                    - Include content strategy suggestion
-                   - No emojis`;
+                   - No emojis
+                   - Structure : 
+                   First sentence: Explain the top gender group, 
+                   Second sentence: Explain their characteristics & traits, 
+                   Third sentence: Practical advice for targeting them
+                   `;
 
-            const genderResponse = await openai.chat.completions.create({
-                model: 'gpt-4-turbo-preview',
-                messages: [{ role: 'user', content: genderPrompt }],
-                temperature: 0.8,
-                max_tokens: 150,
-            });
-
-            insights.gender = genderResponse.choices[0].message.content || '';
+            try {
+                const genderMessages = locale === 'ko'
+                    ? [
+                        { role: 'system', content: 'Answer in Korean only.' },
+                        { role: 'user', content: genderPrompt }
+                    ]
+                    : [
+                        { role: 'user', content: genderPrompt }
+                    ];
+                const genderResponse = await openai.chat.completions.create({
+                    model: 'gpt-4o-mini',
+                    messages: genderMessages as any,
+                    temperature: 0.8,
+                    max_tokens: 120,
+                });
+                insights.gender = genderResponse.choices?.[0]?.message?.content || '';
+            } catch (e) {
+                // 폴백 코멘트
+                insights.gender = buildFallbackInsights(undefined, genderData, locale).gender || '';
+            }
         }
 
         return NextResponse.json({ insights });
     } catch (error) {
         console.error('Error generating demographic insights:', error);
-        return NextResponse.json(
-            { error: 'Failed to generate insights' },
-            { status: 500 }
-        );
+        // 최종 폴백: 안전하게 비어있는 결과 반환 (클라이언트는 표시를 생략)
+        return NextResponse.json({ insights: {} }, { status: 200 });
     }
 }
