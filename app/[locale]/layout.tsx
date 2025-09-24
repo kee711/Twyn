@@ -3,7 +3,6 @@ import {notFound} from 'next/navigation';
 import {routing} from '@/i18n/routing';
 import {getMessages} from 'next-intl/server';
 import {setRequestLocale} from 'next-intl/server';
-import { Inter } from "next/font/google";
 import "../globals.css";
 import { Toaster } from 'sonner';
 import { Providers } from '../providers';
@@ -11,8 +10,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/authOptions';
 import { MixpanelProvider } from '@/components/analytics/MixpanelProvider';
 import Script from 'next/script';
-
-const inter = Inter({ subsets: ["latin"] });
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({locale}));
@@ -56,7 +53,7 @@ export default async function LocaleLayout({
           `}
         </Script>
       </head>
-      <body className={`h-full bg-muted ${inter.className}`}>
+      <body className="h-full">
         <div className="h-full">
           <Providers session={session}>
             <NextIntlClientProvider messages={messages}>

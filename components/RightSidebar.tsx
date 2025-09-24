@@ -6,7 +6,7 @@ import { ThreadChain } from "@/components/ThreadChain";
 import { cn } from "@/lib/utils";
 import { debugFetch } from "@/lib/utils/debug-fetch";
 import useThreadChainStore, { PLATFORM_KEYS, type PlatformKey } from "@/stores/useThreadChainStore";
-import { TextSearch, PencilLine, FileText, PanelRightClose, PanelLeftClose, ChevronDown, FileEdit, Bookmark, Plus, Link2Off, Link2, CircleX } from "lucide-react";
+import { TextSearch, FileText, PanelRightClose, PanelLeftClose, ChevronDown, Bookmark, Plus, Check, X, Link, Unlink } from "lucide-react";
 import { createContent } from "@/app/actions/content";
 import { toast } from "sonner";
 import { postThreadChain, scheduleThreadChain, ThreadContent } from "@/app/actions/threadChain";
@@ -15,7 +15,6 @@ import { AutoPublishTimeDialog } from "./schedule/AutoPublishTimeDialog";
 import { SelectPublishTimeDialog } from "./schedule/SelectPublishTimeDialog";
 import useSocialAccountStore from "@/stores/useSocialAccountStore";
 import NextImage from 'next/image';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
@@ -555,7 +554,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       // DB 저장 성공 시 localStorage 초기화
       localStorage.removeItem("draftContent");
       toast.success(t('draftSaved'));
-      
+
       // Track content saved
       trackUserAction.contentSaved({
         type: 'draft',
@@ -640,7 +639,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
           setPlatformThreads(platform as PlatformKey, threads);
         }
       });
-      
+
       // Track content scheduled
       trackUserAction.contentScheduled({
         scheduledTime: selectedDateTime,
@@ -982,7 +981,7 @@ function RightSidebarContent({
       <div
         key={key}
         className={cn(
-          'flex items-center gap-2 rounded-full border px-3 py-2 transition-colors',
+          'flex items-center gap-1 rounded-full border px-1 py-0 transition-colors',
           'bg-muted border-border/40',
           !isActive && 'opacity-60'
         )}
@@ -991,7 +990,7 @@ function RightSidebarContent({
           type="button"
           onClick={() => onSelectPlatform(key)}
           className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-full border transition-colors',
+            'flex h-8 w-8 items-center justify-center rounded-full border transition-colors',
             isSelected ? 'border-primary bg-primary/10' : 'border-transparent'
           )}
         >
@@ -1000,18 +999,22 @@ function RightSidebarContent({
             alt={alt}
             width={24}
             height={24}
-            className={cn('h-6 w-6 object-contain', !isActive && 'opacity-50')}
+            className={cn('h-5 w-5 object-contain', !isActive && 'opacity-50')}
           />
         </button>
         <button
           type="button"
           onClick={() => onTogglePlatformActive(key)}
           className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-full bg-muted-foreground/80 text-background transition-colors',
+            'flex h-6 w-6 items-center justify-center rounded-full bg-muted-foreground/80 text-background transition-colors',
             !isActive && 'bg-muted text-muted-foreground'
           )}
         >
-          <CircleX className="h-4 w-4" />
+          {isActive ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <X className="h-4 w-4" />
+          )}
         </button>
       </div>
     );
@@ -1097,21 +1100,21 @@ function RightSidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 shadow-lg">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-background">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-4 bg-background">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={onToggleUnlink}
             className={cn(
-              'flex items-center gap-2 rounded-full border px-4 py-2 transition-colors',
+              'flex items-center gap-2 rounded-full border p-2 transition-colors',
               'bg-muted border-border/40 text-muted-foreground',
               isUnlinked && 'border-primary bg-primary/10 text-primary'
             )}
           >
-            {isUnlinked ? <Link2Off className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-            <span className="text-xs font-medium uppercase tracking-wide">
+            {isUnlinked ? <Unlink className="h-4 w-4" /> : <Link className="h-4 w-4" />}
+            {/* <span className="text-xs font-medium uppercase tracking-wide">
               {isUnlinked ? t('unlinkMode') : t('linkMode')}
-            </span>
+            </span> */}
           </button>
 
           <div className="flex flex-wrap items-center gap-2">
