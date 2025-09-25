@@ -8,6 +8,8 @@ import { SocialButton } from '@/components/signin/buttons/social-button'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { useRouter } from '@/i18n/navigation'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export default function SignInClient() {
   const t = useTranslations('auth')
@@ -15,12 +17,15 @@ export default function SignInClient() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/contents/topic-finder'
   const { data: session, status } = useSession()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Check for error messages in URL after page load
   useEffect(() => {
     const timer = setTimeout(() => {
       const error = searchParams.get('error')
-      
+
       if (error === 'AccessDenied' || error === 'OAuthAccountNotLinked') {
         // Check if we're coming from a signup attempt by checking for signup cookie
         fetch('/api/auth/check-signup-intent')
@@ -47,8 +52,17 @@ export default function SignInClient() {
               position: 'top-center'
             })
           })
-        
+
         // Clear the error parameter from URL
+        const newSearchParams = new URLSearchParams(searchParams.toString())
+        newSearchParams.delete('error')
+        const newUrl = newSearchParams.toString() ? `/signin?${newSearchParams.toString()}` : '/signin'
+        router.replace(newUrl)
+      } else if (error === 'CredentialsSignin') {
+        toast.error(t('invalidCredentials'), {
+          duration: 4000,
+          position: 'top-center'
+        })
         const newSearchParams = new URLSearchParams(searchParams.toString())
         newSearchParams.delete('error')
         const newUrl = newSearchParams.toString() ? `/signin?${newSearchParams.toString()}` : '/signin'
@@ -59,7 +73,7 @@ export default function SignInClient() {
           duration: 4000,
           position: 'top-center'
         })
-        
+
         // Clear the error parameter from URL
         const newSearchParams = new URLSearchParams(searchParams.toString())
         newSearchParams.delete('error')
@@ -67,7 +81,7 @@ export default function SignInClient() {
         router.replace(newUrl)
       }
     }, 100)
-    
+
     return () => clearTimeout(timer)
   }, [searchParams, router])
 
@@ -78,9 +92,9 @@ export default function SignInClient() {
       // Prevent multiple redirects
       const isRedirecting = sessionStorage.getItem('redirecting')
       if (isRedirecting) return
-      
+
       sessionStorage.setItem('redirecting', 'true')
-      
+
       const handleRedirect = async () => {
         try {
           const onboardingStatus = await checkOnboardingStatus(session.user.id)
@@ -128,10 +142,33 @@ export default function SignInClient() {
     }
   }
 
+  // Email 로그인 핸들러
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password) {
+      toast.error(t('signInError'))
+      return
+    }
+    try {
+      setIsSubmitting(true)
+      const res = await signIn('credentials', {
+        email,
+        password,
+        redirect: true,
+        callbackUrl,
+      })
+      // next-auth가 redirect를 처리하므로 추가 액션 불필요
+    } catch (err) {
+      toast.error(t('signInError'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // Google 로그인 핸들러
   const handleGoogleSignIn = async () => {
     console.log('🔐 Starting sign in flow')
-    await signIn('google', { 
+    await signIn('google', {
       callbackUrl,
       redirect: true
     })
@@ -186,6 +223,34 @@ export default function SignInClient() {
           </div>
 
           <div className="space-y-4">
+            {/* 이메일 로그인 */}
+            <form onSubmit={handleEmailSignIn} className="space-y-3">
+              <Input
+                type="email"
+                placeholder={t('email')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Input
+                type="password"
+                placeholder={t('password')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button type="submit" variant="outline" size="lg" className="w-full" disabled={isSubmitting}>
+                {t('signInWithEmail')}
+              </Button>
+            </form>
+
+            {/* 구분선 */}
+            <div className="flex gap-3 items-center justify-center">
+              <div className="w-full h-px bg-gray-200" />
+              <span className="text-gray-500 text-xs">or</span>
+              <div className="w-full h-px bg-gray-200" />
+            </div>
+
             <SocialButton
               social="google"
               theme="brand"
