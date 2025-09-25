@@ -4,39 +4,40 @@ import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { SocialButton } from '@/components/signin/buttons/social-button'
 import { useTranslations } from 'next-intl'
-// import { Input } from '@/components/ui/input'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { useRouter } from '@/i18n/navigation'
+import { Button } from '@/components/ui/button'
 
 export default function SignUpClient() {
   const t = useTranslations('auth')
   const router = useRouter()
   const { data: session, status } = useSession()
-  // const [inviteCode, setInviteCode] = useState('')
-  // const [inviteCodeError, setInviteCodeError] = useState('')
-  // const [isCodeValid, setIsCodeValid] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // 이미 로그인된 경우 리다이렉트 (signup 진행 중이 아닌 경우만)
   useEffect(() => {
     // signup 프로세스 중인지 확인
     const isSignupProcess = sessionStorage.getItem('signup_in_progress') === 'true'
-    
+
     if (status === 'authenticated' && session?.user && !isSignupProcess) {
       router.push('/contents/topic-finder')
     }
   }, [session, status, router])
-  
+
   // Check for error messages in URL
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     const error = searchParams.get('error')
-    
+
     // Handle errors from signup attempts
     if (error === 'AccessDenied' || error === 'OAuthAccountNotLinked') {
       // Check if we came from a signup attempt (signup_intent cookie would be set)
       const isFromSignup = sessionStorage.getItem('signup_in_progress') === 'true'
-      
+
       if (isFromSignup) {
         // This means user already exists
         toast.error(t('alreadyRegistered'), {
@@ -50,7 +51,7 @@ export default function SignUpClient() {
           position: 'top-center'
         })
       }
-      
+
       setTimeout(() => {
         router.push('/signin')
       }, 2000)
@@ -142,7 +143,7 @@ export default function SignUpClient() {
       await signIn('google', {
         callbackUrl: '/onboarding?type=user'
       })
-      
+
     } catch (error) {
       console.error('Signup error:', error)
       toast.error(t('signUpError'))
@@ -151,10 +152,52 @@ export default function SignUpClient() {
     }
   }
 
+  // 이메일 회원가입 핸들러 (Credentials)
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password) {
+      toast.error(t('signUpError'))
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      sessionStorage.setItem('signup_in_progress', 'true')
+
+      // 1) 서버에 signup 의도 알림 (쿠키 세팅)
+      const prepResponse = await fetch('/api/auth/prepare-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      })
+      const prepData = await prepResponse.json()
+      if (!prepData.success) {
+        toast.error(prepData.error || t('signUpPreparationError'))
+        sessionStorage.removeItem('signup_in_progress')
+        setIsSubmitting(false)
+        return
+      }
+
+      // 2) Credentials provider로 회원가입 진행
+      await signIn('credentials', {
+        email,
+        password,
+        isSignup: 'true',
+        callbackUrl: '/onboarding?type=user',
+        redirect: true,
+      })
+    } catch (err) {
+      console.error('Email signup error:', err)
+      toast.error(t('signUpError'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="relative h-screen w-full">
       <div className="fixed inset-0 w-full h-full bg-dashboard-preview bg-cover bg-center opacity-75 dark:opacity-50"></div>
-      
+
       <div className="fixed inset-0 w-full h-full backdrop-blur-sm bg-black/30 flex items-center justify-center">
         <div className="w-full m-4 max-w-md space-y-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-background/95 shadow-2xl p-8">
           <button
@@ -205,6 +248,29 @@ export default function SignUpClient() {
                 )}
               </div>
             </div> */}
+
+            {/* 이메일 회원가입 */}
+            <form onSubmit={handleEmailSignUp} className="space-y-3">
+              <Input
+                type="email"
+                placeholder={t('email')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isSubmitting}
+              />
+              <Input
+                type="password"
+                placeholder={t('password')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isSubmitting}
+              />
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {t('signUpWithEmail')}
+              </Button>
+            </form>
 
             <SocialButton
               social="google"

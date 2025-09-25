@@ -45,6 +45,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "ai": "^5.0.0",
     "axios": "1.12.1",
+    "bcryptjs": "^2.4.3",
     "bullmq": "^4.15.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
