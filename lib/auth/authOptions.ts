@@ -1,5 +1,7 @@
 import { AuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import bcrypt from 'bcryptjs'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
@@ -29,6 +31,70 @@ declare module 'next-auth/jwt' {
 
 export const authOptions: AuthOptions = {
   providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+        isSignup: { label: 'isSignup', type: 'text' },
+      },
+      async authorize(credentials, req) {
+        try {
+          const email = (credentials?.email || '').toLowerCase().trim()
+          const password = credentials?.password || ''
+          const isSignup = credentials?.isSignup === 'true'
+
+          if (!email || !password) {
+            return null
+          }
+
+          // 조회: 기존 사용자 확인
+          const { data: existingUser, error: fetchError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('email', email)
+            .maybeSingle()
+
+          if (fetchError && fetchError.code !== 'PGRST116') {
+            console.error('Error fetching user in authorize:', fetchError)
+            return null
+          }
+
+          // 로그인 플로우
+          if (!isSignup) {
+            if (!existingUser || !existingUser.password) {
+              return null
+            }
+
+            const isValid = await bcrypt.compare(password, existingUser.password)
+            if (!isValid) {
+              return null
+            }
+
+            const computedUserId = existingUser.user_id || `cred_${existingUser.id}`
+            return {
+              id: computedUserId,
+              email: email,
+              name: existingUser.name || email.split('@')[0],
+              image: existingUser.image || null,
+            }
+          }
+
+          // 회원가입 플로우: authorize 단계에서는 유효성만 통과시키고 실제 DB 삽입은 signIn 콜백에서 처리
+          // 이미 존재하는 경우에도 signIn 콜백에서 처리하도록 사용자 스텁을 반환
+          const syntheticId = `cred_${(globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2))}`
+          return {
+            id: syntheticId,
+            email: email,
+            name: email.split('@')[0],
+            image: null,
+          }
+        } catch (e) {
+          console.error('Credentials authorize error:', e)
+          return null
+        }
+      },
+    }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -49,7 +115,7 @@ export const authOptions: AuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
+      name: process.env.NODE_ENV === 'production'
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token',
       options: {
@@ -69,22 +135,37 @@ export const authOptions: AuthOptions = {
       else if (new URL(url).origin === baseUrl) return url
       return baseUrl
     },
-    async jwt({ token, account, profile, trigger }) {
-      if (account && profile) {
-        token.userId = profile.sub ?? ''
+    async jwt({ token, account, profile, trigger, user }) {
+      // 최초 로그인 시 토큰 설정
+      if (account) {
         token.provider = account.provider ?? ''
+        if (account.provider === 'credentials' && user) {
+          // Credentials: authorize()에서 전달한 id 사용
+          token.userId = (user as any).id ?? ''
 
-        // Check onboarding status for new sign-ins
-        const { data: onboardingData } = await supabase
-          .from('user_onboarding')
-          .select('is_completed')
-          .eq('user_id', profile.sub)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
+          const { data: onboardingData } = await supabase
+            .from('user_onboarding')
+            .select('is_completed')
+            .eq('user_id', (user as any).id ?? '')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
 
-        // User needs onboarding only if no record exists at all
-        token.needsOnboarding = !onboardingData
+          token.needsOnboarding = !onboardingData
+        } else if (profile) {
+          // OAuth (Google): 프로필 sub 사용
+          token.userId = (profile as any).sub ?? ''
+
+          const { data: onboardingData } = await supabase
+            .from('user_onboarding')
+            .select('is_completed')
+            .eq('user_id', (profile as any).sub)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          token.needsOnboarding = !onboardingData
+        }
       }
 
       // Re-check onboarding status on session updates
@@ -110,14 +191,14 @@ export const authOptions: AuthOptions = {
       }
       return session
     },
-    async signIn({ user, account }) {
+    async signIn({ user, account, credentials }) {
       try {
 
         // Check if this is a signup flow by checking cookies
         const cookieStore = await cookies()
         const isSignupIntent = cookieStore.get('signup_intent')?.value === 'true'
-        const inviteCode = cookieStore.get('signup_invite_code')?.value
-        const inviteCodeId = cookieStore.get('signup_invite_code_id')?.value
+        // const inviteCode = cookieStore.get('signup_invite_code')?.value
+        // const inviteCodeId = cookieStore.get('signup_invite_code_id')?.value
 
 
         // 사용자가 존재하는지 확인
@@ -137,53 +218,58 @@ export const authOptions: AuthOptions = {
           // signup 모드인 경우에만 사용자 생성
           if (isSignupIntent) {
 
-            // Handle invite code if provided - MUST complete before user creation
-            if (inviteCode && inviteCodeId) {
-              // First, get the current used_count
-              const { data: inviteData, error: fetchError } = await supabase
-                .from('invite_codes')
-                .select('used_count')
-                .eq('code', inviteCode)
-                .single()
+            // // Handle invite code if provided - MUST complete before user creation
+            // if (inviteCode && inviteCodeId) {
+            //   // First, get the current used_count
+            //   const { data: inviteData, error: fetchError } = await supabase
+            //     .from('invite_codes')
+            //     .select('used_count')
+            //     .eq('code', inviteCode)
+            //     .single()
 
-              if (fetchError) {
-                console.error('Error fetching invite code:', fetchError)
-                return false // Fail the signup if we can't verify the invite code
-              }
+            //   if (fetchError) {
+            //     console.error('Error fetching invite code:', fetchError)
+            //     return false // Fail the signup if we can't verify the invite code
+            //   }
 
-              // Increment used_count
-              const newUsedCount = (inviteData?.used_count || 0) + 1
+            //   // Increment used_count
+            //   const newUsedCount = (inviteData?.used_count || 0) + 1
 
-              const { error: updateError } = await supabase
-                .from('invite_codes')
-                .update({
-                  used_count: newUsedCount,
-                })
-                .eq('code', inviteCode)
+            //   const { error: updateError } = await supabase
+            //     .from('invite_codes')
+            //     .update({
+            //       used_count: newUsedCount,
+            //     })
+            //     .eq('code', inviteCode)
 
-              if (updateError) {
-                console.error('Error updating invite code used_count:', updateError)
-                return false // Fail the signup if we can't update the invite code
-              }
+            //   if (updateError) {
+            //     console.error('Error updating invite code used_count:', updateError)
+            //     return false // Fail the signup if we can't update the invite code
+            //   }
 
-              console.log(`✅ Successfully incremented used_count for invite code: ${inviteCode} to ${newUsedCount}`)
-            }
+            //   console.log(`✅ Successfully incremented used_count for invite code: ${inviteCode} to ${newUsedCount}`)
+            // }
 
             // Create new user with invite_code_id if provided
             const userProfileData: any = {
               email: user.email,
               name: user.name,
               image: user.image,
-              user_id: user.id,
+              user_id: (user as any).id,
               provider: account?.provider,
-              created_at: new Date().toISOString()
+              created_at: new Date().toISOString(),
             }
-            
+
+            // Credentials 회원가입인 경우 비밀번호 해시 저장
+            if (account?.provider === 'credentials' && (credentials as any)?.password) {
+              const hashed = await bcrypt.hash((credentials as any).password, 10)
+              userProfileData.password = hashed
+            }
+
             // Add invite_code_id if an invite code was used
-            if (inviteCodeId) {
-              userProfileData.invite_code_id = inviteCodeId
-            }
-            
+            // if (inviteCodeId) {
+            //   userProfileData.invite_code_id = inviteCodeId
+            // }
             const { error: createError } = await supabase
               .from('user_profiles')
               .insert(userProfileData)
@@ -207,37 +293,37 @@ export const authOptions: AuthOptions = {
         if (existingUser.deleted_at) {
           // signup 모드이면 계정 복구
           if (isSignupIntent) {
-            // Handle invite code if provided - MUST complete before account restoration
-            if (inviteCode && inviteCodeId) {
-              // First, get the current used_count
-              const { data: inviteData, error: fetchError } = await supabase
-                .from('invite_codes')
-                .select('used_count')
-                .eq('code', inviteCode)
-                .single()
+            // // Handle invite code if provided - MUST complete before account restoration
+            // if (inviteCode && inviteCodeId) {
+            //   // First, get the current used_count
+            //   const { data: inviteData, error: fetchError } = await supabase
+            //     .from('invite_codes')
+            //     .select('used_count')
+            //     .eq('code', inviteCode)
+            //     .single()
 
-              if (fetchError) {
-                console.error('Error fetching invite code:', fetchError)
-                return false // Fail the signup if we can't verify the invite code
-              }
+            //   if (fetchError) {
+            //     console.error('Error fetching invite code:', fetchError)
+            //     return false // Fail the signup if we can't verify the invite code
+            //   }
 
-              // Increment used_count
-              const newUsedCount = (inviteData?.used_count || 0) + 1
+            //   // Increment used_count
+            //   const newUsedCount = (inviteData?.used_count || 0) + 1
 
-              const { error: updateError } = await supabase
-                .from('invite_codes')
-                .update({
-                  used_count: newUsedCount,
-                })
-                .eq('code', inviteCode)
+            //   const { error: updateError } = await supabase
+            //     .from('invite_codes')
+            //     .update({
+            //       used_count: newUsedCount,
+            //     })
+            //     .eq('code', inviteCode)
 
-              if (updateError) {
-                console.error('Error updating invite code used_count:', updateError)
-                return false // Fail the signup if we can't update the invite code
-              }
+            //   if (updateError) {
+            //     console.error('Error updating invite code used_count:', updateError)
+            //     return false // Fail the signup if we can't update the invite code
+            //   }
 
-              console.log(`✅ Successfully incremented used_count for invite code: ${inviteCode} to ${newUsedCount} (account restoration)`)
-            }
+            //   console.log(`✅ Successfully incremented used_count for invite code: ${inviteCode} to ${newUsedCount} (account restoration)`)
+            // }
 
             // Prepare update data with invite_code_id if provided
             const updateData: any = {
@@ -248,12 +334,11 @@ export const authOptions: AuthOptions = {
               user_id: user.id,
               updated_at: new Date().toISOString()
             }
-            
+
             // Add invite_code_id if an invite code was used
-            if (inviteCodeId) {
-              updateData.invite_code_id = inviteCodeId
-            }
-            
+            // if (inviteCodeId) {
+            //   updateData.invite_code_id = inviteCodeId
+            // }
             const { error: restoreError } = await supabase
               .from('user_profiles')
               .update(updateData)
@@ -278,7 +363,7 @@ export const authOptions: AuthOptions = {
               name: user.name,
               provider: account?.provider,
               image: user.image,
-              user_id: user.id,
+              user_id: (user as any).id,
               updated_at: new Date().toISOString()
             })
             .eq('email', user.email)
