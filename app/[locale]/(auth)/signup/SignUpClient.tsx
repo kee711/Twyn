@@ -267,10 +267,17 @@ export default function SignUpClient() {
                 required
                 disabled={isSubmitting}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" variant="outline" size="lg" className="w-full" disabled={isSubmitting}>
                 {t('signUpWithEmail')}
               </Button>
             </form>
+
+            {/* 구분선 */}
+            <div className="flex gap-3 items-center justify-center">
+              <div className="w-full h-px bg-gray-200" />
+              <span className="text-gray-500 text-xs">or</span>
+              <div className="w-full h-px bg-gray-200" />
+            </div>
 
             <SocialButton
               social="google"
