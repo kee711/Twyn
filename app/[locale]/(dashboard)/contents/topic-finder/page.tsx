@@ -1,42 +1,489 @@
 'use client';
 
-import { HeadlineInput } from '@/components/contents-helper/HeadlineInput';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
-import { ThreadsProfilePicture } from '@/components/ThreadsProfilePicture';
-import { startTransition, useEffect, useState, useMemo, useCallback } from 'react';
+import { startTransition, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
 import { useTranslations } from 'next-intl';
 import useThreadChainStore from '@/stores/useThreadChainStore';
 import { ThreadContent } from '@/components/contents-helper/types';
-import { HeadlineButtons } from '@/components/contents-helper/HeadlineButtons';
 import { useTopicResultsStore } from '@/stores/useTopicResultsStore';
 import { fetchAndSaveComments, fetchAndSaveMentions } from '@/app/actions/fetchComment';
 import { getAllCommentsWithRootPosts, getAllMentionsWithRootPosts } from '@/app/actions/comment';
 import { statisticsKeys } from '@/lib/queries/statisticsKeys';
 import { fetchUserInsights, fetchTopPosts } from '@/lib/queries/statisticsQueries';
-import { Button } from '@/components/ui/button';
-import { Trash } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogTitle, AlertDialogContent, AlertDialogHeader, AlertDialogTrigger, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useContentGenerationStore } from '@/lib/stores/content-generation';
-// removed duplicate import
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import useAiContentStore from '@/stores/useAiContentStore';
-import { trackUserAction } from '@/lib/analytics/mixpanel';
+import { trackEvent, trackUserAction } from '@/lib/analytics/mixpanel';
 import { useSession } from 'next-auth/react';
-import { PreferenceCard, PreferenceOption } from '@/components/topic-finder/PreferenceCard';
 import { CreatePreferenceModal } from '@/components/topic-finder/CreatePreferenceModal';
-import { AddOnCard, AddOnOption } from '@/components/topic-finder/AddOnCard';
+import { ChatInputBar } from '@/components/topic-finder/ChatInputBar';
+import { NormalizedSocialContent } from '@/components/topic-finder/SocialCards';
+import { TopicFinderPreChat } from '@/components/topic-finder/TopicFinderPreChat';
+import { TopicFinderChatView } from '@/components/topic-finder/TopicFinderChatView';
+import { AddOnOption } from '@/components/topic-finder/AddOnCard';
+import { PreferenceOption } from '@/components/topic-finder/PreferenceCard';
+import type { AssistantBlock, AssistantMessage, ConversationMessage, UserMessage } from '@/components/topic-finder/conversationTypes';
 
+const DEFAULT_LANGGRAPH_TOPIC = 'social media marketing strategy for AI startups';
+
+interface SubmittedContext {
+    headline: string;
+    persona?: PreferenceOption | null;
+    audience?: PreferenceOption | null;
+    objective?: PreferenceOption | null;
+    addOns: AddOnOption[];
+}
+
+interface LanggraphEvent {
+    event: string;
+    data: unknown;
+}
+
+const createId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return Math.random().toString(36).slice(2);
+};
+
+const isRecord = (value: unknown): value is Record<string, any> => {
+    return typeof value === 'object' && value !== null;
+};
+
+const normalizeTextContent = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => (typeof item === 'string' ? item : JSON.stringify(item, null, 2)))
+            .join('\n\n');
+    }
+    if (isRecord(value)) {
+        return JSON.stringify(value, null, 2);
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    return '';
+};
+
+const normalizeSocialContent = (value: unknown): NormalizedSocialContent[] => {
+    if (!Array.isArray(value)) return [];
+
+    return value
+        .map((item) => {
+            if (!isRecord(item)) return null;
+
+            const title =
+                typeof item.title === 'string'
+                    ? item.title
+                    : isRecord(item.headline) && typeof item.headline.text === 'string'
+                        ? item.headline.text
+                        : undefined;
+
+            const text =
+                typeof item.text === 'string'
+                    ? item.text
+                    : typeof item.content === 'string'
+                        ? item.content
+                        : typeof item.body === 'string'
+                            ? item.body
+                            : '';
+
+            const combinedText =
+                title && text ? `${title}\n\n${text}` : title ? title : text ? text : '';
+
+            if (!combinedText) return null;
+
+            const authorName =
+                typeof item.author === 'string'
+                    ? item.author
+                    : isRecord(item.author) && typeof item.author.name === 'string'
+                        ? item.author.name
+                        : typeof item.username === 'string'
+                            ? item.username
+                            : undefined;
+
+            const handle =
+                typeof item.handle === 'string'
+                    ? item.handle.replace('@', '')
+                    : typeof item.username === 'string'
+                        ? item.username.replace('@', '')
+                        : undefined;
+
+            const avatarUrl =
+                typeof item.profile_image_url === 'string'
+                    ? item.profile_image_url
+                    : typeof item.avatar === 'string'
+                        ? item.avatar
+                        : undefined;
+
+            const link =
+                typeof item.url === 'string'
+                    ? item.url
+                    : typeof item.permalink === 'string'
+                        ? item.permalink
+                        : undefined;
+
+            const mediaUrls = Array.isArray(item.media_urls)
+                ? item.media_urls.filter((media) => typeof media === 'string')
+                : Array.isArray(item.media)
+                    ? item.media.filter((media) => typeof media === 'string')
+                    : undefined;
+
+            const metrics = isRecord(item.metrics)
+                ? {
+                    replies: typeof item.metrics.replies === 'number' ? item.metrics.replies : undefined,
+                    likes: typeof item.metrics.likes === 'number' ? item.metrics.likes : undefined,
+                    reposts: typeof item.metrics.reposts === 'number' ? item.metrics.reposts : undefined,
+                }
+                : undefined;
+
+            const createdAt =
+                typeof item.created_at === 'string'
+                    ? item.created_at
+                    : typeof item.timestamp === 'string'
+                        ? item.timestamp
+                        : undefined;
+
+            return {
+                id: typeof item.id === 'string' ? item.id : createId(),
+                authorName,
+                handle,
+                avatarUrl,
+                createdAt,
+                text: combinedText,
+                link,
+                mediaUrls,
+                metrics,
+            } as NormalizedSocialContent;
+        })
+        .filter((item): item is NormalizedSocialContent => !!item);
+};
+
+const extractContents = (value: unknown): unknown[] => {
+    if (Array.isArray(value)) return value;
+    if (isRecord(value) && Array.isArray(value.contents)) return value.contents;
+    if (isRecord(value) && Array.isArray(value.results)) return value.results;
+    return [];
+};
+
+const extractSocialItems = (value: unknown, platform: 'threads' | 'x'): NormalizedSocialContent[] => {
+    if (!isRecord(value)) {
+        return normalizeSocialContent(extractContents(value));
+    }
+
+    const searchResults = value.search_results;
+    if (isRecord(searchResults)) {
+        const platformKey = platform === 'threads' ? 'threads' : 'x';
+        const platformResults = searchResults[platformKey];
+        if (Array.isArray(platformResults)) {
+            return normalizeSocialContent(platformResults);
+        }
+    }
+
+    if (Array.isArray(value.contents)) {
+        return normalizeSocialContent(value.contents);
+    }
+
+    if (Array.isArray(value.results)) {
+        return normalizeSocialContent(value.results);
+    }
+
+    return normalizeSocialContent(extractContents(value));
+};
+
+const mergeRecordValues = (existing: unknown, incoming: unknown): unknown => {
+    if (existing === undefined || existing === null) return incoming;
+    if (incoming === undefined || incoming === null) return existing;
+
+    if (Array.isArray(existing) && Array.isArray(incoming)) {
+        return [...existing, ...incoming];
+    }
+
+    if (Array.isArray(existing)) {
+        return [...existing, incoming];
+    }
+
+    if (Array.isArray(incoming)) {
+        return [existing, ...incoming];
+    }
+
+    if (isRecord(existing) && isRecord(incoming)) {
+        const merged: Record<string, unknown> = { ...existing };
+        Object.entries(incoming).forEach(([key, value]) => {
+            merged[key] = mergeRecordValues(merged[key], value);
+        });
+        return merged;
+    }
+
+    return incoming;
+};
+
+const aggregateLanggraphPayload = (events: LanggraphEvent[]): Record<string, unknown> | null => {
+    const aggregated: Record<string, unknown> = {};
+    const metadataList: unknown[] = [];
+
+    for (const chunk of events) {
+        if (!chunk || !isRecord(chunk.data)) continue;
+
+        if (chunk.event === 'metadata') {
+            metadataList.push(chunk.data);
+            continue;
+        }
+
+        Object.entries(chunk.data).forEach(([key, value]) => {
+            if (!key) return;
+            aggregated[key] = mergeRecordValues(aggregated[key], value);
+        });
+    }
+
+    if (metadataList.length > 0) {
+        aggregated._metadata = metadataList;
+    }
+
+    return Object.keys(aggregated).length > 0 ? aggregated : null;
+};
+
+const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[] => {
+    const blocks: AssistantBlock[] = [];
+    const handled = new Set<string>();
+
+    let threadsItems: NormalizedSocialContent[] = [];
+    if (result['Threads Search'] !== undefined) {
+        threadsItems = extractSocialItems(result['Threads Search'], 'threads');
+        handled.add('Threads Search');
+    }
+    if (threadsItems.length === 0 && isRecord(result['Summarize'])) {
+        threadsItems = extractSocialItems(result['Summarize'], 'threads');
+    }
+
+    if (threadsItems.length > 0) {
+        blocks.push({
+            id: createId(),
+            type: 'threads',
+            title: 'Threads Search',
+            items: threadsItems,
+        });
+    }
+
+    let xItems: NormalizedSocialContent[] = [];
+    if (result['X Search'] !== undefined) {
+        xItems = extractSocialItems(result['X Search'], 'x');
+        handled.add('X Search');
+    }
+    if (xItems.length === 0 && isRecord(result['Summarize'])) {
+        xItems = extractSocialItems(result['Summarize'], 'x');
+    }
+
+    if (xItems.length > 0) {
+        blocks.push({
+            id: createId(),
+            type: 'x',
+            title: 'X Search',
+            items: xItems,
+        });
+    }
+
+    const keywordPlanner = result['Keyword Planner'];
+    if (isRecord(keywordPlanner)) {
+        const plannerParts: string[] = [];
+        if (typeof keywordPlanner.topic === 'string' && keywordPlanner.topic.trim().length > 0) {
+            plannerParts.push(`Topic: ${keywordPlanner.topic.trim()}`);
+        }
+        if (Array.isArray(keywordPlanner.keywords) && keywordPlanner.keywords.length > 0) {
+            plannerParts.push(`Keywords: ${keywordPlanner.keywords.join(', ')}`);
+        }
+        if (isRecord(keywordPlanner.search_queries)) {
+            const queries: string[] = [];
+            if (typeof keywordPlanner.search_queries.threads === 'string') {
+                queries.push(`Threads: ${keywordPlanner.search_queries.threads}`);
+            }
+            if (typeof keywordPlanner.search_queries.x === 'string') {
+                queries.push(`X: ${keywordPlanner.search_queries.x}`);
+            }
+            if (queries.length > 0) {
+                plannerParts.push(['Search Queries:', ...queries.map((line) => `- ${line}`)].join('\n'));
+            }
+        }
+
+        const plannerContent = plannerParts.join('\n\n');
+        if (plannerContent) {
+            blocks.push({
+                id: createId(),
+                type: 'text',
+                title: 'Keyword Planner',
+                content: plannerContent,
+            });
+        }
+        handled.add('Keyword Planner');
+    }
+
+    const summarizeValue = result['Summarize'];
+    if (isRecord(summarizeValue)) {
+        const summaryParts: string[] = [];
+        if (typeof summarizeValue.summary === 'string' && summarizeValue.summary.trim().length > 0) {
+            summaryParts.push(summarizeValue.summary.trim());
+        }
+        if (Array.isArray(summarizeValue.keywords) && summarizeValue.keywords.length > 0) {
+            summaryParts.push(`Keywords: ${summarizeValue.keywords.join(', ')}`);
+        }
+        if (isRecord(summarizeValue.search_queries)) {
+            const queries: string[] = [];
+            if (typeof summarizeValue.search_queries.threads === 'string') {
+                queries.push(`Threads: ${summarizeValue.search_queries.threads}`);
+            }
+            if (typeof summarizeValue.search_queries.x === 'string') {
+                queries.push(`X: ${summarizeValue.search_queries.x}`);
+            }
+            if (queries.length > 0) {
+                summaryParts.push(['Search Queries:', ...queries.map((line) => `- ${line}`)].join('\n'));
+            }
+        }
+
+        const linkRefs: Array<{ id: string; label: string; url: string }> = [];
+        const seenLinks = new Set<string>();
+        if (Array.isArray(summarizeValue.references) && summarizeValue.references.length > 0) {
+            summarizeValue.references.forEach((ref) => {
+                if (!isRecord(ref)) return;
+                const url = typeof ref.url === 'string' ? ref.url : undefined;
+                if (!url) return;
+                const platform = typeof ref.platform === 'string' ? ref.platform.toLowerCase() : '';
+                const isPostPlatform = ['threads', 'thread', 'x', 'twitter', 'farcaster'].includes(platform);
+                if (isPostPlatform) {
+                    return;
+                }
+
+                const normalizedUrl = url.trim();
+                if (!normalizedUrl || seenLinks.has(normalizedUrl)) return;
+                seenLinks.add(normalizedUrl);
+
+                const label = typeof ref.title === 'string' && ref.title.trim().length > 0
+                    ? ref.title.trim()
+                    : normalizedUrl.replace(/^https?:\/\//, '');
+
+                linkRefs.push({
+                    id: createId(),
+                    label,
+                    url: normalizedUrl,
+                });
+            });
+        }
+
+        const summaryContent = summaryParts.join('\n\n');
+        if (summaryContent || linkRefs.length > 0) {
+            blocks.push({
+                id: createId(),
+                type: 'text',
+                title: 'Summary',
+                content: summaryContent || 'Additional references provided.',
+                links: linkRefs,
+            });
+        }
+        handled.add('Summarize');
+    }
+
+    Object.entries(result).forEach(([key, value]) => {
+        if (handled.has(key) || key.startsWith('_')) return;
+        const text = normalizeTextContent(value);
+        if (!text) return;
+        blocks.push({
+            id: createId(),
+            type: 'text',
+            title: key,
+            content: text,
+        });
+    });
+
+    if (blocks.length === 0) {
+        blocks.push({
+            id: createId(),
+            type: 'text',
+            content: JSON.stringify(result, null, 2),
+        });
+    }
+
+    return blocks;
+};
+
+const mapSubmittedContextToStructured = (context: SubmittedContext | null) => {
+    if (!context) {
+        return {
+            persona: null,
+            audience: null,
+            objective: null,
+            addOns: [] as { id: string; name: string; description: string }[],
+        };
+    }
+
+    return {
+        persona: context.persona
+            ? {
+                id: context.persona.id,
+                name: context.persona.name,
+                description: context.persona.description || '',
+            }
+            : null,
+        audience: context.audience
+            ? {
+                id: context.audience.id,
+                name: context.audience.name,
+                description: context.audience.description || '',
+            }
+            : null,
+        objective: context.objective
+            ? {
+                id: context.objective.id,
+                name: context.objective.name,
+                description: context.objective.description || '',
+            }
+            : null,
+        addOns: context.addOns.map((addOn) => ({
+            id: addOn.id,
+            name: addOn.name,
+            description: addOn.description || '',
+        })),
+    };
+};
+
+const summarizeContextFromSelections = (
+    persona?: PreferenceOption | null,
+    audience?: PreferenceOption | null,
+    objective?: PreferenceOption | null,
+    addOns: AddOnOption[] = [],
+): string => {
+    const segments: string[] = [];
+    if (persona) {
+        segments.push(`Persona: ${persona.name}` + (persona.description ? `\n${persona.description}` : ''));
+    }
+    if (audience) {
+        segments.push(`Audience: ${audience.name}` + (audience.description ? `\n${audience.description}` : ''));
+    }
+    if (objective) {
+        segments.push(`Objective: ${objective.name}` + (objective.description ? `\n${objective.description}` : ''));
+    }
+    if (addOns.length > 0) {
+        const addOnSummary = addOns
+            .map(item => `${item.name}${item.description ? ` - ${item.description}` : ''}`)
+            .join('\n');
+        segments.push(`Add-ons:\n${addOnSummary}`);
+    }
+    return segments.join('\n\n');
+};
+
+const summarizeSubmittedContext = (context: SubmittedContext | null): string => {
+    if (!context) return '';
+    return summarizeContextFromSelections(context.persona, context.audience, context.objective, context.addOns);
+};
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
     const [isLoading, setIsLoading] = useState(false)
     const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
     const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const { setPendingThreadChain, setGenerationStatus, setGenerationPreview, clearGenerationPreview, threadChain, setThreadChain, ensureThreadCount, setThreadContentAt } = useThreadChainStore();
+    const { setPendingThreadChain, setGenerationStatus, clearGenerationPreview, threadChain, setThreadChain, ensureThreadCount, setThreadContentAt } = useThreadChainStore();
     const { openRightSidebar, isRightSidebarOpen } = useMobileSidebar();
     const queryClient = useQueryClient();
 
@@ -58,8 +505,13 @@ export default function TopicFinderPage() {
     const [isPreferenceLoading, setIsPreferenceLoading] = useState(false);
     const [modalState, setModalState] = useState<{ type: 'persona' | 'audience' | 'objective' | 'addOn' | null; open: boolean }>({ type: null, open: false });
     const [modalSaving, setModalSaving] = useState(false);
-    const { postType, language } = useContentGenerationStore();
+    const { postType, language, setPostType, setLanguage } = useContentGenerationStore();
     const { setOriginalAiContent } = useAiContentStore();
+    const [submittedContext, setSubmittedContext] = useState<SubmittedContext | null>(null);
+    const [chatInput, setChatInput] = useState('');
+    const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+    const [isSubmittingMessage, setIsSubmittingMessage] = useState(false);
+    const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
     // Memoize Supabase client to prevent creating new instances
     const supabase = useMemo(() => createClient(), []);
@@ -68,6 +520,38 @@ export default function TopicFinderPage() {
     const selectedAudience = useMemo(() => audiences.find(item => item.id === selectedAudienceId) || null, [audiences, selectedAudienceId]);
     const selectedObjective = useMemo(() => objectives.find(item => item.id === selectedObjectiveId) || null, [objectives, selectedObjectiveId]);
     const selectedAddOnsList = useMemo(() => addOns.filter(item => selectedAddOnIds.includes(item.id)), [addOns, selectedAddOnIds]);
+    const contextSummary = useMemo(
+        () => summarizeContextFromSelections(selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList),
+        [selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList]
+    );
+    const contextBadges = useMemo(() => {
+        if (!submittedContext) return [];
+        const badges: { label: string; value: string }[] = [];
+        if (submittedContext.persona) {
+            badges.push({ label: 'Persona', value: submittedContext.persona.name });
+        }
+        if (submittedContext.audience) {
+            badges.push({ label: 'Audience', value: submittedContext.audience.name });
+        }
+        if (submittedContext.objective) {
+            badges.push({ label: 'Objective', value: submittedContext.objective.name });
+        }
+        if (submittedContext.addOns.length > 0) {
+            submittedContext.addOns.forEach((addOn) => {
+                badges.push({ label: 'Add-on', value: addOn.name });
+            });
+        }
+        return badges;
+    }, [submittedContext]);
+    const displayedHeadline = submittedContext?.headline ?? '';
+    const isChatActive = submittedContext !== null;
+    const isPreChatReady = Boolean(
+        selectedPersona &&
+        selectedAudience &&
+        selectedObjective &&
+        selectedHeadline.trim().length > 0 &&
+        contextSummary.trim().length > 0
+    );
 
     const ensurePreference = useCallback(async () => {
         if (!userId) return null;
@@ -160,26 +644,6 @@ export default function TopicFinderPage() {
             console.error('Failed to load preference options', error);
         }
     }, [supabase, userId]);
-
-    const contextSummary = useMemo(() => {
-        const segments: string[] = [];
-        if (selectedPersona) {
-            segments.push(`Persona: ${selectedPersona.name}` + (selectedPersona.description ? `\n${selectedPersona.description}` : ''));
-        }
-        if (selectedAudience) {
-            segments.push(`Audience: ${selectedAudience.name}` + (selectedAudience.description ? `\n${selectedAudience.description}` : ''));
-        }
-        if (selectedObjective) {
-            segments.push(`Objective: ${selectedObjective.name}` + (selectedObjective.description ? `\n${selectedObjective.description}` : ''));
-        }
-        if (selectedAddOnsList.length > 0) {
-            const addOnSummary = selectedAddOnsList
-                .map(item => `${item.name}${item.description ? ` - ${item.description}` : ''}`)
-                .join('\n');
-            segments.push(`Add-ons:\n${addOnSummary}`);
-        }
-        return segments.join('\n\n');
-    }, [selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList]);
 
     const modalConfig = useMemo(() => {
         switch (modalState.type) {
@@ -443,6 +907,13 @@ export default function TopicFinderPage() {
         loadPreferenceSelections();
     }, [userId, loadPreferenceSelections]);
 
+    useEffect(() => {
+        if (!isChatActive) return;
+        const container = chatContainerRef.current;
+        if (!container) return;
+        container.scrollTop = container.scrollHeight;
+    }, [conversation, isChatActive]);
+
     // 토픽 변경 핸들러
     const handleTopicChange = (idx: number, newVal: string) => {
         updateTopicResult(idx, newVal);
@@ -488,217 +959,23 @@ export default function TopicFinderPage() {
         const headline = selectedHeadline;
         setTopicLoading(headline, true);
         setIsGeneratingDetails(true);
-        // 사이드바 열기 및 초기화
-        if (!isRightSidebarOpen) openRightSidebar();
-        setGenerationStatus('thinking how to write...');
-        clearGenerationPreview();
-        // 첫 번째 스레드가 없다면 초기화
-        if (threadChain.length === 0) {
-            setThreadChain([{ content: '', media_urls: [], media_type: 'TEXT' }]);
-        }
         try {
-            const res = await fetch('/api/generate-detail', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    accountInfo: contextInfo,
-                    topic: headline,
-                    instruction: givenInstruction,
-                    postType,
-                    language,
-                    context: structuredContext
-                })
+            const threads = await executeGenerationRequest({
+                topic: headline,
+                accountInfo: contextInfo,
+                instruction: givenInstruction,
+                context: structuredContext,
             });
-            if (!res.ok) throw new Error('API error');
 
-            const isUIStream = res.headers.get('x-vercel-ai-ui-message-stream') === 'v1';
-            const contentType = res.headers.get('content-type') || '';
+            setTopicDetail(headline, threads.join('\n\n'));
+            toast.success(t('threadsGenerated', { count: threads.length }));
 
-            // 스트림 소비 (권장 경로)
-            if (isUIStream || contentType.includes('text/event-stream')) {
-                const reader = res.body?.getReader();
-                if (!reader) throw new Error('No readable stream');
-                const decoder = new TextDecoder();
-                let buffer = '';
-                let finalThreads: string[] | null = null;
-                // single-post 누적 버퍼
-                let singleBuffer = '';
-                // thread(JSON array) 인크리멘탈 파서 상태
-                let arrayStarted = false;
-                let insideString = false;
-                let escapeNext = false;
-                let builtItems: string[] = [];
-                let currentItem = '';
-
-                // 진행상황을 토스트로 안내
-                setGenerationStatus('thinking how to write...');
-
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-
-                    // 이벤트 경계 처리: \n\n 로 분리
-                    const events = buffer.split('\n\n');
-                    buffer = events.pop() || '';
-
-                    for (const evt of events) {
-                        const lines = evt.split('\n');
-                        for (const line of lines) {
-                            if (!line.startsWith('data: ')) continue;
-                            const jsonStr = line.slice(6).trim();
-                            if (jsonStr === '' || jsonStr === '[DONE]') continue;
-                            let dataPart: any;
-                            try { dataPart = JSON.parse(jsonStr); } catch { continue; }
-
-                            // 데이터 파트 처리
-                            if (dataPart.type === 'data-status') {
-                                const msg = dataPart.data?.message || '';
-                                if (typeof msg === 'string' && msg) {
-                                    // 상태 메시지를 헤더 자리에 반영
-                                    const lower = msg.toLowerCase();
-                                    if (lower.includes('preparing')) setGenerationStatus('thinking how to write...');
-                                    else if (lower.includes('generating')) setGenerationStatus(t('writingDraft'));
-                                    else if (lower.includes('completed')) setGenerationStatus('finalizing...');
-                                    else setGenerationStatus(msg);
-                                }
-                            }
-                            if (dataPart.type === 'data-threads') {
-                                const threads = (dataPart.data?.threads || []) as string[];
-                                if (Array.isArray(threads) && threads.length > 0) {
-                                    finalThreads = threads;
-                                }
-                            }
-                            // 텍스트 델타 처리: postType 별 분기
-                            if (dataPart.type === 'text-delta' && typeof dataPart.delta === 'string') {
-                                const delta: string = dataPart.delta;
-                                if (postType === 'single') {
-                                    // 단일 포스트: 토큰 그대로 1개 카드에만 스트리밍
-                                    singleBuffer += delta;
-                                    const normalized = singleBuffer.replace(/\\n/g, '\n');
-                                    ensureThreadCount(1);
-                                    setThreadContentAt(0, normalized);
-                                } else {
-                                    // 스레드 체인: JSON 배열을 인크리멘탈 파싱하여 즉시 카드 분할
-                                    for (let i = 0; i < delta.length; i++) {
-                                        const ch = delta[i];
-                                        if (!arrayStarted) {
-                                            if (ch === '[') arrayStarted = true;
-                                            continue; // '[' 이전 토큰 무시
-                                        }
-                                        if (!insideString) {
-                                            if (ch === '"') {
-                                                insideString = true;
-                                                escapeNext = false;
-                                                currentItem = '';
-                                                // 새 카드 시작 보장
-                                                ensureThreadCount(builtItems.length + 1);
-                                            } else if (ch === ']') {
-                                                // 배열 종료
-                                                arrayStarted = false;
-                                            } else {
-                                                // 콤마/공백 등 무시
-                                            }
-                                        } else {
-                                            // inside string
-                                            if (escapeNext) {
-                                                // Handle common JSON escapes so UI shows real newlines instead of 'n'
-                                                if (ch === 'n') currentItem += '\n';
-                                                else if (ch === 'r') currentItem += '\r';
-                                                else if (ch === 't') currentItem += '\t';
-                                                else if (ch === '"') currentItem += '"';
-                                                else if (ch === '\\') currentItem += '\\';
-                                                else if (ch === '/') currentItem += '/';
-                                                else currentItem += ch; // fallback
-                                                escapeNext = false;
-                                            } else if (ch === '\\') {
-                                                escapeNext = true;
-                                            } else if (ch === '"') {
-                                                // 문자열 종료 → 아이템 확정
-                                                builtItems.push(currentItem);
-                                                // 확정된 아이템을 해당 카드에 반영
-                                                const normalized = currentItem;
-                                                ensureThreadCount(builtItems.length);
-                                                setThreadContentAt(builtItems.length - 1, normalized);
-                                                insideString = false;
-                                                currentItem = '';
-                                            } else {
-                                                currentItem += ch;
-                                                // 진행 중 아이템 내용을 현재 카드에 스트리밍 반영
-                                                const normalized = currentItem;
-                                                ensureThreadCount(builtItems.length + 1);
-                                                setThreadContentAt(builtItems.length, normalized);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            // 스트림 종료 시점 처리 (백업 경로 최소화)
-                            if (dataPart.type === 'finish' && !finalThreads) {
-                                if (postType === 'single') {
-                                    finalThreads = [singleBuffer.replace(/\\n/g, '\n').trim()];
-                                } else {
-                                    // 남아있는 진행 중 아이템 마무리
-                                    if (insideString && currentItem.trim().length > 0) {
-                                        builtItems.push(currentItem);
-                                        const normalized = currentItem.replace(/\\n/g, '\n');
-                                        ensureThreadCount(builtItems.length);
-                                        setThreadContentAt(builtItems.length - 1, normalized);
-                                    }
-                                    finalThreads = builtItems.length > 0 ? builtItems.map(s => s.replace(/\\n/g, '\n')) : null;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 최종 결과 적용
-                if (finalThreads && finalThreads.length > 0) {
-                    const threadChain: ThreadContent[] = finalThreads.map((content: string) => ({
-                        content,
-                        media_urls: [],
-                        media_type: 'TEXT' as const
-                    }));
-                    setPendingThreadChain(threadChain);
-                    setOriginalAiContent(threadChain); // Store original AI content
-                    setTopicDetail(headline, finalThreads.join('\n\n'));
-                    setGenerationStatus(null);
-                    clearGenerationPreview();
-                    toast.success(t('threadsGenerated', { count: threadChain.length }));
-
-                    // Track AI content generation
-                    trackUserAction.aiContentGenerated({
-                        topic: headline,
-                        postType: postType as 'single' | 'thread',
-                        language,
-                        threadCount: threadChain.length
-                    });
-                } else {
-                    throw new Error('No threads received');
-                }
-            } else {
-                // 하위 호환: JSON 경로
-                const data = await res.json();
-                const threadChain: ThreadContent[] = data.threads.map((content: string) => ({
-                    content,
-                    media_urls: [],
-                    media_type: 'TEXT' as const
-                }));
-                setPendingThreadChain(threadChain);
-                setOriginalAiContent(threadChain); // Store original AI content
-                setTopicDetail(headline, data.threads.join('\n\n'));
-                setGenerationStatus(null);
-                clearGenerationPreview();
-                toast.success(t('threadsGenerated', { count: threadChain.length }));
-
-                // Track AI content generation
-                trackUserAction.aiContentGenerated({
-                    topic: headline,
-                    postType: postType as 'single' | 'thread',
-                    language,
-                    threadCount: threadChain.length
-                });
-            }
+            trackUserAction.aiContentGenerated({
+                topic: headline,
+                postType: postType as 'single' | 'thread',
+                language,
+                threadCount: threads.length,
+            });
         } catch (e) {
             toast.error(t('failedToGenerateChain'));
             setTopicLoading(headline, false);
@@ -885,155 +1162,578 @@ export default function TopicFinderPage() {
         }
     };
 
+    const executeGenerationRequest = useCallback(
+        async ({
+            topic,
+            accountInfo,
+            instruction,
+            context,
+            statusLabel = 'thinking how to write...',
+        }: {
+            topic: string;
+            accountInfo: string;
+            instruction?: string;
+            context: ReturnType<typeof mapSubmittedContextToStructured>;
+            statusLabel?: string;
+        }): Promise<string[]> => {
+            if (!topic) {
+                throw new Error('Missing topic for generation');
+            }
+
+            if (!isRightSidebarOpen) {
+                openRightSidebar();
+            }
+
+            setGenerationStatus(statusLabel);
+            clearGenerationPreview();
+
+            if (threadChain.length === 0) {
+                setThreadChain([{ content: '', media_urls: [], media_type: 'TEXT' }]);
+            }
+
+            const response = await fetch('/api/generate-detail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accountInfo,
+                    topic,
+                    instruction,
+                    postType,
+                    language,
+                    context,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('API error');
+            }
+
+            const finalizeThreads = (finalThreads: string[]): string[] => {
+                if (!finalThreads || finalThreads.length === 0) {
+                    throw new Error('No threads received');
+                }
+
+                const normalizedThreads: ThreadContent[] = finalThreads.map((content: string) => ({
+                    content,
+                    media_urls: [],
+                    media_type: 'TEXT' as const,
+                }));
+
+                setPendingThreadChain(normalizedThreads);
+                setOriginalAiContent(normalizedThreads);
+                setGenerationStatus(null);
+                clearGenerationPreview();
+
+                return finalThreads;
+            };
+
+            const isUIStream = response.headers.get('x-vercel-ai-ui-message-stream') === 'v1';
+            const contentType = response.headers.get('content-type') || '';
+
+            if (isUIStream || contentType.includes('text/event-stream')) {
+                const reader = response.body?.getReader();
+                if (!reader) {
+                    throw new Error('No readable stream');
+                }
+
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let finalThreads: string[] | null = null;
+                let singleBuffer = '';
+                let arrayStarted = false;
+                let insideString = false;
+                let escapeNext = false;
+                let builtItems: string[] = [];
+                let currentItem = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    const events = buffer.split('\n\n');
+                    buffer = events.pop() || '';
+
+                    for (const evt of events) {
+                        const lines = evt.split('\n');
+                        for (const line of lines) {
+                            if (!line.startsWith('data: ')) continue;
+                            const jsonStr = line.slice(6).trim();
+                            if (jsonStr === '' || jsonStr === '[DONE]') continue;
+
+                            let dataPart: any;
+                            try {
+                                dataPart = JSON.parse(jsonStr);
+                            } catch {
+                                continue;
+                            }
+
+                            if (dataPart.type === 'data-status') {
+                                const msg = dataPart.data?.message || '';
+                                if (typeof msg === 'string' && msg) {
+                                    const lower = msg.toLowerCase();
+                                    if (lower.includes('preparing')) setGenerationStatus(statusLabel);
+                                    else if (lower.includes('generating')) setGenerationStatus(t('writingDraft'));
+                                    else if (lower.includes('completed')) setGenerationStatus('finalizing...');
+                                    else setGenerationStatus(msg);
+                                }
+                            }
+
+                            if (dataPart.type === 'data-threads') {
+                                const threads = (dataPart.data?.threads || []) as string[];
+                                if (Array.isArray(threads) && threads.length > 0) {
+                                    finalThreads = threads;
+                                }
+                            }
+
+                            if (dataPart.type === 'text-delta' && typeof dataPart.delta === 'string') {
+                                const delta: string = dataPart.delta;
+                                if (postType === 'single') {
+                                    singleBuffer += delta;
+                                    const normalized = singleBuffer.replace(/\\n/g, '\n');
+                                    ensureThreadCount(1);
+                                    setThreadContentAt(0, normalized);
+                                } else {
+                                    for (let i = 0; i < delta.length; i++) {
+                                        const ch = delta[i];
+                                        if (!arrayStarted) {
+                                            if (ch === '[') arrayStarted = true;
+                                            continue;
+                                        }
+                                        if (!insideString) {
+                                            if (ch === '"') {
+                                                insideString = true;
+                                                escapeNext = false;
+                                                currentItem = '';
+                                                ensureThreadCount(builtItems.length + 1);
+                                            } else if (ch === ']') {
+                                                arrayStarted = false;
+                                            }
+                                        } else {
+                                            if (escapeNext) {
+                                                if (ch === 'n') currentItem += '\n';
+                                                else if (ch === 'r') currentItem += '\r';
+                                                else if (ch === 't') currentItem += '\t';
+                                                else if (ch === '"') currentItem += '"';
+                                                else if (ch === '\\') currentItem += '\\';
+                                                else if (ch === '/') currentItem += '/';
+                                                else currentItem += ch;
+                                                escapeNext = false;
+                                            } else if (ch === '\\') {
+                                                escapeNext = true;
+                                            } else if (ch === '"') {
+                                                builtItems.push(currentItem);
+                                                const normalized = currentItem;
+                                                ensureThreadCount(builtItems.length);
+                                                setThreadContentAt(builtItems.length - 1, normalized);
+                                                insideString = false;
+                                                currentItem = '';
+                                            } else {
+                                                currentItem += ch;
+                                                const normalized = currentItem;
+                                                ensureThreadCount(builtItems.length + 1);
+                                                setThreadContentAt(builtItems.length, normalized);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (dataPart.type === 'finish' && !finalThreads) {
+                                if (postType === 'single') {
+                                    finalThreads = [singleBuffer.replace(/\\n/g, '\n').trim()];
+                                } else {
+                                    if (insideString && currentItem.trim().length > 0) {
+                                        builtItems.push(currentItem);
+                                        const normalized = currentItem.replace(/\\n/g, '\n');
+                                        ensureThreadCount(builtItems.length);
+                                        setThreadContentAt(builtItems.length - 1, normalized);
+                                    }
+                                    finalThreads = builtItems.length > 0 ? builtItems.map((s) => s.replace(/\\n/g, '\n')) : null;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (finalThreads && finalThreads.length > 0) {
+                    return finalizeThreads(finalThreads);
+                }
+
+                throw new Error('No threads received');
+            }
+
+            const data = await response.json();
+            if (!Array.isArray(data?.threads)) {
+                throw new Error('No threads received');
+            }
+
+            return finalizeThreads(data.threads);
+        },
+        [
+            clearGenerationPreview,
+            ensureThreadCount,
+            isRightSidebarOpen,
+            language,
+            openRightSidebar,
+            postType,
+            setGenerationStatus,
+            setOriginalAiContent,
+            setPendingThreadChain,
+            setThreadChain,
+            setThreadContentAt,
+            t,
+            threadChain.length,
+        ]
+    );
+
+    const submitChatMessage = useCallback(async (messageOverride?: string) => {
+        const rawMessage = (typeof messageOverride === 'string' ? messageOverride : chatInput) ?? '';
+        const trimmed = rawMessage.trim();
+        if (trimmed.length === 0) return;
+
+        if (!submittedContext) {
+            if (!selectedHeadline.trim()) {
+                toast.error('Provide a headline before starting the conversation.');
+                return;
+            }
+            if (!selectedPersona || !selectedAudience || !selectedObjective) {
+                toast.error('Select persona, audience, and objective first.');
+                return;
+            }
+            if (!contextSummary.trim()) {
+                toast.error('Please provide context before chatting.');
+                return;
+            }
+        }
+
+        let lockedContext = submittedContext;
+        if (!lockedContext) {
+            lockedContext = {
+                headline: selectedHeadline,
+                persona: selectedPersona,
+                audience: selectedAudience,
+                objective: selectedObjective,
+                addOns: selectedAddOnsList,
+            };
+            setSubmittedContext(lockedContext);
+        }
+
+        const userMessage: UserMessage = {
+            id: createId(),
+            role: 'user',
+            createdAt: Date.now(),
+            content: trimmed,
+        };
+
+        const assistantId = createId();
+        const placeholderAssistant: AssistantMessage = {
+            id: assistantId,
+            role: 'assistant',
+            createdAt: Date.now(),
+            status: 'loading',
+            blocks: [],
+        };
+
+        const historyPayload = [...conversation, userMessage].map((entry) => {
+            if (entry.role === 'user') {
+                return { role: 'user', content: entry.content };
+            }
+            const textFragments = entry.blocks.map((block) => {
+                if (block.type === 'text') return block.content;
+                return `${block.title} (${block.type})`;
+            });
+            return { role: 'assistant', content: textFragments.join('\n\n') };
+        });
+
+        setConversation((prev) => [...prev, userMessage, placeholderAssistant]);
+        if (typeof messageOverride !== 'string') {
+            setChatInput('');
+        }
+        setIsSubmittingMessage(true);
+        setIsLoading(true);
+
+        trackEvent('topic_finder_langgraph_submit', {
+            persona: lockedContext?.persona?.id,
+            audience: lockedContext?.audience?.id,
+            objective: lockedContext?.objective?.id,
+        });
+
+        try {
+            const structuredForRequest = mapSubmittedContextToStructured(lockedContext);
+            const summaryForRequest = summarizeSubmittedContext(lockedContext) || contextSummary;
+            const dynamicContext = [
+                summaryForRequest,
+                trimmed ? `Latest user message:\n${trimmed}` : '',
+            ]
+                .filter(Boolean)
+                .join('\n\n');
+            const resolvedTopic = trimmed || lockedContext.headline || DEFAULT_LANGGRAPH_TOPIC;
+            const response = await fetch('/api/langgraph/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    topic: resolvedTopic,
+                    prompt: trimmed,
+                    input: {
+                        topic: resolvedTopic,
+                        prompt: trimmed,
+                        message: trimmed,
+                        context: dynamicContext,
+                        persona: structuredForRequest.persona,
+                        audience: structuredForRequest.audience,
+                        objective: structuredForRequest.objective,
+                        addOns: structuredForRequest.addOns,
+                        language,
+                        history: historyPayload,
+                    },
+                }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const message =
+                    typeof payload?.error === 'string' && payload.error.trim().length > 0
+                        ? payload.error
+                        : 'Failed to run LangGraph workflow.';
+                throw new Error(message);
+            }
+
+            const events: LanggraphEvent[] = Array.isArray(payload?.events) ? payload.events : [];
+            const aggregated = aggregateLanggraphPayload(events);
+            const blocks = aggregated
+                ? buildAssistantBlocks(aggregated)
+                : [
+                    {
+                        id: createId(),
+                        type: 'text' as const,
+                        content:
+                            events.length > 0
+                                ? events
+                                    .map((event) => `${event.event.toUpperCase()}\n${JSON.stringify(event.data, null, 2)}`)
+                                    .join('\n\n')
+                                : 'No structured result returned.',
+                    },
+                ];
+
+            setConversation((prev) =>
+                prev.map((entry) =>
+                    entry.id === assistantId
+                        ? {
+                            ...entry,
+                            status: 'complete',
+                            blocks,
+                            raw: aggregated ?? events,
+                        }
+                        : entry
+                )
+            );
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to run LangGraph workflow.';
+            setConversation((prev) =>
+                prev.map((entry) =>
+                    entry.id === assistantId
+                        ? {
+                            ...entry,
+                            status: 'error',
+                            error: message,
+                            blocks: [
+                                {
+                                    id: createId(),
+                                    type: 'text',
+                                    content: message,
+                                },
+                            ],
+                        }
+                        : entry
+                )
+            );
+            toast.error(message);
+        } finally {
+            setIsSubmittingMessage(false);
+            setIsLoading(false);
+        }
+    }, [
+        chatInput,
+        submittedContext,
+        selectedHeadline,
+        selectedPersona,
+        selectedAudience,
+        selectedObjective,
+        selectedAddOnsList,
+        conversation,
+        contextSummary,
+        language,
+    ]);
+
+    const handleInitialSend = useCallback(async () => {
+        if (!isPreChatReady) {
+            toast.error('Select persona, audience, objective, and provide a headline before starting.');
+            return;
+        }
+
+        const initialMessage = selectedHeadline.trim();
+        if (!initialMessage) {
+            toast.error('Provide a headline before starting the conversation.');
+            return;
+        }
+
+        await submitChatMessage(initialMessage);
+    }, [isPreChatReady, selectedHeadline, submitChatMessage]);
+
+    const handleRepurposeContent = useCallback(
+        async (item: NormalizedSocialContent, platform: 'threads' | 'x') => {
+            const text = item.text?.trim();
+            if (!text) {
+                toast.error('Unable to repurpose empty content.');
+                return;
+            }
+            if (!selectedPersona || !selectedAudience || !selectedObjective) {
+                toast.error('Select persona, audience, and objective first.');
+                return;
+            }
+            const contextInfo = contextSummary.trim();
+            if (!contextInfo) {
+                toast.error('Please provide context before repurposing.');
+                return;
+            }
+
+            try {
+                const repurposeInstruction = [
+                    'Repurpose the provided source content into a fresh and original piece aligned with the current persona, audience, objective, and add-ons.',
+                    'Preserve the key idea while introducing a novel hook or perspective that fits the configured settings.',
+                    `Source (${platform.toUpperCase()}):`,
+                    text,
+                ]
+                    .filter(Boolean)
+                    .join('\n\n');
+
+                const repurposedTopic =
+                    selectedHeadline?.trim() && selectedHeadline.trim().length > 0
+                        ? `${selectedHeadline.trim()} (repurposed)`
+                        : `Repurposed ${platform.toUpperCase()} insight`;
+
+                const threads = await executeGenerationRequest({
+                    topic: repurposedTopic,
+                    accountInfo: contextInfo,
+                    instruction: repurposeInstruction,
+                    context: structuredContext,
+                    statusLabel: `Repurposing from ${platform.toUpperCase()}...`,
+                });
+
+                toast.success(t('threadsGenerated', { count: threads.length }));
+
+                trackEvent('topic_finder_repurpose', {
+                    platform,
+                    sourceId: item.id,
+                    threadCount: threads.length,
+                    postType,
+                });
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Failed to repurpose content';
+                toast.error(message);
+                setGenerationStatus(null);
+                clearGenerationPreview();
+            }
+        },
+        [
+            contextSummary,
+            executeGenerationRequest,
+            postType,
+            selectedAudience,
+            selectedHeadline,
+            selectedObjective,
+            selectedPersona,
+            structuredContext,
+            clearGenerationPreview,
+            setGenerationStatus,
+            t,
+            trackUserAction,
+        ]
+    );
+
     useEffect(() => {
         // 필요시 topicResults 변경 추적
     }, [topicResults]);
 
     return (
-        <div className="p-4 md:p-6 h-screen">
-            <div className="flex flex-col items-center justify-center h-full">
-                <div className="w-full mx-auto pt-32 pb-48 flex flex-col items-center overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                    {/* 중앙 정렬 인사말 */}
-                    <div className="font-headline px-6 mb-6 md:px-4 text-center">
-                        <div className="flex flex-row items-center justify-center gap-2 mb-1">
-                            {/* 프로필 이미지 - 동적으로 가져오기 */}
-                            {mounted && (
-                                <ThreadsProfilePicture
-                                    socialId={currentSocialId}
-                                    alt="Profile picture"
-                                    className="w-8 h-8 rounded-full"
-                                />
-                            )}
-                            <h2 className="text-xl md:text-2xl font-medium text-center">
-                                {t('greeting', { username: mounted ? (currentUsername || t('defaultUser')) : t('defaultUser') })}
-                            </h2>
-                        </div>
-                        <h2 className="text-xl md:text-2xl font-medium text-center md:text-left whitespace-normal break-keep">{t('question')}</h2>
-                    </div>
-                    {/* Headline 입력 및 태그 */}
-                    <div className="w-full max-w-3xl space-y-3">
-                        <div className="grid w-full grid-cols-4 gap-2 md:grid-cols-2 xl:grid-cols-4">
-                            <PreferenceCard
-                                title="Persona"
-                                options={personas}
-                                selectedId={selectedPersonaId}
-                                onSelect={handlePersonaSelect}
-                                onCreateNew={() => openCreateModal('persona')}
-                                placeholder="Select persona"
-                                disabled={!userId}
-                                loading={isPreferenceLoading && personas.length === 0}
-                            />
-                            <PreferenceCard
-                                title="Audience"
-                                options={audiences}
-                                selectedId={selectedAudienceId}
-                                onSelect={handleAudienceSelect}
-                                onCreateNew={() => openCreateModal('audience')}
-                                placeholder="Select audience"
-                                disabled={!userId}
-                                loading={isPreferenceLoading && audiences.length === 0}
-                            />
-                            <PreferenceCard
-                                title="Objective"
-                                options={objectives}
-                                selectedId={selectedObjectiveId}
-                                onSelect={handleObjectiveSelect}
-                                onCreateNew={() => openCreateModal('objective')}
-                                placeholder="Select objective"
-                                disabled={!userId}
-                                loading={isPreferenceLoading && objectives.length === 0}
-                            />
-                            <AddOnCard
-                                options={addOns}
-                                selectedIds={selectedAddOnIds}
-                                onToggle={handleToggleAddOn}
-                                onCreateNew={() => openCreateModal('addOn')}
-                                disabled={!userId}
-                                loading={isPreferenceLoading && addOns.length === 0}
-                            />
-                        </div>
-                        <HeadlineInput value={selectedHeadline} onChange={setSelectedHeadline} />
-                    </div>
-
-                    {/* Headline Buttons */}
-                    <div className="w-full max-w-3xl flex-1">
-                        <HeadlineButtons
-                            onCreateDetails={handleGenerateDetail}
-                            onGenerateTopics={generateTopics}
-                            IsIdeasLoading={isGeneratingTopics}
-                            IsCreateDetailsLoading={isGeneratingDetails}
-                            hasHeadline={!!selectedHeadline}
+        <div className="flex h-screen flex-col bg-gradient-to-b from-background via-background to-muted/40">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto">
+                <div className="mx-auto flex w-full items-center max-w-6xl flex-col gap-12 px-4 pb-32 pt-24 md:pt-28">
+                    {!isChatActive ? (
+                        <TopicFinderPreChat
+                            mounted={mounted}
+                            currentSocialId={currentSocialId}
+                            currentUsername={currentUsername}
+                            t={t}
+                            personas={personas}
+                            audiences={audiences}
+                            objectives={objectives}
+                            addOns={addOns}
+                            selectedPersonaId={selectedPersonaId}
+                            selectedAudienceId={selectedAudienceId}
+                            selectedObjectiveId={selectedObjectiveId}
+                            selectedAddOnIds={selectedAddOnIds}
+                            isPreferenceLoading={isPreferenceLoading}
+                            userId={userId}
+                            onPersonaSelect={handlePersonaSelect}
+                            onAudienceSelect={handleAudienceSelect}
+                            onObjectiveSelect={handleObjectiveSelect}
+                            onAddOnToggle={handleToggleAddOn}
+                            onOpenCreateModal={openCreateModal}
+                            headline={selectedHeadline}
+                            onHeadlineChange={setSelectedHeadline}
+                            postType={postType}
+                            onPostTypeChange={setPostType}
+                            language={language}
+                            onLanguageChange={setLanguage}
+                            onInitialSend={handleInitialSend}
+                            isPreChatReady={isPreChatReady}
+                            isSubmittingMessage={isSubmittingMessage}
+                            topicResults={topicResults}
+                            onTopicChange={handleTopicChange}
+                            onInstructionChange={handleInstructionChange}
+                            isGeneratingTopics={isGeneratingTopics}
+                            selectedHeadline={selectedHeadline}
+                            onSelectHeadline={setSelectedHeadline}
+                            onRemoveTopics={removeTopicResult}
                         />
-                    </div>
-
-                    {/* Topics Section */}
-                    <div className="w-full max-w-3xl mt-6 flex-1">
-                        <div className="space-y-4">
-                            {/* 토픽 결과 */}
-                            <div className="flex flex-col gap-4 mb-6">
-                                {topicResults.length > 0 && topicResults.map((t, i) => (
-                                    <div key={i} className="relative">
-                                        <HeadlineInput
-                                            value={t.topic || ''}
-                                            onChange={v => handleTopicChange(i, v)}
-                                            inline
-                                            ellipsis
-                                            isSelected={selectedHeadline === t.topic}
-                                            onClick={() => setSelectedHeadline(t.topic)}
-                                            onInstructionChange={handleInstructionChange}
-                                        />
-                                    </div>
-                                ))}
-                                {isGeneratingTopics && (
-                                    <div className="flex flex-col gap-4 max-w-3xl">
-                                        <div className="w-3/4 h-[48px] rounded-[20px] bg-gray-300 animate-pulse" />
-                                        <div className="w-1/2 h-[48px] rounded-[20px] bg-gray-300 animate-pulse" />
-                                    </div>
-                                )}
-                                {topicResults.length > 0 && (
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                className='text-muted-foreground'
-                                            >
-                                                {t('deleteAllTopicsButton')}
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>{t('deleteAllTopics')}</DialogTitle>
-                                                <DialogDescription>
-                                                    {t('deleteAllTopicsDescription')}
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <DialogFooter className='gap-2'>
-                                                <DialogClose className='text-muted-foreground mb-[-8px]'>{t('cancel')}</DialogClose>
-                                                <Button variant="destructive" onClick={() => removeTopicResult()}>{t('delete')}</Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
-                            </div>
-
-                        </div>
-                    </div>
-                    <CreatePreferenceModal
-                        open={modalState.open}
-                        title={modalConfig.title}
-                        onOpenChange={open => {
-                            if (!open) {
-                                closeCreateModal();
-                            }
-                        }}
-                        onSave={handleCreatePreferenceItem}
-                        loading={modalSaving}
-                        includePublicToggle={modalConfig.includePublicToggle}
-                        namePlaceholder={modalConfig.namePlaceholder}
-                        descriptionPlaceholder={modalConfig.descriptionPlaceholder}
-                    />
+                    ) : (
+                        <TopicFinderChatView
+                            conversation={conversation}
+                            contextBadges={contextBadges}
+                            displayedHeadline={displayedHeadline}
+                            isChatActive={isChatActive}
+                            hasSubmittedContext={submittedContext !== null}
+                            onRepurposeContent={handleRepurposeContent}
+                        />
+                    )}
                 </div>
             </div>
+            {isChatActive && (
+                <ChatInputBar
+                    value={chatInput}
+                    onChange={(value) => setChatInput(value)}
+                    onSubmit={() => {
+                        void submitChatMessage();
+                    }}
+                    disabled={isSubmittingMessage}
+                    placeholder="Ask anything…"
+                />
+            )}
+            <CreatePreferenceModal
+                open={modalState.open}
+                title={modalConfig.title}
+                onOpenChange={open => {
+                    if (!open) {
+                        closeCreateModal();
+                    }
+                }}
+                onSave={handleCreatePreferenceItem}
+                loading={modalSaving}
+                includePublicToggle={modalConfig.includePublicToggle}
+                namePlaceholder={modalConfig.namePlaceholder}
+                descriptionPlaceholder={modalConfig.descriptionPlaceholder}
+            />
         </div>
     );
 }

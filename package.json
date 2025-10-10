@@ -23,6 +23,7 @@
     "@fullcalendar/interaction": "^6.1.17",
     "@fullcalendar/react": "^6.1.17",
     "@fullcalendar/timegrid": "^6.1.17",
+    "@langchain/langgraph-sdk": "^0.1.9",
     "@noble/ed25519": "3.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-avatar": "^1.1.3",
