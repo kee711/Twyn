@@ -50,6 +50,9 @@ class ResearchState(TypedDict, total=False):
     summary: str
     references: List[Dict[str, str]]
     errors: Annotated[List[str], _append_items]
+    profileInsights: Dict[str, Any]
+    audienceInsights: Dict[str, Any]
+    recommendedTopics: List[Dict[str, Any]]
 
 
 def _normalize_topic(state: ResearchState) -> str:

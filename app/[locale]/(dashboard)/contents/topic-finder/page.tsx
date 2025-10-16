@@ -5,7 +5,7 @@ import { startTransition, useEffect, useState, useMemo, useCallback, useRef } fr
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import useThreadChainStore from '@/stores/useThreadChainStore';
 import { ThreadContent } from '@/components/contents-helper/types';
 import { useTopicResultsStore } from '@/stores/useTopicResultsStore';
@@ -20,12 +20,17 @@ import { trackEvent, trackUserAction } from '@/lib/analytics/mixpanel';
 import { useSession } from 'next-auth/react';
 import { CreatePreferenceModal } from '@/components/topic-finder/CreatePreferenceModal';
 import { ChatInputBar } from '@/components/topic-finder/ChatInputBar';
-import { NormalizedSocialContent } from '@/components/topic-finder/SocialCards';
+import type { NormalizedSocialContent, ReferenceAnalysis } from '@/components/topic-finder/types';
 import { TopicFinderPreChat } from '@/components/topic-finder/TopicFinderPreChat';
 import { TopicFinderChatView } from '@/components/topic-finder/TopicFinderChatView';
 import { AddOnOption } from '@/components/topic-finder/AddOnCard';
 import { PreferenceOption } from '@/components/topic-finder/PreferenceCard';
-import type { AssistantBlock, AssistantMessage, ConversationMessage, UserMessage } from '@/components/topic-finder/conversationTypes';
+import type { RecommendedTopic } from '@/lib/topic-finder/recommendations';
+import type { AudienceAnalysis } from '@/lib/topic-finder/audience';
+import { useProfileAnalytics } from '@/hooks/useProfileAnalytics';
+import { buildAudienceAnalysis, buildAudienceSummaryText } from '@/lib/topic-finder/audience';
+import { buildProfileSummaryText } from '@/lib/topic-finder/analytics';
+import type { AssistantBlock, AssistantMessage, ConversationMessage, ThinkingProcessStep, UserMessage } from '@/components/topic-finder/conversationTypes';
 
 const DEFAULT_LANGGRAPH_TOPIC = 'social media marketing strategy for AI startups';
 
@@ -222,6 +227,7 @@ const mergeRecordValues = (existing: unknown, incoming: unknown): unknown => {
     return incoming;
 };
 
+const normalizeUrl = (value?: string | null) => value ? value.replace(/\/$/, '').toLowerCase() : undefined;
 const aggregateLanggraphPayload = (events: LanggraphEvent[]): Record<string, unknown> | null => {
     const aggregated: Record<string, unknown> = {};
     const metadataList: unknown[] = [];
@@ -251,21 +257,334 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
     const blocks: AssistantBlock[] = [];
     const handled = new Set<string>();
 
+    const audienceAnalyzer = result['Audience Analyzer'];
+    let audienceInsights: AudienceAnalysis | null = null;
+    if (isRecord(audienceAnalyzer) && isRecord(audienceAnalyzer.audience_profile)) {
+        const profile = audienceAnalyzer.audience_profile as Record<string, unknown>;
+        const personaText = typeof profile.persona === 'string' ? profile.persona.trim() : '';
+
+        const toSegments = (text: string): string[] =>
+            text
+                .split(/(?<=[.!?])\s+|\n+/)
+                .map((segment) => segment.replace(/\s+/g, ' ').trim())
+                .filter((segment) => segment.length > 0);
+
+        const dedupeList = (items: string[]): string[] => {
+            const seen = new Set<string>();
+            const result: string[] = [];
+            items.forEach((item) => {
+                const key = item.toLowerCase();
+                if (!key || seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                result.push(item);
+            });
+            return result;
+        };
+
+        const personaSegments = personaText ? toSegments(personaText) : [];
+        const profileSummary = typeof profile.summary === 'string' ? profile.summary.trim() : '';
+
+        const personaDescription =
+            personaSegments[0] ||
+            profileSummary ||
+            personaText ||
+            'Audience insight unavailable.';
+
+        let motivationsList = dedupeList(
+            personaSegments.length > 1 ? personaSegments.slice(1) : personaSegments.slice(0, 3),
+        ).slice(0, 3);
+        if (!motivationsList.length && profileSummary) {
+            motivationsList = dedupeList(toSegments(profileSummary)).slice(0, 3);
+        }
+        if (!motivationsList.length && personaSegments.length) {
+            motivationsList = dedupeList(personaSegments).slice(0, 3);
+        }
+
+        const normalizeKey = (value: string) => value.replace(/\s+/g, ' ').trim().toLowerCase();
+
+        const filterDistinct = (items: unknown): string[] => {
+            if (!Array.isArray(items)) return [];
+            const prepared = items
+                .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+                .map((item) => item.trim());
+            const deduped = dedupeList(prepared);
+            const filtered = deduped.filter((item) => normalizeKey(item) !== normalizeKey(personaDescription));
+            return (filtered.length ? filtered : deduped).slice(0, 4);
+        };
+
+        const dos = filterDistinct(profile.dos);
+        const donts = filterDistinct(profile.donts);
+        const toneGuidelines = filterDistinct(profile.tone_guidelines);
+
+        const personaNameValue =
+            (typeof profile.title === 'string' && profile.title.trim()) ||
+            (typeof profile.name === 'string' && profile.name.trim()) ||
+            (typeof profile.persona_name === 'string' && profile.persona_name.trim()) ||
+            (motivationsList[0] ? motivationsList[0].slice(0, 60) : '') ||
+            'Audience Persona';
+
+        audienceInsights = {
+            personaName: personaNameValue,
+            personaDescription,
+            motivations: motivationsList,
+            dos,
+            donts,
+            toneGuidelines,
+            summary: [personaDescription, ...motivationsList].join(' ').trim(),
+        };
+
+        blocks.push({
+            id: createId(),
+            type: 'widget',
+            widgetType: 'audience',
+            data: audienceInsights,
+        });
+        handled.add('Audience Analyzer');
+    }
+
+    const summarizeValue = result['Summarize'];
+
+    const parseTopicText = (value: string | undefined) => {
+        if (!value) {
+            return { title: '', rationale: '' };
+        }
+        const cleaned = value.trim();
+        if (!cleaned) {
+            return { title: '', rationale: '' };
+        }
+        const parts = cleaned
+            .split(/\s+—\s+|\s+-\s+|\u2014/)
+            .map((part) => part.trim())
+            .filter(Boolean);
+        if (parts.length >= 2) {
+            const [primary, ...rest] = parts;
+            return { title: primary.trim(), rationale: rest.join(' — ').trim() };
+        }
+        return { title: cleaned, rationale: '' };
+    };
+
+    const recommendedTopicsData = (() => {
+        const source = result['Recommended Topics']
+            ?? result['Recommended topics']
+            ?? result['recommended_topics']
+            ?? (isRecord(summarizeValue) ? (summarizeValue as Record<string, unknown>).recommended_topics : undefined);
+        if (!source) return [] as RecommendedTopic[];
+
+        const rawArray = Array.isArray(source)
+            ? source
+            : isRecord(source) && Array.isArray(source.topics)
+                ? (source.topics as unknown[])
+                : isRecord(source) && Array.isArray((source as Record<string, unknown>).recommended_topics)
+                    ? ((source as Record<string, unknown>).recommended_topics as unknown[])
+                    : [];
+
+        return rawArray
+            .map((item, index) => {
+                if (typeof item === 'string') {
+                    const parsed = parseTopicText(item);
+                    return {
+                        id: createId(),
+                        title: parsed.title || item,
+                        description: '',
+                        expectedScore: 7,
+                        rationale: parsed.rationale || 'Suggested by LangGraph agent.',
+                    };
+                }
+                if (isRecord(item)) {
+                    const topicText = typeof item.topic === 'string' ? item.topic : undefined;
+                    const parsed = parseTopicText(topicText);
+                    const title =
+                        typeof item.title === 'string' && item.title.trim().length > 0
+                            ? item.title
+                            : parsed.title || topicText || `Topic ${index + 1}`;
+                    const rawDescription = typeof item.description === 'string' ? item.description : '';
+                    const rawRationale = typeof item.rationale === 'string' ? item.rationale : '';
+                    const description = rawDescription || '';
+                    const rationale = rawRationale || parsed.rationale || '';
+                    const expectedRaw = typeof item.expected_score === 'number'
+                        ? item.expected_score
+                        : typeof item.expected_score === 'string'
+                            ? parseFloat(item.expected_score)
+                            : typeof item.expected_viral_score === 'number'
+                                ? item.expected_viral_score
+                                : typeof item.expected_viral_score === 'string'
+                                    ? parseFloat(item.expected_viral_score)
+                                    : typeof item.score === 'number'
+                                        ? item.score
+                                        : undefined;
+                    return {
+                        id: createId(),
+                        title,
+                        description,
+                        expectedScore: Number.isFinite(expectedRaw) ? Number(expectedRaw) : 7,
+                        rationale,
+                    };
+                }
+                return null;
+            })
+            .filter((topic): topic is RecommendedTopic => Boolean(topic));
+    })();
+
+    if (recommendedTopicsData.length > 0) {
+        blocks.push({
+            id: createId(),
+            type: 'widget',
+            widgetType: 'topics',
+            data: recommendedTopicsData,
+        });
+        handled.add('Recommended Topics');
+        handled.add('recommended_topics');
+    }
+
+    const referenceIndex = new Map<
+        string,
+        { id?: string; url?: string; title?: string; snippet?: string; platform?: string }
+    >();
+    const referenceIdToUrl = new Map<string, string>();
+    if (isRecord(summarizeValue) && Array.isArray(summarizeValue.references)) {
+        summarizeValue.references.forEach((ref) => {
+            if (!isRecord(ref)) return;
+            const url = typeof ref.url === 'string' ? ref.url : undefined;
+            if (!url) return;
+            const normalized = normalizeUrl(url);
+            if (!normalized) return;
+            const platform = typeof ref.platform === 'string' ? ref.platform.toLowerCase() : undefined;
+            const snippet = typeof ref.snippet === 'string' ? ref.snippet : undefined;
+            const title = typeof ref.title === 'string' ? ref.title : undefined;
+            const id = typeof ref.id === 'string' ? ref.id : undefined;
+            if (id) {
+                referenceIdToUrl.set(id, normalized);
+            }
+            referenceIndex.set(normalized, { id, url, title, snippet, platform });
+        });
+    }
+
+    type ReferenceFit = {
+        id?: string;
+        platform: 'threads' | 'x';
+        score: number;
+        reaction: string;
+    };
+
+    const normalizePlatformKey = (value?: string): 'threads' | 'x' | undefined => {
+        if (!value) return undefined;
+        const lower = value.toLowerCase();
+        if (lower.includes('thread')) return 'threads';
+        if (lower === 'x' || lower.includes('twitter')) return 'x';
+        return undefined;
+    };
+
+    const analysisByUrl = new Map<string, ReferenceFit>();
+    const analysisById = new Map<string, ReferenceFit>();
+
+    const referenceAnalyzer = result['Reference Analyzer'];
+    const rawReferenceAnalysis: unknown[] = Array.isArray(referenceAnalyzer)
+        ? referenceAnalyzer
+        : isRecord(referenceAnalyzer) && Array.isArray(referenceAnalyzer.reference_analysis)
+            ? referenceAnalyzer.reference_analysis
+            : isRecord(referenceAnalyzer) && Array.isArray(referenceAnalyzer.references)
+                ? referenceAnalyzer.references
+                : [];
+
+    rawReferenceAnalysis.forEach((entry) => {
+        if (!isRecord(entry)) return;
+        const id = typeof entry.id === 'string' ? entry.id : undefined;
+        const platformKey = normalizePlatformKey(typeof entry.platform === 'string' ? entry.platform : undefined);
+        const reaction =
+            typeof entry.audience_reaction === 'string' ? entry.audience_reaction.trim() : '';
+        const scoreRaw =
+            typeof entry.audience_fit_score === 'number'
+                ? entry.audience_fit_score
+                : typeof entry.audience_fit_score === 'string'
+                    ? parseFloat(entry.audience_fit_score)
+                    : undefined;
+        if (!platformKey || !reaction || !Number.isFinite(scoreRaw ?? NaN)) return;
+        const score = Math.max(0, Math.min(10, Number(scoreRaw)));
+        const analysisEntry: ReferenceFit = { id, platform: platformKey, score, reaction };
+        if (id) {
+            analysisById.set(id, analysisEntry);
+            const urlFromId = referenceIdToUrl.get(id);
+            if (urlFromId) {
+                analysisByUrl.set(urlFromId, analysisEntry);
+            }
+        }
+    });
+    if (rawReferenceAnalysis.length > 0) {
+        handled.add('Reference Analyzer');
+    }
+
+    const buildReferenceContextForItems = (
+        items: NormalizedSocialContent[],
+        platform: 'threads' | 'x',
+    ) => {
+        const referenceMap: Record<string, { url?: string; title?: string; snippet?: string }> = {};
+        const analysisMap: Record<string, ReferenceAnalysis> = {};
+        const platformAliases = platform === 'threads' ? ['threads', 'thread'] : ['x', 'twitter'];
+        items.forEach((item) => {
+            const normalizedLink = normalizeUrl(item.link);
+            const entry = normalizedLink ? referenceIndex.get(normalizedLink) : undefined;
+            if (normalizedLink && entry) {
+                if (!entry.platform || platformAliases.includes(entry.platform)) {
+                    referenceMap[item.id] = {
+                        url: entry.url,
+                        title: entry.title,
+                        snippet: entry.snippet,
+                    };
+                }
+            }
+
+            let analysisEntry: ReferenceFit | undefined;
+            if (normalizedLink) {
+                analysisEntry = analysisByUrl.get(normalizedLink);
+            }
+            if (!analysisEntry && entry?.id) {
+                analysisEntry = analysisById.get(entry.id);
+            }
+            if (!analysisEntry) {
+                analysisEntry = analysisById.get(item.id);
+            }
+            if (analysisEntry && analysisEntry.platform === platform) {
+                const title =
+                    entry?.title ||
+                    item.authorName ||
+                    item.handle ||
+                    item.text.slice(0, 80).trim();
+                analysisMap[item.id] = {
+                    id: analysisEntry.id || item.id,
+                    title,
+                    url: entry?.url || item.link,
+                    score: analysisEntry.score,
+                    metrics: {},
+                    source: 'model',
+                    audienceComment: analysisEntry.reaction,
+                    snippet: entry?.snippet,
+                };
+            }
+        });
+        return { referenceMap, analysisMap };
+    };
+
     let threadsItems: NormalizedSocialContent[] = [];
     if (result['Threads Search'] !== undefined) {
         threadsItems = extractSocialItems(result['Threads Search'], 'threads');
         handled.add('Threads Search');
     }
-    if (threadsItems.length === 0 && isRecord(result['Summarize'])) {
-        threadsItems = extractSocialItems(result['Summarize'], 'threads');
+    if (threadsItems.length === 0 && isRecord(summarizeValue)) {
+        threadsItems = extractSocialItems(summarizeValue, 'threads');
     }
 
     if (threadsItems.length > 0) {
+        const { referenceMap, analysisMap } = buildReferenceContextForItems(threadsItems, 'threads');
         blocks.push({
             id: createId(),
             type: 'threads',
             title: 'Threads Search',
             items: threadsItems,
+            referenceData: referenceMap,
+            referenceAnalysis: analysisMap,
+            audienceAnalysis: audienceInsights,
         });
     }
 
@@ -274,16 +593,20 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         xItems = extractSocialItems(result['X Search'], 'x');
         handled.add('X Search');
     }
-    if (xItems.length === 0 && isRecord(result['Summarize'])) {
-        xItems = extractSocialItems(result['Summarize'], 'x');
+    if (xItems.length === 0 && isRecord(summarizeValue)) {
+        xItems = extractSocialItems(summarizeValue, 'x');
     }
 
     if (xItems.length > 0) {
+        const { referenceMap, analysisMap } = buildReferenceContextForItems(xItems, 'x');
         blocks.push({
             id: createId(),
             type: 'x',
             title: 'X Search',
             items: xItems,
+            referenceData: referenceMap,
+            referenceAnalysis: analysisMap,
+            audienceAnalysis: audienceInsights,
         });
     }
 
@@ -321,7 +644,6 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         handled.add('Keyword Planner');
     }
 
-    const summarizeValue = result['Summarize'];
     if (isRecord(summarizeValue)) {
         const summaryParts: string[] = [];
         if (typeof summarizeValue.summary === 'string' && summarizeValue.summary.trim().length > 0) {
@@ -411,9 +733,6 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
 const mapSubmittedContextToStructured = (context: SubmittedContext | null) => {
     if (!context) {
         return {
-            persona: null,
-            audience: null,
-            objective: null,
             addOns: [] as { id: string; name: string; description: string }[],
         };
     }
@@ -479,6 +798,7 @@ const summarizeSubmittedContext = (context: SubmittedContext | null): string => 
 };
 export default function TopicFinderPage() {
     const t = useTranslations('pages.contents.topicFinder');
+    const locale = useLocale();
     const [isLoading, setIsLoading] = useState(false)
     const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
     const [isGeneratingDetails, setIsGeneratingDetails] = useState(false);
@@ -543,6 +863,16 @@ export default function TopicFinderPage() {
         }
         return badges;
     }, [submittedContext]);
+    const profileAnalytics = useProfileAnalytics(currentSocialId, 7);
+    const profileSummaryText = useMemo(() => buildProfileSummaryText(profileAnalytics), [profileAnalytics]);
+                const requestAudienceAnalysis = useMemo(
+        () => buildAudienceAnalysis(selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList),
+        [selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList]
+    );
+    const audienceSummaryText = useMemo(
+        () => buildAudienceSummaryText(requestAudienceAnalysis),
+        [requestAudienceAnalysis]
+    );
     const displayedHeadline = submittedContext?.headline ?? '';
     const isChatActive = submittedContext !== null;
     const isPreChatReady = Boolean(
@@ -1427,12 +1757,58 @@ export default function TopicFinderPage() {
         };
 
         const assistantId = createId();
+        const initialThinkingSteps: ThinkingProcessStep[] = [
+            { id: 'profile', label: 'Analyzing profile insights', status: 'in_progress' },
+            { id: 'audience', label: 'Understanding audience preferences', status: 'pending' },
+            { id: 'references', label: 'Reviewing reference opportunities', status: 'pending' },
+            { id: 'recommendations', label: 'Synthesizing recommendations', status: 'pending' },
+        ];
         const placeholderAssistant: AssistantMessage = {
             id: assistantId,
             role: 'assistant',
             createdAt: Date.now(),
             status: 'loading',
             blocks: [],
+            thinkingProcess: initialThinkingSteps,
+        };
+        const stepAutoTimeouts: Array<ReturnType<typeof setTimeout>> = [];
+        const clearStepTimeouts = () => {
+            stepAutoTimeouts.forEach(clearTimeout);
+            stepAutoTimeouts.length = 0;
+        };
+        const updateThinkingProcess = (mutator: (steps: ThinkingProcessStep[]) => ThinkingProcessStep[]) => {
+            setConversation((prev) =>
+                prev.map((entry) =>
+                    entry.id === assistantId && entry.role === 'assistant'
+                        ? {
+                            ...entry,
+                            thinkingProcess: mutator(entry.thinkingProcess ?? []),
+                        }
+                        : entry
+                )
+            );
+        };
+        const scheduleAutoThinkingProgress = () => {
+            initialThinkingSteps.forEach((_, index) => {
+                const timeout = setTimeout(() => {
+                    updateThinkingProcess((steps) => {
+                        if (!steps.length) return steps;
+                        return steps.map((step, idx) => {
+                            if (idx < index + 1) {
+                                if (step.status !== 'complete') {
+                                    return { ...step, status: 'complete' };
+                                }
+                                return step;
+                            }
+                            if (idx === index + 1 && step.status === 'pending') {
+                                return { ...step, status: 'in_progress' };
+                            }
+                            return step;
+                        });
+                    });
+                }, (index + 1) * 5000);
+                stepAutoTimeouts.push(timeout);
+            });
         };
 
         const historyPayload = [...conversation, userMessage].map((entry) => {
@@ -1450,9 +1826,9 @@ export default function TopicFinderPage() {
         if (typeof messageOverride !== 'string') {
             setChatInput('');
         }
+        scheduleAutoThinkingProgress();
         setIsSubmittingMessage(true);
         setIsLoading(true);
-
         trackEvent('topic_finder_langgraph_submit', {
             persona: lockedContext?.persona?.id,
             audience: lockedContext?.audience?.id,
@@ -1462,8 +1838,12 @@ export default function TopicFinderPage() {
         try {
             const structuredForRequest = mapSubmittedContextToStructured(lockedContext);
             const summaryForRequest = summarizeSubmittedContext(lockedContext) || contextSummary;
+            const profileNarrative = profileSummaryText ? `Profile insights:\n${profileSummaryText}` : '';
+            const audienceNarrative = audienceSummaryText ? `Audience deep dive:\n${audienceSummaryText}` : '';
             const dynamicContext = [
                 summaryForRequest,
+                profileNarrative,
+                audienceNarrative,
                 trimmed ? `Latest user message:\n${trimmed}` : '',
             ]
                 .filter(Boolean)
@@ -1485,7 +1865,16 @@ export default function TopicFinderPage() {
                         objective: structuredForRequest.objective,
                         addOns: structuredForRequest.addOns,
                         language,
+                        locale,
                         history: historyPayload,
+                        profileInsights: profileAnalytics
+                            ? {
+                                followerTrend: profileAnalytics.followerTrend,
+                                metrics: profileAnalytics.metrics,
+                                summary: profileSummaryText,
+                            }
+                            : null,
+                        audienceInsights: requestAudienceAnalysis,
                     },
                 }),
             });
@@ -1514,6 +1903,24 @@ export default function TopicFinderPage() {
                                 : 'No structured result returned.',
                     },
                 ];
+            const hasAudienceWidget = blocks.some((block) => block.type === 'widget' && block.widgetType === 'audience');
+            const hasReferenceBlocks = blocks.some((block) => block.type === 'threads' || block.type === 'x');
+            const hasRecommendationWidget = blocks.some((block) => block.type === 'widget' && block.widgetType === 'topics');
+
+updateThinkingProcess((steps) =>
+                steps.map((step) => {
+                    if (step.id === 'audience') {
+                        return { ...step, status: 'complete' };
+                    }
+                    if (step.id === 'references') {
+                        return { ...step, status: 'in_progress' };
+                    }
+                    if (step.id === 'recommendations') {
+                        return { ...step, status: 'in_progress' };
+                    }
+                    return step;
+                })
+            );
 
             setConversation((prev) =>
                 prev.map((entry) =>
@@ -1527,8 +1934,33 @@ export default function TopicFinderPage() {
                         : entry
                 )
             );
+            clearStepTimeouts();
+
+            updateThinkingProcess((steps) =>
+                steps.map((step) => {
+                    if (step.id === 'references' || step.id === 'recommendations') {
+                        return { ...step, status: 'complete' };
+                    }
+                    return step;
+                })
+            );
         } catch (error) {
+            clearStepTimeouts();
             const message = error instanceof Error ? error.message : 'Failed to run LangGraph workflow.';
+            updateThinkingProcess((steps) =>
+                steps.map((step) => {
+                    if (step.id === 'recommendations') {
+                        return { ...step, status: 'error' };
+                    }
+                    if (step.id === 'references') {
+                        return { ...step, status: 'complete' };
+                    }
+                    if (step.id === 'audience') {
+                        return { ...step, status: 'complete' };
+                    }
+                    return step;
+                })
+            );
             setConversation((prev) =>
                 prev.map((entry) =>
                     entry.id === assistantId
@@ -1549,6 +1981,7 @@ export default function TopicFinderPage() {
             );
             toast.error(message);
         } finally {
+            clearStepTimeouts();
             setIsSubmittingMessage(false);
             setIsLoading(false);
         }
@@ -1563,6 +1996,10 @@ export default function TopicFinderPage() {
         conversation,
         contextSummary,
         language,
+        profileAnalytics,
+        profileSummaryText,
+        requestAudienceAnalysis,
+        audienceSummaryText,
     ]);
 
     const handleInitialSend = useCallback(async () => {
@@ -1647,8 +2084,14 @@ export default function TopicFinderPage() {
             clearGenerationPreview,
             setGenerationStatus,
             t,
-            trackUserAction,
         ]
+    );
+    const handleUseRecommendedTopic = useCallback(
+        (topic: RecommendedTopic) => {
+            setSelectedHeadline(topic.title);
+            toast.success('Topic loaded into the headline field.');
+        },
+        [setSelectedHeadline]
     );
 
     useEffect(() => {
@@ -1704,7 +2147,10 @@ export default function TopicFinderPage() {
                             displayedHeadline={displayedHeadline}
                             isChatActive={isChatActive}
                             hasSubmittedContext={submittedContext !== null}
+                            profileAnalytics={profileAnalytics}
+                            currentSocialId={currentSocialId}
                             onRepurposeContent={handleRepurposeContent}
+                            onUseTopic={handleUseRecommendedTopic}
                         />
                     )}
                 </div>

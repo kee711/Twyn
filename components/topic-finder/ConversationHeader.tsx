@@ -19,6 +19,7 @@ export function ConversationHeader({ headline, badges, isActive }: ConversationH
       layout
       transition={{ type: 'spring', stiffness: 260, damping: 30 }}
       animate={isActive ? { scale: 0.92, opacity: 0.95 } : { scale: 1, opacity: 1 }}
+      style={{ originX: 0, originY: 0 }}
       className={cn(
         'flex flex-col gap-3',
         isActive ? 'text-left' : 'text-center items-start mx-auto'

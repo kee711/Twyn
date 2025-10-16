@@ -1,4 +1,13 @@
-import type { NormalizedSocialContent } from '@/components/topic-finder/SocialCards';
+import type { NormalizedSocialContent, ReferenceAnalysis } from '@/components/topic-finder/types';
+
+export type ThinkingProcessStatus = 'pending' | 'in_progress' | 'complete' | 'error';
+
+export interface ThinkingProcessStep {
+    id: string;
+    label: string;
+    status: ThinkingProcessStatus;
+    description?: string;
+}
 
 export type TextBlock = {
     id: string;
@@ -8,11 +17,27 @@ export type TextBlock = {
     links?: Array<{ id: string; label: string; url: string }>;
 };
 
+export type ReferenceMetadata = {
+    url?: string;
+    title?: string;
+    snippet?: string;
+};
+
+export type WidgetBlock = {
+    id: string;
+    type: 'widget';
+    widgetType: 'reference-analysis' | 'topics' | 'audience' | string;
+    data?: unknown;
+};
+
 export type ThreadsBlock = {
     id: string;
     type: 'threads';
     title: string;
     items: NormalizedSocialContent[];
+    referenceData?: Record<string, ReferenceMetadata>;
+    referenceAnalysis?: Record<string, ReferenceAnalysis>;
+    audienceAnalysis?: unknown;
 };
 
 export type XBlock = {
@@ -20,9 +45,12 @@ export type XBlock = {
     type: 'x';
     title: string;
     items: NormalizedSocialContent[];
+    referenceData?: Record<string, ReferenceMetadata>;
+    referenceAnalysis?: Record<string, ReferenceAnalysis>;
+    audienceAnalysis?: unknown;
 };
 
-export type AssistantBlock = TextBlock | ThreadsBlock | XBlock;
+export type AssistantBlock = TextBlock | ThreadsBlock | XBlock | WidgetBlock;
 
 export type AssistantMessage = {
     id: string;
@@ -32,6 +60,7 @@ export type AssistantMessage = {
     blocks: AssistantBlock[];
     raw?: unknown;
     error?: string;
+    thinkingProcess?: ThinkingProcessStep[];
 };
 
 export type UserMessage = {
