@@ -160,7 +160,10 @@
     "farcasterSignInError": "Could not complete Farcaster sign-in.",
     "selectionSaved": "Account preference updated.",
     "active": "Active",
-    "loadingAccounts": "Loading social accounts..."
+    "loadingAccounts": "Loading social accounts...",
+    "connectWallet": "Connect wallet",
+    "switchNetwork": "Switch network",
+    "close": "Close"
   },
   "content": {
     "title": "Title",

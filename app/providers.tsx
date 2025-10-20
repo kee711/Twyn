@@ -1,12 +1,18 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
-import { ReactNode, useEffect, useMemo, useState } from 'react'
-import { Session } from 'next-auth'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthKitProvider } from '@farcaster/auth-kit'
 import '@farcaster/auth-kit/styles.css'
+import '@rainbow-me/rainbowkit/styles.css'
+
+import { AuthKitProvider } from '@farcaster/auth-kit'
+import { Session } from 'next-auth'
+import { SessionProvider } from 'next-auth/react'
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactNode, useEffect, useMemo, useState } from 'react'
+import { WagmiProvider } from 'wagmi'
 import { sdk } from '@farcaster/miniapp-sdk'
+
+import { createWalletConfig } from '@/lib/wallet'
 
 interface ProvidersProps {
   children: ReactNode
@@ -88,11 +94,20 @@ export function Providers({
     };
   }, []);
 
+  const walletConfig = useMemo(() => createWalletConfig(), []);
+  const walletWrappedChildren = walletConfig ? (
+    <WagmiProvider config={walletConfig}>
+      <RainbowKitProvider modalSize="compact">
+        {children}
+      </RainbowKitProvider>
+    </WagmiProvider>
+  ) : children;
+
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider session={session}>
         <AuthKitProvider config={{ rpcUrl, domain, siweUri }}>
-          {children}
+          {walletWrappedChildren}
         </AuthKitProvider>
       </SessionProvider>
     </QueryClientProvider>

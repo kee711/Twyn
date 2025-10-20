@@ -45,6 +45,8 @@ THREADS_CLIENT_ID=your_threads_client_id
 THREADS_CLIENT_SECRET=your_threads_client_secret_key
 # Threads Auth
 NEXT_PUBLIC_THREADS_ACCESS_TOKEN=your_threads_access_token
+# WalletConnect
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 # Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret_key

@@ -25,9 +25,9 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { LucideIcon } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
@@ -37,6 +37,9 @@ import { useThreadsProfilePicture } from '@/hooks/useThreadsProfilePicture';
 import { toast } from 'sonner';
 import { useSignIn, QRCode } from '@farcaster/auth-kit';
 import type { StatusAPIResponse } from '@farcaster/auth-client';
+import { WalletConnectButton } from '@/components/wallet/WalletConnectButton';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 
 
 // Navigation item type definition
@@ -665,6 +668,11 @@ function AccountSelectionModal({
 }: AccountSelectionModalProps) {
   const tAccounts = useTranslations('SocialAccountSelector');
   const [isFarcasterModalOpen, setIsFarcasterModalOpen] = useState(false);
+  const [isWalletFlowActive, setIsWalletFlowActive] = useState(false);
+  const { connectModalOpen } = useConnectModal();
+  const { isConnected } = useAccount();
+  const prevIsConnectedRef = useRef(isConnected);
+  const prevConnectModalOpenRef = useRef(connectModalOpen);
 
   const groupedAccounts = useMemo(() => {
     return PLATFORM_KEYS.reduce<Record<PlatformKey, SocialAccount[]>>((acc, platform) => {
@@ -693,6 +701,11 @@ function AccountSelectionModal({
     const target = redirectMap[platform];
     if (!target) return;
     window.location.href = target;
+  };
+
+  const handleWalletConnectStart = () => {
+    setIsWalletFlowActive(true);
+    onOpenChange(false);
   };
 
   const handleFarcasterSuccess = async (status?: StatusAPIResponse) => {
@@ -775,16 +788,64 @@ function AccountSelectionModal({
     }
   }, [isFarcasterModalOpen, farcasterUrl]);
 
+  useEffect(() => {
+    const wasConnected = prevIsConnectedRef.current;
+
+    if (isWalletFlowActive && !wasConnected && isConnected) {
+      setIsWalletFlowActive(false);
+      if (!open) {
+        onOpenChange(true);
+      }
+    }
+
+    prevIsConnectedRef.current = isConnected;
+  }, [isConnected, isWalletFlowActive, onOpenChange, open]);
+
+  useEffect(() => {
+    const wasOpen = prevConnectModalOpenRef.current;
+
+    if (isWalletFlowActive && wasOpen && !connectModalOpen && !isConnected) {
+      setIsWalletFlowActive(false);
+      if (!open) {
+        onOpenChange(true);
+      }
+    }
+
+    prevConnectModalOpenRef.current = connectModalOpen;
+  }, [connectModalOpen, isWalletFlowActive, isConnected, onOpenChange, open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md overflow-hidden p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle className="text-lg text-left font-semibold">
-            {tAccounts('accountList')}
-          </DialogTitle>
+      <DialogContent hideClose className="max-w-md overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-lg text-left font-semibold">
+              {tAccounts('accountList')}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <WalletConnectButton
+                className="shrink-0"
+                onOpenConnectModal={handleWalletConnectStart}
+              />
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">{tAccounts('close')}</span>
+                </Button>
+              </DialogClose>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="px-6 pb-6 space-y-6">
+        <div
+          className="px-6 pb-6 space-y-6"
+          aria-hidden={isFarcasterModalOpen || connectModalOpen}
+        >
           {PLATFORM_KEYS.map((platform, index) => {
             const platformAccounts = groupedAccounts[platform];
             const selectedId = selectedAccounts?.[platform];
@@ -883,7 +944,7 @@ function AccountSelectionModal({
       </DialogContent>
 
       <Dialog open={isFarcasterModalOpen} onOpenChange={setIsFarcasterModalOpen}>
-        <DialogContent className="max-w-sm space-y-4">
+        <DialogContent className="max-w-sm space-y-4 z-[60]" overlayClassName="z-[60]">
           <DialogHeader>
             <DialogTitle>Connect Farcaster</DialogTitle>
           </DialogHeader>

@@ -160,7 +160,10 @@
     "farcasterSignInError": "Farcaster 로그인에 실패했습니다.",
     "selectionSaved": "계정 설정이 업데이트되었습니다.",
     "active": "선택됨",
-    "loadingAccounts": "소셜 계정 정보를 불러오는 중입니다..."
+    "loadingAccounts": "소셜 계정 정보를 불러오는 중입니다...",
+    "connectWallet": "지갑 연결",
+    "switchNetwork": "네트워크 변경",
+    "close": "닫기"
   },
   "content": {
     "title": "제목",
