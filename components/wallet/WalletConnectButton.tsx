@@ -20,7 +20,18 @@ export function WalletConnectButton({
   const t = useTranslations('SocialAccountSelector');
 
   if (!walletEnabled) {
-    return null;
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        type="button"
+        className={cn(baseButtonClass, className)}
+        disabled
+        title={t('connectWalletUnavailable')}
+      >
+        {t('connectWallet')}
+      </Button>
+    );
   }
 
   return (

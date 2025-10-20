@@ -180,7 +180,15 @@
     "farcasterSignerOpenWarpcast": "Warpcast 열기",
     "farcasterSignerManual": "아무 변화가 없다면 Warpcast 앱을 열어 승인을 진행해주세요.",
     "farcasterSignerRetry": "서명자 연결 다시 시도",
-    "farcasterSignerClose": "닫기"
+    "farcasterSignerClose": "닫기",
+    "connectWalletUnavailable": "지갑 연결 설정이 필요합니다",
+    "removeAccountTitle": "계정 연결 해제",
+    "removeAccountDescription": "{platform} 계정 {account}의 연결을 해제할까요? 언제든 다시 연결할 수 있어요.",
+    "removeAccountCancel": "취소",
+    "removeAccountConfirm": "연결 해제",
+    "removeAccountProcessing": "연결 해제 중…",
+    "accountRemoved": "계정 연결이 해제되었습니다.",
+    "accountRemoveError": "계정 연결 해제에 실패했습니다."
   },
   "content": {
     "title": "제목",

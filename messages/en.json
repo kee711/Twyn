@@ -180,7 +180,15 @@
     "farcasterSignerOpenWarpcast": "Open in Warpcast",
     "farcasterSignerManual": "If nothing happens, open the Warpcast app to approve the signer.",
     "farcasterSignerRetry": "Restart signer setup",
-    "farcasterSignerClose": "Close"
+    "farcasterSignerClose": "Close",
+    "connectWalletUnavailable": "Wallet connection not configured",
+    "removeAccountTitle": "Disconnect account",
+    "removeAccountDescription": "Disconnect {platform} account {account}? You can reconnect anytime.",
+    "removeAccountCancel": "Cancel",
+    "removeAccountConfirm": "Disconnect",
+    "removeAccountProcessing": "Disconnecting…",
+    "accountRemoved": "Account disconnected.",
+    "accountRemoveError": "Failed to disconnect account."
   },
   "content": {
     "title": "Title",

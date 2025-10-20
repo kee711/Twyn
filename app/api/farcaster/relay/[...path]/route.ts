@@ -19,9 +19,17 @@ async function proxyRequest(request: Request, params: { path?: string[] }) {
   });
 
   const headers = new Headers(request.headers);
-  headers.set('Authorization', `Bearer ${RELAY_API_KEY}`);
-  headers.set('origin', RELAY_BASE);
-  headers.set('host', targetUrl.host);
+  const hasAuthHeader = headers.has('authorization');
+
+  if (!hasAuthHeader) {
+    headers.set('Authorization', `Bearer ${RELAY_API_KEY}`);
+  } else {
+    headers.set('X-Api-Key', RELAY_API_KEY);
+  }
+
+  if (!targetUrl.searchParams.has('api_key')) {
+    targetUrl.searchParams.set('api_key', RELAY_API_KEY);
+  }
 
   const init: RequestInit = {
     method: request.method,
