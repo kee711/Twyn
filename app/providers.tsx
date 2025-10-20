@@ -35,39 +35,47 @@ export function Providers({
       });
 
     const notifyReady = async () => {
-      let attempt = 0;
+      // 일반 웹 브라우저에서는 미니앱 SDK 호출을 건너뛰기
+      const isLikelyMiniApp = typeof window !== 'undefined' && (
+        window.location.href.includes('farcaster') ||
+        window.location.href.includes('warpcast') ||
+        navigator.userAgent.includes('Farcaster') ||
+        navigator.userAgent.includes('Warpcast') ||
+        process.env.NODE_ENV === 'development' // 개발 환경에서는 테스트
+      );
 
-      while (!cancelled) {
+      if (!isLikelyMiniApp) {
+        console.log('Base mini app: running in regular web browser, skipping mini app initialization');
+        return;
+      }
+
+      let attempt = 0;
+      const maxAttempts = 3;
+
+      while (!cancelled && attempt < maxAttempts) {
         try {
-          const inMiniApp = await sdk.isInMiniApp(2000);
+          const inMiniApp = await sdk.isInMiniApp(1000);
           if (!inMiniApp) {
             attempt += 1;
-            if (attempt % 5 === 0) {
-              console.warn('Base mini app: still waiting for host context');
+            if (attempt >= maxAttempts) {
+              console.log('Base mini app: not running in mini app environment, skipping ready notification');
+              break;
             }
-
-            if (attempt >= 10) {
-              try {
-                await sdk.actions.ready();
-                break;
-              } catch (readyError) {
-                console.warn('Base mini app: force-ready attempt failed', readyError);
-              }
-            }
-
-            await wait(Math.min(1000 * attempt, 5000));
+            await wait(500);
             continue;
           }
 
           await sdk.actions.ready();
+          console.log('Base mini app: ready notification sent successfully');
           break;
         } catch (error) {
           console.error('Failed to notify Base mini app host about readiness', error);
           attempt += 1;
-          if (attempt % 5 === 0) {
-            console.warn('Base mini app: retrying ready handshake');
+          if (attempt >= maxAttempts) {
+            console.log('Base mini app: max attempts reached, giving up');
+            break;
           }
-          await wait(Math.min(1000 * attempt, 5000));
+          await wait(500);
         }
       }
     };
@@ -79,19 +87,30 @@ export function Providers({
     };
   }, []);
 
-  const { rpcUrl, domain, siweUri } = useMemo(() => {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-    let host = '';
-    try {
-      host = appUrl ? new URL(appUrl).hostname : 'localhost';
-    } catch {
-      host = 'localhost';
+  const authKitConfig = useMemo(() => {
+    const config: Record<string, string> = {};
+
+    const rpcUrl = process.env.NEXT_PUBLIC_FARCASTER_OPTIMISM_RPC_URL;
+    config.rpcUrl = rpcUrl && rpcUrl.length > 0 ? rpcUrl : 'https://mainnet.optimism.io';
+
+    const relayBase = process.env.NEXT_PUBLIC_FARCASTER_RELAY_URL || 'https://relay.farcaster.xyz';
+    config.relay = relayBase;
+
+    const domainEnv = process.env.NEXT_PUBLIC_DOMAIN;
+    if (domainEnv && domainEnv.length > 0) {
+      config.domain = domainEnv;
+    } else if (typeof window !== 'undefined') {
+      config.domain = window.location.host;
     }
-    return {
-      rpcUrl: process.env.NEXT_PUBLIC_FARCASTER_OPTIMISM_RPC_URL || 'https://mainnet.optimism.io',
-      domain: process.env.NEXT_PUBLIC_DOMAIN || host,
-      siweUri: process.env.NEXT_PUBLIC_FARCASTER_SIWE_URI || (appUrl ? `${appUrl}/login` : 'http://localhost:3000/login'),
-    };
+
+    const siweUriEnv = process.env.NEXT_PUBLIC_FARCASTER_SIWE_URI;
+    if (siweUriEnv && siweUriEnv.length > 0) {
+      config.siweUri = siweUriEnv;
+    } else if (typeof window !== 'undefined') {
+      config.siweUri = `${window.location.origin}/login`;
+    }
+
+    return config;
   }, []);
 
   const walletConfig = useMemo(() => createWalletConfig(), []);
@@ -106,7 +125,7 @@ export function Providers({
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider session={session}>
-        <AuthKitProvider config={{ rpcUrl, domain, siweUri }}>
+        <AuthKitProvider config={authKitConfig}>
           {walletWrappedChildren}
         </AuthKitProvider>
       </SessionProvider>

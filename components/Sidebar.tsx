@@ -25,9 +25,9 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { LucideIcon } from 'lucide-react';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
@@ -669,6 +669,13 @@ function AccountSelectionModal({
   const tAccounts = useTranslations('SocialAccountSelector');
   const [isFarcasterModalOpen, setIsFarcasterModalOpen] = useState(false);
   const [isWalletFlowActive, setIsWalletFlowActive] = useState(false);
+  const [isSignerModalOpen, setIsSignerModalOpen] = useState(false);
+  const [signerStatus, setSignerStatus] = useState<'idle' | 'starting' | 'pending' | 'polling' | 'approved' | 'completed' | 'expired' | 'revoked' | 'timeout' | 'error'>('idle');
+  const [signerToken, setSignerToken] = useState<string | null>(null);
+  const [signerDeeplink, setSignerDeeplink] = useState<string | null>(null);
+  const [signerError, setSignerError] = useState<string | null>(null);
+  const signerAbortRef = useRef(false);
+  const signerFidRef = useRef<number | null>(null);
   const { connectModalOpen } = useConnectModal();
   const { isConnected } = useAccount();
   const prevIsConnectedRef = useRef(isConnected);
@@ -708,15 +715,150 @@ function AccountSelectionModal({
     onOpenChange(false);
   };
 
+  const pollSignerStatus = useCallback(async (token: string) => {
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    signerAbortRef.current = false;
+    setSignerStatus('polling');
+    setSignerError(null);
+    console.log('[Farcaster signer] Polling started', { token });
+
+    const maxAttempts = 40;
+    const delayMs = 3000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (signerAbortRef.current) {
+        console.log('[Farcaster signer] Polling aborted');
+        return;
+      }
+
+      await wait(delayMs);
+      console.log('[Farcaster signer] Polling attempt', attempt + 1);
+
+      try {
+        const response = await fetch(`/api/farcaster/signer/status?token=${encodeURIComponent(token)}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data?.ok === false) {
+          console.warn('[Farcaster signer] Polling request failed', { status: response.status, data });
+          continue;
+        }
+
+        const state: string | undefined = data?.signedKeyRequest?.state;
+        if (!state) {
+          console.warn('[Farcaster signer] Polling response missing state', data);
+          continue;
+        }
+
+        if (state === 'completed' || state === 'approved') {
+          setSignerStatus(state === 'approved' ? 'approved' : 'completed');
+          console.log('[Farcaster signer] Approved', { state, data });
+          toast.success(tAccounts('farcasterSignerApproved'));
+          if (userId) {
+            await fetchAccounts(userId);
+          }
+          setIsSignerModalOpen(false);
+          if (!open) {
+            onOpenChange(true);
+          }
+          return;
+        }
+
+        if (state === 'expired' || state === 'revoked') {
+          setSignerStatus(state);
+          const message = state === 'expired'
+            ? tAccounts('farcasterSignerExpired')
+            : tAccounts('farcasterSignerRevoked');
+          setSignerError(message);
+          console.warn('[Farcaster signer] Request closed', { state, data });
+          toast.error(message);
+          return;
+        }
+      } catch (error) {
+        console.error('[AccountSelectionModal] signer status poll failed:', error);
+      }
+    }
+
+    setSignerStatus('timeout');
+    const timeoutMessage = tAccounts('farcasterSignerTimeout');
+    setSignerError(timeoutMessage);
+    console.error('[Farcaster signer] Polling timeout');
+    toast.error(timeoutMessage);
+  }, [fetchAccounts, onOpenChange, open, tAccounts, userId]);
+
+  const startSignerFlow = useCallback(async (fid?: number) => {
+    console.log('[Farcaster signer] Flow start requested', { fid, userId });
+    if (!userId) {
+      toast.error(tAccounts('farcasterSignInError'));
+      return;
+    }
+
+    signerAbortRef.current = true;
+    signerAbortRef.current = false;
+    signerFidRef.current = typeof fid === 'number' ? fid : null;
+    setSignerStatus('starting');
+    setSignerError(null);
+
+    try {
+      console.log('[Farcaster signer] Calling /api/farcaster/signer/start');
+      const response = await fetch('/api/farcaster/signer/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fid ? { fid } : {}),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data?.ok === false) {
+        console.error('[Farcaster signer] Failed to start', { status: response.status, data });
+        throw new Error(data?.error || 'Failed to start Farcaster signer flow');
+      }
+
+      const token = typeof data?.token === 'string' ? data.token : null;
+      const deeplinkUrl = typeof data?.deeplinkUrl === 'string' ? data.deeplinkUrl : null;
+
+      if (!token) {
+        console.error('[Farcaster signer] Missing token in response', data);
+        throw new Error('Missing signer token');
+      }
+
+      setSignerToken(token);
+      setSignerDeeplink(deeplinkUrl);
+      setIsSignerModalOpen(true);
+      if (open) {
+        onOpenChange(false);
+      }
+      setSignerStatus('pending');
+      toast.info(tAccounts('farcasterSignerAwaiting'));
+      if (deeplinkUrl) {
+        const win = window.open(deeplinkUrl, '_blank', 'noopener,noreferrer');
+        if (!win) {
+          window.location.href = deeplinkUrl;
+        }
+        console.log('[Farcaster signer] Deeplink opened', { deeplinkUrl });
+      }
+      await pollSignerStatus(token);
+    } catch (error) {
+      console.error('[AccountSelectionModal] signer flow start failed:', error);
+      const message = error instanceof Error ? error.message : tAccounts('farcasterSignerStartError');
+      setSignerStatus('error');
+      setSignerError(message);
+      toast.error(tAccounts('farcasterSignerStartError'));
+      if (!open) {
+        onOpenChange(true);
+      }
+    }
+  }, [open, onOpenChange, pollSignerStatus, tAccounts, userId]);
+
   const handleFarcasterSuccess = async (status?: StatusAPIResponse) => {
     const fid = status?.fid;
     const username = status?.username;
+    console.log('[Farcaster] Sign-in success callback', status);
     if (!fid || !userId) {
       toast.error(tAccounts('farcasterSignInError'));
       return;
     }
 
     try {
+      console.log('[Farcaster] Persisting account', { fid, username });
       const response = await fetch('/api/farcaster/account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -724,11 +866,14 @@ function AccountSelectionModal({
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Farcaster] Persist error response', { status: response.status, errorText });
         throw new Error('Failed to persist Farcaster account');
       }
 
       toast.success(tAccounts('farcasterLinkSuccess'));
       await fetchAccounts(userId);
+      await startSignerFlow(Number(fid));
     } catch (error) {
       console.error('[AccountSelectionModal] Farcaster account link failed:', error);
       toast.error(tAccounts('farcasterSignInError'));
@@ -750,7 +895,7 @@ function AccountSelectionModal({
     isPolling: isFarcasterPolling,
   } = useSignIn({
     onSuccess: async (status) => {
-      if (status?.state === 'completed') {
+      if (status?.state === 'completed' || (status?.fid && status?.state !== 'pending')) {
         await handleFarcasterSuccess(status);
         setIsFarcasterModalOpen(false);
       }
@@ -765,13 +910,20 @@ function AccountSelectionModal({
     }
 
     try {
+      console.log('[Farcaster] Connect button clicked');
       if (isFarcasterError) {
+        console.warn('[Farcaster] Previous error detected, reconnecting');
         reconnectFarcaster();
       }
       setIsFarcasterModalOpen(true);
-      await initiateFarcasterConnect();
-      startFarcasterSignIn();
+      console.log('[Farcaster] Starting AuthKit connect flow');
+      const connectResult = await initiateFarcasterConnect();
+      console.log('[Farcaster] Connect result', connectResult);
+      console.log('[Farcaster] Initiating sign-in polling');
+      await startFarcasterSignIn();
+      console.log('[Farcaster] signIn() call completed');
     } catch (error) {
+      console.error('[Farcaster] Connect flow failed', error);
       setIsFarcasterModalOpen(false);
       handleFarcasterError(error);
     }
@@ -786,6 +938,7 @@ function AccountSelectionModal({
     if (isMobileDevice) {
       window.open(farcasterUrl, '_blank', 'noopener,noreferrer');
     }
+    console.log('[Farcaster] Sign-in modal opened', { farcasterUrl });
   }, [isFarcasterModalOpen, farcasterUrl]);
 
   useEffect(() => {
@@ -812,7 +965,58 @@ function AccountSelectionModal({
     }
 
     prevConnectModalOpenRef.current = connectModalOpen;
+    console.log('[Wallet connect modal] state', { connectModalOpen });
   }, [connectModalOpen, isWalletFlowActive, isConnected, onOpenChange, open]);
+
+  useEffect(() => {
+    return () => {
+      signerAbortRef.current = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (farcasterError) {
+      console.error('[Farcaster] AuthKit error', farcasterError);
+    }
+  }, [farcasterError]);
+
+  useEffect(() => {
+    console.log('[Farcaster] AuthKit polling state changed', { isFarcasterPolling });
+  }, [isFarcasterPolling]);
+
+  const handleSignerModalChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      signerAbortRef.current = true;
+      setIsSignerModalOpen(false);
+      setSignerStatus('idle');
+      setSignerError(null);
+      setSignerToken(null);
+      setSignerDeeplink(null);
+      if (!open) {
+        onOpenChange(true);
+      }
+    }
+  };
+
+  const handleSignerRetry = () => {
+    const fid = signerFidRef.current ?? undefined;
+    if (signerToken) {
+      signerAbortRef.current = true;
+      setSignerToken(null);
+    }
+    startSignerFlow(fid);
+  };
+
+  useEffect(() => {
+    console.log('[Farcaster signer] status changed', signerStatus, {
+      tokenPresent: Boolean(signerToken),
+      deeplinkPresent: Boolean(signerDeeplink),
+    });
+  }, [signerStatus, signerToken, signerDeeplink]);
+
+  useEffect(() => {
+    console.log('[Farcaster signer] modal open state', { isSignerModalOpen, isFarcasterModalOpen: open });
+  }, [isSignerModalOpen, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -949,7 +1153,7 @@ function AccountSelectionModal({
             <DialogTitle>Connect Farcaster</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Scan the QR code with Warpcast to link your Farcaster account.
+            Scan the QR code with Farcaster to link your Farcaster account.
           </p>
           <div className="flex justify-center">
             {farcasterUrl ? (
@@ -977,7 +1181,7 @@ function AccountSelectionModal({
               disabled={!farcasterUrl}
             >
               <ExternalLink className="h-4 w-4" />
-              Open in Warpcast
+              Open in Farcaster
             </Button>
             <Button
               type="button"
@@ -986,6 +1190,87 @@ function AccountSelectionModal({
               onClick={() => setIsFarcasterModalOpen(false)}
             >
               Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSignerModalOpen} onOpenChange={handleSignerModalChange}>
+        <DialogContent className="max-w-sm space-y-4">
+          <DialogHeader>
+            <DialogTitle>{tAccounts('farcasterSignerTitle')}</DialogTitle>
+            <DialogDescription>{tAccounts('farcasterSignerDescription')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            {['starting', 'pending', 'polling'].includes(signerStatus) && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{tAccounts('farcasterSignerStatusPending')}</span>
+              </div>
+            )}
+
+            {signerStatus === 'completed' && (
+              <div className="rounded-md bg-emerald-50 px-3 py-2 text-emerald-700">
+                {tAccounts('farcasterSignerStatusCompleted')}
+              </div>
+            )}
+
+            {signerStatus === 'approved' && (
+              <div className="rounded-md bg-emerald-50 px-3 py-2 text-emerald-700">
+                {tAccounts('farcasterSignerStatusCompleted')}
+              </div>
+            )}
+
+            {signerStatus === 'expired' && (
+              <div className="rounded-md bg-amber-50 px-3 py-2 text-amber-700">
+                {tAccounts('farcasterSignerStatusExpired')}
+              </div>
+            )}
+
+            {signerStatus === 'revoked' && (
+              <div className="rounded-md bg-rose-50 px-3 py-2 text-rose-700">
+                {tAccounts('farcasterSignerStatusRevoked')}
+              </div>
+            )}
+
+            {signerStatus === 'timeout' && (
+              <div className="rounded-md bg-amber-50 px-3 py-2 text-amber-700">
+                {tAccounts('farcasterSignerStatusTimeout')}
+              </div>
+            )}
+
+            {signerError && (
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-destructive">
+                {signerError}
+              </div>
+            )}
+
+            {signerDeeplink ? (
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  className="w-full justify-center"
+                  onClick={() => window.open(signerDeeplink, '_blank', 'noopener,noreferrer')}
+                  disabled={signerStatus === 'completed' || signerStatus === 'approved'}
+                >
+                  {tAccounts('farcasterSignerOpenWarpcast')}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {tAccounts('farcasterSignerManual')}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {['expired', 'revoked', 'timeout', 'error'].includes(signerStatus) && (
+              <Button type="button" onClick={handleSignerRetry}>
+                {tAccounts('farcasterSignerRetry')}
+              </Button>
+            )}
+            <Button type="button" variant="ghost" onClick={() => handleSignerModalChange(false)}>
+              {tAccounts('farcasterSignerClose')}
             </Button>
           </div>
         </DialogContent>
