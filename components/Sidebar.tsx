@@ -692,6 +692,7 @@ function AccountSelectionModal({
 
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
+  const shouldRestoreAccountModalRef = useRef(false);
   const hasProcessedSignInRef = useRef(false);
   const lastProcessedFidRef = useRef<number | null>(null);
 
@@ -706,7 +707,7 @@ function AccountSelectionModal({
     const { state, fid, username } = status;
     if (!fid) return;
 
-    if (state && state !== 'completed' && state !== 'approved') {
+    if (state && state !== 'completed') {
       return;
     }
 
@@ -810,9 +811,13 @@ function AccountSelectionModal({
 
   const triggerAccountRemoval = useCallback((account: SocialAccount) => {
     longPressTriggeredRef.current = true;
+    shouldRestoreAccountModalRef.current = open;
     setAccountPendingRemoval(account);
     setIsRemoveDialogOpen(true);
-  }, []);
+    if (open) {
+      onOpenChange(false);
+    }
+  }, [open, onOpenChange]);
 
   const handleAccountPointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>, account: SocialAccount) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -842,7 +847,11 @@ function AccountSelectionModal({
     setIsRemoveDialogOpen(false);
     setAccountPendingRemoval(null);
     clearLongPressTimer();
-  }, [clearLongPressTimer]);
+    if (shouldRestoreAccountModalRef.current) {
+      onOpenChange(true);
+    }
+    shouldRestoreAccountModalRef.current = false;
+  }, [clearLongPressTimer, onOpenChange]);
 
   const handleDialogOpenChange = useCallback((nextOpen: boolean) => {
     if (!nextOpen) {
