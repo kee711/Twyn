@@ -20,7 +20,13 @@ import { trackEvent, trackUserAction } from '@/lib/analytics/mixpanel';
 import { useSession } from 'next-auth/react';
 import { CreatePreferenceModal } from '@/components/topic-finder/CreatePreferenceModal';
 import { ChatInputBar } from '@/components/topic-finder/ChatInputBar';
-import type { NormalizedSocialContent, ReferenceAnalysis } from '@/components/topic-finder/types';
+import type {
+    NormalizedSocialContent,
+    ReferenceAnalysis,
+    KeywordIntelligenceData,
+    EngagementOverviewData,
+    ContentOpportunitiesData,
+} from '@/components/topic-finder/types';
 import { TopicFinderPreChat } from '@/components/topic-finder/TopicFinderPreChat';
 import { TopicFinderChatView } from '@/components/topic-finder/TopicFinderChatView';
 import { AddOnOption } from '@/components/topic-finder/AddOnCard';
@@ -344,7 +350,14 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         handled.add('Audience Analyzer');
     }
 
-    const summarizeValue = result['Summarize'];
+    const summarizerKey =
+        result['Enhanced Summarizer'] !== undefined
+            ? 'Enhanced Summarizer'
+            : result['Summarize'] !== undefined
+                ? 'Summarize'
+                : null;
+    const rawSummarizeValue = summarizerKey ? result[summarizerKey] : null;
+    const summarizeValue = isRecord(rawSummarizeValue) ? rawSummarizeValue : null;
 
     const parseTopicText = (value: string | undefined) => {
         if (!value) {
@@ -369,7 +382,7 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         const source = result['Recommended Topics']
             ?? result['Recommended topics']
             ?? result['recommended_topics']
-            ?? (isRecord(summarizeValue) ? (summarizeValue as Record<string, unknown>).recommended_topics : undefined);
+            ?? summarizeValue?.recommended_topics;
         if (!source) return [] as RecommendedTopic[];
 
         const rawArray = Array.isArray(source)
@@ -438,12 +451,337 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         handled.add('recommended_topics');
     }
 
+    const getNodeData = (key: string): Record<string, unknown> | null => {
+        const value = result[key];
+        return isRecord(value) ? (value as Record<string, unknown>) : null;
+    };
+
+    const getProp = (source: Record<string, unknown> | null, key: string): unknown => {
+        if (!source) return undefined;
+        return source[key];
+    };
+
+    const toNumber = (value: unknown): number | undefined => {
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        if (typeof value === 'string') {
+            const parsed = parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : undefined;
+        }
+        return undefined;
+    };
+
+    const toStringValue = (value: unknown): string | undefined => {
+        if (typeof value !== 'string') return undefined;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+    };
+
+    const toStringArray = (value: unknown): string[] => {
+        if (!Array.isArray(value)) return [];
+        return value
+            .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+            .filter((entry) => entry.length > 0);
+    };
+
+    const parseMainKeyword = (value: unknown): KeywordIntelligenceData['mainKeyword'] => {
+        if (!isRecord(value)) return null;
+        const keyword = toStringValue(value.keyword);
+        if (!keyword) return null;
+        return {
+            keyword,
+            searchVolume: toNumber(value.search_volume),
+            competitionLevel: toStringValue(value.competition_level),
+            trendScore: toNumber(value.trend_score),
+            relevanceScore: toNumber(value.relevance_score),
+            cpcRange: isRecord(value.cpc_range)
+                ? {
+                    min: toNumber(value.cpc_range.min),
+                    max: toNumber(value.cpc_range.max),
+                }
+                : undefined,
+        };
+    };
+
+    const parseKeywordBreakdown = (value: unknown): KeywordIntelligenceData['keywordBreakdown'] => {
+        if (!Array.isArray(value)) return [];
+        const items: KeywordIntelligenceData['keywordBreakdown'] = [];
+        value.forEach((entry) => {
+            if (!isRecord(entry)) return;
+            const keyword = toStringValue(entry.keyword);
+            if (!keyword) return;
+            items.push({
+                keyword,
+                type: toStringValue(entry.type),
+                relevance: toNumber(entry.relevance),
+            });
+        });
+        return items;
+    };
+
+    const parseSubKeywords = (value: unknown): KeywordIntelligenceData['selectedSubKeywords'] => {
+        if (!Array.isArray(value)) return [];
+        const items: KeywordIntelligenceData['selectedSubKeywords'] = [];
+        value.forEach((entry) => {
+            if (!isRecord(entry)) return;
+            const keyword = toStringValue(entry.keyword);
+            if (!keyword) return;
+            items.push({
+                keyword,
+                finalScore: toNumber(entry.final_score),
+                engagementPotential: toNumber(entry.engagement_potential),
+                trendMomentum: toNumber(entry.trend_momentum),
+                competitionAdvantage: toNumber(entry.competition_advantage),
+                commercialValue: toNumber(entry.commercial_value),
+                topicCoherenceScore: toNumber(entry.topic_coherence_score),
+                selectionReason: toStringValue(entry.selection_reason),
+            });
+        });
+        return items;
+    };
+
+    const parseSearchQueries = (value: unknown): Record<string, string> => {
+        if (!isRecord(value)) return {};
+        const entries: Array<[string, string]> = [];
+        Object.entries(value).forEach(([key, raw]) => {
+            if (typeof raw !== 'string') return;
+            const trimmed = raw.trim();
+            if (!trimmed) return;
+            entries.push([key, trimmed]);
+        });
+        return Object.fromEntries(entries);
+    };
+
+    const mergeRecords = (...sources: unknown[]): Record<string, unknown> | undefined => {
+        const merged: Record<string, unknown> = {};
+        let hasValue = false;
+        sources.forEach((source) => {
+            if (!isRecord(source)) return;
+            Object.entries(source).forEach(([key, value]) => {
+                merged[key] = value;
+                hasValue = true;
+            });
+        });
+        return hasValue ? merged : undefined;
+    };
+
+    const parseEngagementMetrics = (value: unknown): EngagementOverviewData | null => {
+        if (!isRecord(value)) return null;
+        const platformPerformanceRaw = isRecord(value.platform_performance) ? value.platform_performance : null;
+        const platformPerformanceEntries: EngagementOverviewData['platformPerformance'] = [];
+        if (platformPerformanceRaw) {
+            Object.entries(platformPerformanceRaw).forEach(([platformKey, metrics]) => {
+                if (!isRecord(metrics)) return;
+                platformPerformanceEntries.push({
+                    platform: platformKey,
+                    contentCount: toNumber(metrics.content_count),
+                    averageQuality: toNumber(metrics.average_quality),
+                    topQualityScore: toNumber(metrics.top_quality_score),
+                });
+            });
+        }
+
+        const sentimentRaw = isRecord(value.sentiment_distribution) ? value.sentiment_distribution : null;
+
+        return {
+            totalContentAnalyzed: toNumber(value.total_content_analyzed) ?? 0,
+            averageQualityScore: toNumber(value.average_quality_score) ?? 0,
+            platformPerformance: platformPerformanceEntries,
+            sentimentDistribution: {
+                positive: toNumber(sentimentRaw?.positive) ?? 0,
+                neutral: toNumber(sentimentRaw?.neutral) ?? 0,
+                negative: toNumber(sentimentRaw?.negative) ?? 0,
+            },
+        };
+    };
+
+    const parseRecommendations = (value: unknown): ContentOpportunitiesData['recommendations'] => {
+        if (!Array.isArray(value)) return [];
+        const items: ContentOpportunitiesData['recommendations'] = [];
+        value.forEach((entry) => {
+            if (!isRecord(entry)) return;
+            const keyword = toStringValue(entry.keyword);
+            if (!keyword) return;
+            items.push({
+                keyword,
+                recommendedContentType: toStringValue(entry.recommended_content_type),
+                expectedEngagement: toNumber(entry.expected_engagement),
+                priority: toStringValue(entry.priority),
+            });
+        });
+        return items;
+    };
+
+    const parseCompetitiveAnalysis = (value: unknown): ContentOpportunitiesData['competitiveAnalysis'] => {
+        if (!isRecord(value)) return null;
+        return {
+            marketSaturation: toStringValue(value.market_saturation),
+            contentGapOpportunities: toStringArray(value.content_gap_opportunities),
+            differentiationStrategies: toStringArray(value.differentiation_strategies),
+        };
+    };
+
+    const mainKeywordNode = getNodeData('Main Keyword Extractor');
+    const keywordBreakdownNode = getNodeData('Keyword Breakdown');
+    const subKeywordNode = getNodeData('Sub Keyword Evaluator');
+    const advancedQueryNode = getNodeData('Advanced Query Generator');
+    const engagementNode = getNodeData('Engagement Analyzer');
+    const strategyNode = getNodeData('Strategy Generator');
+
+    if (mainKeywordNode) handled.add('Main Keyword Extractor');
+    if (keywordBreakdownNode) handled.add('Keyword Breakdown');
+    if (subKeywordNode) handled.add('Sub Keyword Evaluator');
+    if (advancedQueryNode) handled.add('Advanced Query Generator');
+    if (engagementNode) handled.add('Engagement Analyzer');
+    if (strategyNode) handled.add('Strategy Generator');
+
+    const keywordIntelligence: KeywordIntelligenceData = {
+        mainKeyword: null,
+        keywordBreakdown: [],
+        selectedSubKeywords: [],
+        searchQueries: {},
+    };
+
+    const primaryMainKeyword = parseMainKeyword(getProp(mainKeywordNode, 'main_keyword'));
+    const fallbackMainKeyword = parseMainKeyword(result['main_keyword']);
+    if (primaryMainKeyword) {
+        keywordIntelligence.mainKeyword = primaryMainKeyword;
+    } else if (fallbackMainKeyword) {
+        keywordIntelligence.mainKeyword = fallbackMainKeyword;
+    }
+    if (result['main_keyword'] !== undefined) {
+        handled.add('main_keyword');
+    }
+
+    const primaryBreakdown = parseKeywordBreakdown(getProp(keywordBreakdownNode, 'keyword_breakdown'));
+    const fallbackBreakdown = parseKeywordBreakdown(result['keyword_breakdown']);
+    const combinedBreakdown = primaryBreakdown.length > 0 ? primaryBreakdown : fallbackBreakdown;
+    keywordIntelligence.keywordBreakdown = combinedBreakdown.slice(0, 8);
+    if (result['keyword_breakdown'] !== undefined) {
+        handled.add('keyword_breakdown');
+    }
+
+    const primarySubKeywords = parseSubKeywords(getProp(subKeywordNode, 'selected_sub_keywords'));
+    const fallbackSubKeywords = parseSubKeywords(result['selected_sub_keywords']);
+    keywordIntelligence.selectedSubKeywords =
+        primarySubKeywords.length > 0 ? primarySubKeywords : fallbackSubKeywords;
+    if (result['selected_sub_keywords'] !== undefined) {
+        handled.add('selected_sub_keywords');
+    }
+
+    const mergedSearchQueries = {
+        ...parseSearchQueries(result['search_queries']),
+        ...parseSearchQueries(getProp(advancedQueryNode, 'search_queries')),
+    };
+    keywordIntelligence.searchQueries = mergedSearchQueries;
+    if (result['search_queries'] !== undefined) {
+        handled.add('search_queries');
+    }
+
+    const keywordStrategy = mergeRecords(
+        getProp(mainKeywordNode, 'keyword_strategy'),
+        getProp(keywordBreakdownNode, 'keyword_strategy'),
+        getProp(subKeywordNode, 'keyword_strategy'),
+        getProp(advancedQueryNode, 'keyword_strategy'),
+        getProp(strategyNode, 'keyword_strategy'),
+        result['keyword_strategy'],
+    );
+    if (keywordStrategy) {
+        handled.add('keyword_strategy');
+    }
+
+    const engagementOverviewData =
+        parseEngagementMetrics(getProp(engagementNode, 'engagement_metrics'))
+        ?? parseEngagementMetrics(result['engagement_metrics']);
+    let engagementOverview: EngagementOverviewData | null = null;
+    if (engagementOverviewData) {
+        engagementOverview = {
+            ...engagementOverviewData,
+            keywordStrategy,
+        };
+    }
+    if (result['engagement_metrics'] !== undefined) {
+        handled.add('engagement_metrics');
+    }
+
+    const actionableInsightsPrimary = toStringArray(getProp(strategyNode, 'actionable_insights'));
+    const actionableInsightsFallback = toStringArray(result['actionable_insights']);
+    const seenInsight = new Set<string>();
+    const actionableInsights = [...actionableInsightsPrimary, ...actionableInsightsFallback].filter((insight) => {
+        const key = insight.toLowerCase();
+        if (seenInsight.has(key)) return false;
+        seenInsight.add(key);
+        return true;
+    });
+    if (result['actionable_insights'] !== undefined) {
+        handled.add('actionable_insights');
+    }
+
+    const recommendationsPrimary = parseRecommendations(getProp(strategyNode, 'content_recommendations'));
+    const recommendationsFallback = parseRecommendations(result['content_recommendations']);
+    const recommendationMap = new Map<string, ContentOpportunitiesData['recommendations'][number]>();
+    [...recommendationsPrimary, ...recommendationsFallback].forEach((item) => {
+        if (!item.keyword) return;
+        if (!recommendationMap.has(item.keyword)) {
+            recommendationMap.set(item.keyword, item);
+        }
+    });
+    const recommendations = Array.from(recommendationMap.values());
+    if (result['content_recommendations'] !== undefined) {
+        handled.add('content_recommendations');
+    }
+
+    const competitiveAnalysis =
+        parseCompetitiveAnalysis(getProp(strategyNode, 'competitive_analysis'))
+        ?? parseCompetitiveAnalysis(result['competitive_analysis']);
+    if (result['competitive_analysis'] !== undefined) {
+        handled.add('competitive_analysis');
+    }
+
+    const hasKeywordInsights =
+        keywordIntelligence.mainKeyword !== null
+        || keywordIntelligence.keywordBreakdown.length > 0
+        || keywordIntelligence.selectedSubKeywords.length > 0
+        || Object.keys(keywordIntelligence.searchQueries).length > 0;
+    if (hasKeywordInsights) {
+        blocks.push({
+            id: createId(),
+            type: 'widget',
+            widgetType: 'keyword-intelligence',
+            data: keywordIntelligence,
+        });
+    }
+
+    if (engagementOverview) {
+        blocks.push({
+            id: createId(),
+            type: 'widget',
+            widgetType: 'engagement-overview',
+            data: engagementOverview,
+        });
+    }
+
+    const hasCompetitiveInsights =
+        actionableInsights.length > 0 || recommendations.length > 0 || competitiveAnalysis;
+    if (hasCompetitiveInsights) {
+        const opportunities: ContentOpportunitiesData = {
+            actionableInsights,
+            recommendations,
+            competitiveAnalysis: competitiveAnalysis ?? null,
+        };
+        blocks.push({
+            id: createId(),
+            type: 'widget',
+            widgetType: 'content-opportunities',
+            data: opportunities,
+        });
+    }
+
     const referenceIndex = new Map<
         string,
         { id?: string; url?: string; title?: string; snippet?: string; platform?: string }
     >();
     const referenceIdToUrl = new Map<string, string>();
-    if (isRecord(summarizeValue) && Array.isArray(summarizeValue.references)) {
+    if (summarizeValue && Array.isArray(summarizeValue.references)) {
         summarizeValue.references.forEach((ref) => {
             if (!isRecord(ref)) return;
             const url = typeof ref.url === 'string' ? ref.url : undefined;
@@ -566,47 +904,127 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         return { referenceMap, analysisMap };
     };
 
-    let threadsItems: NormalizedSocialContent[] = [];
-    if (result['Threads Search'] !== undefined) {
-        threadsItems = extractSocialItems(result['Threads Search'], 'threads');
-        handled.add('Threads Search');
-    }
-    if (threadsItems.length === 0 && isRecord(summarizeValue)) {
-        threadsItems = extractSocialItems(summarizeValue, 'threads');
+    const searchResultsAggregate = isRecord(result['search_results'])
+        ? (result['search_results'] as Record<string, unknown>)
+        : null;
+    if (searchResultsAggregate) {
+        handled.add('search_results');
     }
 
-    if (threadsItems.length > 0) {
-        const { referenceMap, analysisMap } = buildReferenceContextForItems(threadsItems, 'threads');
+    const extractErrors = (value: unknown): string[] => {
+        if (!isRecord(value) || !Array.isArray(value.errors)) return [];
+        return (value.errors as unknown[])
+            .filter((error): error is string => typeof error === 'string' && error.trim().length > 0)
+            .map((error) => error.trim());
+    };
+
+    type CollectedSearch = {
+        items: NormalizedSocialContent[];
+        attempted: boolean;
+        errors: string[];
+    };
+
+    const collectSearchResult = (platform: 'threads' | 'x'): CollectedSearch => {
+        const enhancedKey = platform === 'threads' ? 'Enhanced Threads Search' : 'Enhanced X Search';
+        const legacyKey = platform === 'threads' ? 'Threads Search' : 'X Search';
+
+        let attempted = false;
+        const errors: string[] = [];
+
+        const considerValue = (value: unknown, key?: string) => {
+            if (key) {
+                handled.add(key);
+            }
+            if (value !== undefined) {
+                attempted = true;
+                errors.push(...extractErrors(value));
+                const items = extractSocialItems(value, platform);
+                if (items.length > 0) {
+                    return items;
+                }
+            }
+            return null;
+        };
+
+        const enhancedValue = result[enhancedKey];
+        const enhancedItems = considerValue(enhancedValue, enhancedValue !== undefined ? enhancedKey : undefined);
+        if (enhancedItems) {
+            return { items: enhancedItems, attempted: true, errors };
+        }
+
+        const legacyValue = result[legacyKey];
+        const legacyItems = considerValue(legacyValue, legacyValue !== undefined ? legacyKey : undefined);
+        if (legacyItems) {
+            return { items: legacyItems, attempted: true, errors };
+        }
+
+        if (searchResultsAggregate) {
+            const aggregatedValue = searchResultsAggregate[platform];
+            const aggregatedItems = considerValue(aggregatedValue);
+            if (aggregatedItems) {
+                return { items: aggregatedItems, attempted, errors };
+            }
+        }
+
+        if (summarizeValue) {
+            const summaryItems = extractSocialItems(summarizeValue, platform);
+            if (summaryItems.length > 0) {
+                return {
+                    items: summaryItems,
+                    attempted: attempted || summaryItems.length > 0,
+                    errors,
+                };
+            }
+        }
+
+        return { items: [], attempted, errors };
+    };
+
+    const threadsResult = collectSearchResult('threads');
+    if (threadsResult.attempted || threadsResult.items.length > 0) {
+        let referenceMap: Record<string, { url?: string; title?: string; snippet?: string }> | undefined;
+        let analysisMap: Record<string, ReferenceAnalysis> | undefined;
+        if (threadsResult.items.length > 0) {
+            const context = buildReferenceContextForItems(threadsResult.items, 'threads');
+            referenceMap = context.referenceMap;
+            analysisMap = context.analysisMap;
+        }
         blocks.push({
             id: createId(),
             type: 'threads',
             title: 'Threads Search',
-            items: threadsItems,
+            items: threadsResult.items,
             referenceData: referenceMap,
             referenceAnalysis: analysisMap,
             audienceAnalysis: audienceInsights,
+            emptyMessage:
+                threadsResult.items.length === 0
+                    ? threadsResult.errors[0] ?? 'No Threads conversations met the quality threshold.'
+                    : undefined,
         });
     }
 
-    let xItems: NormalizedSocialContent[] = [];
-    if (result['X Search'] !== undefined) {
-        xItems = extractSocialItems(result['X Search'], 'x');
-        handled.add('X Search');
-    }
-    if (xItems.length === 0 && isRecord(summarizeValue)) {
-        xItems = extractSocialItems(summarizeValue, 'x');
-    }
-
-    if (xItems.length > 0) {
-        const { referenceMap, analysisMap } = buildReferenceContextForItems(xItems, 'x');
+    const xResult = collectSearchResult('x');
+    if (xResult.attempted || xResult.items.length > 0) {
+        let referenceMap: Record<string, { url?: string; title?: string; snippet?: string }> | undefined;
+        let analysisMap: Record<string, ReferenceAnalysis> | undefined;
+        if (xResult.items.length > 0) {
+            const context = buildReferenceContextForItems(xResult.items, 'x');
+            referenceMap = context.referenceMap;
+            analysisMap = context.analysisMap;
+        }
         blocks.push({
             id: createId(),
             type: 'x',
             title: 'X Search',
-            items: xItems,
+            items: xResult.items,
             referenceData: referenceMap,
             referenceAnalysis: analysisMap,
             audienceAnalysis: audienceInsights,
+            emptyMessage:
+                xResult.items.length === 0
+                    ? xResult.errors[0] ?? 'No X conversations matched the search intent.'
+                    : undefined,
         });
     }
 
@@ -644,7 +1062,7 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         handled.add('Keyword Planner');
     }
 
-    if (isRecord(summarizeValue)) {
+    if (summarizeValue) {
         const summaryParts: string[] = [];
         if (typeof summarizeValue.summary === 'string' && summarizeValue.summary.trim().length > 0) {
             summaryParts.push(summarizeValue.summary.trim());
@@ -704,7 +1122,9 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
                 links: linkRefs,
             });
         }
-        handled.add('Summarize');
+        if (summarizerKey) {
+            handled.add(summarizerKey);
+        }
     }
 
     Object.entries(result).forEach(([key, value]) => {
@@ -865,7 +1285,7 @@ export default function TopicFinderPage() {
     }, [submittedContext]);
     const profileAnalytics = useProfileAnalytics(currentSocialId, 7);
     const profileSummaryText = useMemo(() => buildProfileSummaryText(profileAnalytics), [profileAnalytics]);
-                const requestAudienceAnalysis = useMemo(
+    const requestAudienceAnalysis = useMemo(
         () => buildAudienceAnalysis(selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList),
         [selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList]
     );
@@ -1758,10 +2178,10 @@ export default function TopicFinderPage() {
 
         const assistantId = createId();
         const initialThinkingSteps: ThinkingProcessStep[] = [
-            { id: 'profile', label: 'Analyzing profile insights', status: 'in_progress' },
-            { id: 'audience', label: 'Understanding audience preferences', status: 'pending' },
-            { id: 'references', label: 'Reviewing reference opportunities', status: 'pending' },
-            { id: 'recommendations', label: 'Synthesizing recommendations', status: 'pending' },
+            { id: 'keywords', label: 'Mapping keyword intelligence', status: 'in_progress' },
+            { id: 'search', label: 'Collecting high-signal conversations', status: 'pending' },
+            { id: 'analysis', label: 'Evaluating engagement dynamics', status: 'pending' },
+            { id: 'insights', label: 'Packaging actionable insights', status: 'pending' },
         ];
         const placeholderAssistant: AssistantMessage = {
             id: assistantId,
@@ -1817,7 +2237,8 @@ export default function TopicFinderPage() {
             }
             const textFragments = entry.blocks.map((block) => {
                 if (block.type === 'text') return block.content;
-                return `${block.title} (${block.type})`;
+                if ('title' in block) return `${block.title} (${block.type})`;
+                return `${block.type}`;
             });
             return { role: 'assistant', content: textFragments.join('\n\n') };
         });
@@ -1907,7 +2328,7 @@ export default function TopicFinderPage() {
             const hasReferenceBlocks = blocks.some((block) => block.type === 'threads' || block.type === 'x');
             const hasRecommendationWidget = blocks.some((block) => block.type === 'widget' && block.widgetType === 'topics');
 
-updateThinkingProcess((steps) =>
+            updateThinkingProcess((steps) =>
                 steps.map((step) => {
                     if (step.id === 'audience') {
                         return { ...step, status: 'complete' };
@@ -2107,7 +2528,7 @@ updateThinkingProcess((steps) =>
                             mounted={mounted}
                             currentSocialId={currentSocialId}
                             currentUsername={currentUsername}
-                            t={t}
+                            t={t as any}
                             personas={personas}
                             audiences={audiences}
                             objectives={objectives}
@@ -2128,7 +2549,7 @@ updateThinkingProcess((steps) =>
                             postType={postType}
                             onPostTypeChange={setPostType}
                             language={language}
-                            onLanguageChange={setLanguage}
+                            onLanguageChange={(value) => setLanguage(value as any)}
                             onInitialSend={handleInitialSend}
                             isPreChatReady={isPreChatReady}
                             isSubmittingMessage={isSubmittingMessage}
