@@ -24,27 +24,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: fetchError.message }, { status: 500 });
     }
 
-    const payload: Record<string, unknown> = {
-      owner: session.user.id,
-      fid: Number(fid),
+    const basePayload: Record<string, unknown> = {
       username: typeof username === 'string' ? username : null,
       updated_at: new Date().toISOString(),
     };
 
-    if (existingAccount?.custody_address) payload.custody_address = existingAccount.custody_address;
-    if (existingAccount?.signer_public_key_hex) payload.signer_public_key_hex = existingAccount.signer_public_key_hex;
-    if (existingAccount?.signer_private_key_enc) payload.signer_private_key_enc = existingAccount.signer_private_key_enc;
-    if (existingAccount?.signed_key_request_token) payload.signed_key_request_token = existingAccount.signed_key_request_token;
-    if (existingAccount?.signed_key_request_state) payload.signed_key_request_state = existingAccount.signed_key_request_state;
-    if (existingAccount?.signed_key_request_expires_at) payload.signed_key_request_expires_at = existingAccount.signed_key_request_expires_at;
-    if (existingAccount?.signer_approved_at) payload.signer_approved_at = existingAccount.signer_approved_at;
-    if (typeof existingAccount?.is_active === 'boolean') payload.is_active = existingAccount.is_active;
+    if (existingAccount?.custody_address) basePayload.custody_address = existingAccount.custody_address;
+    if (existingAccount?.signer_public_key_hex) basePayload.signer_public_key_hex = existingAccount.signer_public_key_hex;
+    if (existingAccount?.signer_private_key_enc) basePayload.signer_private_key_enc = existingAccount.signer_private_key_enc;
+    if (existingAccount?.signed_key_request_token) basePayload.signed_key_request_token = existingAccount.signed_key_request_token;
+    if (existingAccount?.signed_key_request_state) basePayload.signed_key_request_state = existingAccount.signed_key_request_state;
+    if (existingAccount?.signed_key_request_expires_at) basePayload.signed_key_request_expires_at = existingAccount.signed_key_request_expires_at;
+    if (existingAccount?.signer_approved_at) basePayload.signer_approved_at = existingAccount.signer_approved_at;
+    if (typeof existingAccount?.is_active === 'boolean') basePayload.is_active = existingAccount.is_active;
 
-    const { error } = await supabase
-      .from('farcaster_accounts')
-      .upsert(payload, { onConflict: 'owner,fid' });
+    if (existingAccount) {
+      const { error: updateError } = await supabase
+        .from('farcaster_accounts')
+        .update(basePayload)
+        .eq('owner', session.user.id)
+        .eq('fid', Number(fid));
 
-    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      if (updateError) {
+        return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+      }
+    } else {
+      const insertPayload = {
+        owner: session.user.id,
+        fid: Number(fid),
+        ...basePayload,
+        created_at: new Date().toISOString(),
+      };
+
+      const { error: insertError } = await supabase
+        .from('farcaster_accounts')
+        .insert(insertPayload);
+
+      if (insertError) {
+        return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
+      }
+    }
 
     // social_accounts에 Farcaster 계정 동기화
     const socialId = String(fid);
