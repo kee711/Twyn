@@ -13,7 +13,7 @@ interface ListProps {
   events: Event[]
   month: Date
   onMonthChange: (date: Date) => void
-  onEventUpdate: (event: Event) => void
+  onEventUpdate: (event: Event) => Promise<void> | void
   onEventDelete: (eventId: string) => void
 }
 
@@ -44,8 +44,8 @@ export function List({
     }
   }
 
-  const handleSaveChanges = (updatedEvent: Event) => {
-    onEventUpdate(updatedEvent)
+  const handleSaveChanges = async (updatedEvent: Event) => {
+    await Promise.resolve(onEventUpdate(updatedEvent))
     setIsEditModalOpen(false)
   }
 
@@ -67,7 +67,7 @@ export function List({
     setDropTargetDate(null)
   }
 
-  const handleDrop = (e: React.DragEvent, dropDate: Date) => {
+  const handleDrop = async (e: React.DragEvent, dropDate: Date) => {
     e.preventDefault()
     const eventDataString = e.dataTransfer.getData('text/plain')
     setDraggedEvent(null)
@@ -99,7 +99,7 @@ export function List({
         date: newDate
       }
 
-      onEventUpdate(updatedEvent)
+      await Promise.resolve(onEventUpdate(updatedEvent))
     } catch (error) {
       console.error("Error parsing dropped event data:", error)
     }

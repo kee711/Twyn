@@ -31,4 +31,6 @@ export interface NormalizedSocialContent {
         likes?: number;
         reposts?: number;
     };
+    rawBody?: string;
+    platform?: 'threads' | 'x' | 'external';
 }

@@ -1,13 +1,13 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { http } from 'wagmi';
 import type { Config } from 'wagmi';
-import { base, mainnet, optimism } from 'wagmi/chains';
+import { base, baseSepolia, mainnet, optimism } from 'wagmi/chains';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 export const walletAppName = process.env.NEXT_PUBLIC_APP_NAME || 'Threads SaaS';
 
-const chains = [base, optimism, mainnet];
+const chains = [base, baseSepolia, optimism, mainnet];
 
 const transports = chains.reduce<Record<number, ReturnType<typeof http>>>((acc, chain) => {
   acc[chain.id] = http();
@@ -32,4 +32,3 @@ export function createWalletConfig(): Config | null {
     ssr: true,
   });
 }
-

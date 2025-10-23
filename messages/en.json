@@ -24,6 +24,17 @@
     "info": "Info",
     "menu": "Open menu"
   },
+  "ownershipPrompt": {
+    "title": "Secure your post ownership on-chain",
+    "subtitle": "Connect your wallet to record a lightweight ownership receipt for every publication. This lives on the Base testnet, giving you an auditable trail while keeping posts uninterrupted.",
+    "bullet1": "Signing happens on Base testnet and takes only a few seconds.",
+    "bullet2": "You'll get a direct link to the block explorer after we broadcast.",
+    "bullet3": "Publishing never stops — even if you skip or cancel the transaction.",
+    "rememberLabel": "Remember my choice",
+    "rememberCaption": "Hide this reminder for future posts",
+    "continueWithout": "Continue without blockchain receipt",
+    "publishWithReceipt": "Publish with on-chain receipt"
+  },
   "auth": {
     "signIn": "Sign In",
     "signOut": "Sign Out",

@@ -51,6 +51,7 @@ interface TopicFinderPreChatProps {
     onObjectiveSelect: (option: PreferenceOption) => void | Promise<void>;
     onAddOnToggle: (option: AddOnOption) => void | Promise<void>;
     onOpenCreateModal: (type: 'persona' | 'audience' | 'objective' | 'addOn') => void;
+    onOpenEditModal: (type: 'persona' | 'audience' | 'objective' | 'addOn', option: PreferenceOption | AddOnOption) => void;
     headline: string;
     onHeadlineChange: (value: string) => void;
     postType: 'single' | 'thread';
@@ -89,6 +90,7 @@ export const TopicFinderPreChat = ({
     onObjectiveSelect,
     onAddOnToggle,
     onOpenCreateModal,
+    onOpenEditModal,
     headline,
     onHeadlineChange,
     postType,
@@ -148,6 +150,7 @@ export const TopicFinderPreChat = ({
                         selectedId={selectedPersonaId}
                         onSelect={onPersonaSelect}
                         onCreateNew={() => onOpenCreateModal('persona')}
+                        onEdit={option => onOpenEditModal('persona', option)}
                         placeholder="Select persona"
                         disabled={!userId}
                         loading={isPreferenceLoading && personas.length === 0}
@@ -158,6 +161,7 @@ export const TopicFinderPreChat = ({
                         selectedId={selectedAudienceId}
                         onSelect={onAudienceSelect}
                         onCreateNew={() => onOpenCreateModal('audience')}
+                        onEdit={option => onOpenEditModal('audience', option)}
                         placeholder="Select audience"
                         disabled={!userId}
                         loading={isPreferenceLoading && audiences.length === 0}
@@ -168,6 +172,7 @@ export const TopicFinderPreChat = ({
                         selectedId={selectedObjectiveId}
                         onSelect={onObjectiveSelect}
                         onCreateNew={() => onOpenCreateModal('objective')}
+                        onEdit={option => onOpenEditModal('objective', option)}
                         placeholder="Select objective"
                         disabled={!userId}
                         loading={isPreferenceLoading && objectives.length === 0}
@@ -177,6 +182,7 @@ export const TopicFinderPreChat = ({
                         selectedIds={selectedAddOnIds}
                         onToggle={onAddOnToggle}
                         onCreateNew={() => onOpenCreateModal('addOn')}
+                        onEdit={option => onOpenEditModal('addOn', option)}
                         disabled={!userId}
                         loading={isPreferenceLoading && addOns.length === 0}
                     />

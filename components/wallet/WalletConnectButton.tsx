@@ -2,30 +2,44 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
+import { Button, type ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { walletEnabled } from '@/lib/wallet';
 
 interface WalletConnectButtonProps {
   className?: string;
   onOpenConnectModal?: () => void;
+  size?: 'xs' | 'sm' | 'lg';
+  variant?: ButtonProps['variant'];
 }
 
-const baseButtonClass = 'h-8 px-3 text-xs font-medium rounded-lg';
+const baseButtonClass: Record<NonNullable<WalletConnectButtonProps['size']>, string> = {
+  xs: 'h-11 w-full rounded-xl text-sm font-semibold',
+  sm: 'h-8 px-3 text-xs font-medium rounded-lg',
+  lg: 'h-12 px-6 text-sm font-semibold rounded-xl',
+};
+
+const sizeMap: Record<NonNullable<WalletConnectButtonProps['size']>, ButtonProps['size']> = {
+  xs: 'xl',
+  sm: 'sm',
+  lg: 'lg',
+};
 
 export function WalletConnectButton({
   className,
   onOpenConnectModal,
+  size = 'sm',
+  variant = 'outline',
 }: WalletConnectButtonProps) {
   const t = useTranslations('SocialAccountSelector');
 
   if (!walletEnabled) {
     return (
       <Button
-        variant="outline"
-        size="sm"
+        variant={variant}
+        size={sizeMap[size]}
         type="button"
-        className={cn(baseButtonClass, className)}
+        className={cn(baseButtonClass[size], className)}
         disabled
         title={t('connectWalletUnavailable')}
       >
@@ -51,10 +65,10 @@ export function WalletConnectButton({
         if (!ready) {
           return (
             <Button
-              variant="outline"
-              size="sm"
+              variant={variant}
+              size={sizeMap[size]}
               type="button"
-              className={cn(baseButtonClass, className)}
+              className={cn(baseButtonClass[size], className)}
               disabled
             >
               {t('connectWallet')}
@@ -65,14 +79,14 @@ export function WalletConnectButton({
         if (!connected) {
           return (
             <Button
-              variant="outline"
-              size="sm"
+              variant={variant}
+              size={sizeMap[size]}
               type="button"
-              className={cn(baseButtonClass, className)}
+              className={cn(baseButtonClass[size], className)}
               onClick={() => {
                 if (!openConnectModal) return;
                 onOpenConnectModal?.();
-                openConnectModal();
+                requestAnimationFrame(() => openConnectModal());
               }}
             >
               {t('connectWallet')}
@@ -84,9 +98,9 @@ export function WalletConnectButton({
           return (
             <Button
               variant="destructive"
-              size="sm"
+              size={sizeMap[size]}
               type="button"
-              className={cn(baseButtonClass, className)}
+              className={cn(baseButtonClass[size], className)}
               onClick={openChainModal}
             >
               {t('switchNetwork')}
@@ -96,11 +110,14 @@ export function WalletConnectButton({
 
         return (
           <Button
-            variant="outline"
-            size="sm"
+            variant={variant}
+            size={sizeMap[size]}
             type="button"
-            className={cn(baseButtonClass, 'gap-2', className)}
-            onClick={openAccountModal}
+            className={cn(baseButtonClass[size], 'gap-2', className)}
+            onClick={() => {
+              onOpenConnectModal?.();
+              requestAnimationFrame(() => openAccountModal());
+            }}
           >
             {chain.hasIcon && chain.iconUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
