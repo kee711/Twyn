@@ -34,3 +34,75 @@ export interface NormalizedSocialContent {
     rawBody?: string;
     platform?: 'threads' | 'x' | 'external';
 }
+
+export interface KeywordBreakdownItem {
+    keyword: string;
+    type?: string;
+    relevance?: number;
+}
+
+export interface SubKeywordInsight {
+    keyword: string;
+    finalScore?: number;
+    engagementPotential?: number;
+    trendMomentum?: number;
+    competitionAdvantage?: number;
+    commercialValue?: number;
+    topicCoherenceScore?: number;
+    selectionReason?: string;
+}
+
+export interface KeywordIntelligenceData {
+    mainKeyword: {
+        keyword: string;
+        searchVolume?: number;
+        competitionLevel?: string;
+        trendScore?: number;
+        relevanceScore?: number;
+        cpcRange?: {
+            min?: number;
+            max?: number;
+        };
+    } | null;
+    keywordBreakdown: KeywordBreakdownItem[];
+    selectedSubKeywords: SubKeywordInsight[];
+    searchQueries: Record<string, string>;
+}
+
+export interface PlatformPerformance {
+    platform: string;
+    contentCount?: number;
+    averageQuality?: number;
+    topQualityScore?: number;
+}
+
+export interface EngagementOverviewData {
+    totalContentAnalyzed: number;
+    averageQualityScore: number;
+    platformPerformance: PlatformPerformance[];
+    sentimentDistribution: {
+        positive: number;
+        neutral: number;
+        negative: number;
+    };
+    keywordStrategy?: Record<string, unknown>;
+}
+
+export interface ContentRecommendation {
+    keyword: string;
+    recommendedContentType?: string;
+    expectedEngagement?: number;
+    priority?: string;
+}
+
+export interface CompetitiveAnalysisData {
+    marketSaturation?: string;
+    contentGapOpportunities: string[];
+    differentiationStrategies: string[];
+}
+
+export interface ContentOpportunitiesData {
+    actionableInsights: string[];
+    recommendations: ContentRecommendation[];
+    competitiveAnalysis: CompetitiveAnalysisData | null;
+}

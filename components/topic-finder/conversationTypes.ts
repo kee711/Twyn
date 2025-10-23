@@ -38,6 +38,7 @@ export type ThreadsBlock = {
     referenceData?: Record<string, ReferenceMetadata>;
     referenceAnalysis?: Record<string, ReferenceAnalysis>;
     audienceAnalysis?: unknown;
+    emptyMessage?: string;
 };
 
 export type XBlock = {
@@ -48,6 +49,7 @@ export type XBlock = {
     referenceData?: Record<string, ReferenceMetadata>;
     referenceAnalysis?: Record<string, ReferenceAnalysis>;
     audienceAnalysis?: unknown;
+    emptyMessage?: string;
 };
 
 export type AssistantBlock = TextBlock | ThreadsBlock | XBlock | WidgetBlock;

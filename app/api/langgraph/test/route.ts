@@ -4,7 +4,7 @@ import { Client } from '@langchain/langgraph-sdk';
 type StreamMode = 'updates' | 'messages-tuple';
 
 const DEFAULT_TOPIC = 'social media marketing strategy for AI startups';
-const DEFAULT_GRAPH_ID = process.env.LANGGRAPH_GRAPH_ID || 'researcher';
+const DEFAULT_GRAPH_ID = process.env.LANGGRAPH_GRAPH_ID || 'researcher-enhanced';
 const DEFAULT_STREAM_MODE: StreamMode = 'updates';
 
 const client = new Client({

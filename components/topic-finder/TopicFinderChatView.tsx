@@ -8,6 +8,9 @@ import { HorizontalCarousel } from '@/components/topic-finder/HorizontalCarousel
 import { ProfileAnalyzerCard } from '@/components/topic-finder/ProfileAnalyzerCard';
 import { RecommendedTopicsGrid } from '@/components/topic-finder/RecommendedTopicsGrid';
 import { ReferenceAnalyzerPanel } from '@/components/topic-finder/ReferenceAnalyzerPanel';
+import { KeywordIntelligenceCard } from '@/components/topic-finder/KeywordIntelligenceCard';
+import { EngagementOverviewCard } from '@/components/topic-finder/EngagementOverviewCard';
+import { ContentOpportunitiesCard } from '@/components/topic-finder/ContentOpportunitiesCard';
 import { TextResponse } from '@/components/topic-finder/TextResponse';
 import { ThreadsCard, XCard } from '@/components/topic-finder/SocialCards';
 import { ThinkingProcessTimeline } from '@/components/topic-finder/ThinkingProcessTimeline';
@@ -15,7 +18,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { AudienceAnalysis } from '@/lib/topic-finder/audience';
 import type { ProfileAnalytics } from '@/lib/topic-finder/analytics';
 import type { RecommendedTopic } from '@/lib/topic-finder/recommendations';
-import type { NormalizedSocialContent, ReferenceAnalysis } from '@/components/topic-finder/types';
+import type {
+    NormalizedSocialContent,
+    ReferenceAnalysis,
+    KeywordIntelligenceData,
+    EngagementOverviewData,
+    ContentOpportunitiesData,
+} from '@/components/topic-finder/types';
 
 import type { ConversationMessage, ReferenceMetadata } from './conversationTypes';
 
@@ -51,6 +60,7 @@ export const TopicFinderChatView = ({
             referenceData?: Record<string, ReferenceMetadata>;
             referenceAnalysis?: Record<string, ReferenceAnalysis>;
             audienceAnalysis?: AudienceAnalysis | null;
+            emptyMessage?: string;
         },
     ) => (
         <ReferenceAnalyzerPanel
@@ -64,18 +74,24 @@ export const TopicFinderChatView = ({
         >
             {(analysisMap, loading) => (
                 <HorizontalCarousel title={options.title}>
-                    {options.items.map((item) => {
-                        const CardComponent = options.platform === 'threads' ? ThreadsCard : XCard;
-                        return (
-                            <CardComponent
-                                key={item.id}
-                                item={item}
-                                onRepurpose={(content) => onRepurposeContent(content, options.platform)}
-                                referenceAnalysis={analysisMap[item.id]}
-                                analysisLoading={loading}
-                            />
-                        );
-                    })}
+                    {options.items.length === 0 ? (
+                        <div className="flex min-w-[280px] max-w-[320px] flex-1 items-center justify-center rounded-xl border border-dashed border-border/60 bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground/80">
+                            {options.emptyMessage ?? 'No qualifying posts found.'}
+                        </div>
+                    ) : (
+                        options.items.map((item) => {
+                            const CardComponent = options.platform === 'threads' ? ThreadsCard : XCard;
+                            return (
+                                <CardComponent
+                                    key={item.id}
+                                    item={item}
+                                    onRepurpose={(content) => onRepurposeContent(content, options.platform)}
+                                    referenceAnalysis={analysisMap[item.id]}
+                                    analysisLoading={loading}
+                                />
+                            );
+                        })
+                    )}
                 </HorizontalCarousel>
             )}
         </ReferenceAnalyzerPanel>
@@ -130,9 +146,9 @@ export const TopicFinderChatView = ({
                                                 {message.status === 'loading' &&
                                                     Array.isArray(message.thinkingProcess) &&
                                                     message.thinkingProcess.length > 0 && (
-                                                    <ThinkingProcessTimeline steps={message.thinkingProcess} />
-                                                )}
-                                                {shouldRenderProfileCard && (
+                                                        <ThinkingProcessTimeline steps={message.thinkingProcess} />
+                                                    )}
+                                                {shouldRenderProfileCard && profileAnalytics && (
                                                     <ProfileAnalyzerCard analytics={profileAnalytics} />
                                                 )}
 
@@ -167,6 +183,7 @@ export const TopicFinderChatView = ({
                                                                             referenceData: block.referenceData,
                                                                             referenceAnalysis: block.referenceAnalysis,
                                                                             audienceAnalysis: block.audienceAnalysis as AudienceAnalysis | undefined,
+                                                                            emptyMessage: block.emptyMessage,
                                                                         });
                                                                     case 'x':
                                                                         return renderReferencePanel(block.id, {
@@ -176,6 +193,7 @@ export const TopicFinderChatView = ({
                                                                             referenceData: block.referenceData,
                                                                             referenceAnalysis: block.referenceAnalysis,
                                                                             audienceAnalysis: block.audienceAnalysis as AudienceAnalysis | undefined,
+                                                                            emptyMessage: block.emptyMessage,
                                                                         });
                                                                     case 'widget': {
                                                                         if (block.widgetType === 'reference-analysis') {
@@ -198,6 +216,18 @@ export const TopicFinderChatView = ({
                                                                                 referenceAnalysis: data.referenceAnalysis,
                                                                                 audienceAnalysis: data.audienceAnalysis ?? undefined,
                                                                             });
+                                                                        }
+                                                                        if (block.widgetType === 'keyword-intelligence') {
+                                                                            const data = (block.data ?? null) as KeywordIntelligenceData | null;
+                                                                            return <KeywordIntelligenceCard key={block.id} data={data} />;
+                                                                        }
+                                                                        if (block.widgetType === 'engagement-overview') {
+                                                                            const data = (block.data ?? null) as EngagementOverviewData | null;
+                                                                            return <EngagementOverviewCard key={block.id} data={data} />;
+                                                                        }
+                                                                        if (block.widgetType === 'content-opportunities') {
+                                                                            const data = (block.data ?? null) as ContentOpportunitiesData | null;
+                                                                            return <ContentOpportunitiesCard key={block.id} data={data} />;
                                                                         }
                                                                         if (block.widgetType === 'audience') {
                                                                             const analysis = block.data as AudienceAnalysis | undefined;
