@@ -252,7 +252,7 @@ export const TopicFinderPreChat = ({
                             onClick={() => {
                                 void onGenerateTopics();
                             }}
-                            disabled={!isPreChatReady || isGeneratingTopics || isSubmittingMessage}
+                            disabled={isGeneratingTopics || isSubmittingMessage}
                         >
                             {isGeneratingTopics ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -128,8 +128,8 @@ export const TopicFinderChatView = ({
                                                 {message.status === 'loading' &&
                                                     Array.isArray(message.thinkingProcess) &&
                                                     message.thinkingProcess.length > 0 && (
-                                                    <ThinkingProcessTimeline steps={message.thinkingProcess} />
-                                                )}
+                                                        <ThinkingProcessTimeline steps={message.thinkingProcess} />
+                                                    )}
                                                 {shouldRenderProfileCard && (
                                                     <ProfileAnalyzerCard analytics={profileAnalytics} />
                                                 )}
