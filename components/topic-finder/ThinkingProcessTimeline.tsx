@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import { motion } from 'framer-motion';
 import { Circle, CircleCheck, Loader2, OctagonAlert } from 'lucide-react';
 

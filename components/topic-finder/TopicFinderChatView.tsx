@@ -85,8 +85,8 @@ export const TopicFinderChatView = ({
                                 <CardComponent
                                     key={item.id}
                                     item={item}
-                                onRepurpose={(content) => onRepurposeContent(content, options.platform)}
-                                referenceAnalysis={analysisMap[item.id]}
+                                    onRepurpose={(content) => onRepurposeContent(content, options.platform)}
+                                    referenceAnalysis={analysisMap[item.id]}
                                     analysisLoading={loading}
                                 />
                             );
@@ -146,9 +146,9 @@ export const TopicFinderChatView = ({
                                                 {message.status === 'loading' &&
                                                     Array.isArray(message.thinkingProcess) &&
                                                     message.thinkingProcess.length > 0 && (
-                                                    <ThinkingProcessTimeline steps={message.thinkingProcess} />
-                                                )}
-                                                {shouldRenderProfileCard && (
+                                                        <ThinkingProcessTimeline steps={message.thinkingProcess} />
+                                                    )}
+                                                {shouldRenderProfileCard && profileAnalytics && (
                                                     <ProfileAnalyzerCard analytics={profileAnalytics} />
                                                 )}
 
