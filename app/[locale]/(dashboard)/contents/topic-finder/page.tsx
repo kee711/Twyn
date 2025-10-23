@@ -74,10 +74,10 @@ const normalizeTextContent = (value: unknown): string => {
     return '';
 };
 
-const normalizeSocialContent = (value: unknown): NormalizedSocialContent[] => {
-    if (!Array.isArray(value)) return [];
+const normalizeSocialContent = (items: unknown[]): NormalizedSocialContent[] => {
+    if (!Array.isArray(items)) return [];
 
-    return value
+    return items
         .map((item) => {
             if (!isRecord(item)) return null;
 
@@ -153,6 +153,11 @@ const normalizeSocialContent = (value: unknown): NormalizedSocialContent[] => {
                         ? item.timestamp
                         : undefined;
 
+            const rawBody = typeof item.content === 'string' ? item.content : typeof item.body === 'string' ? item.body : undefined;
+            const platform = typeof item.platform === 'string'
+                ? (item.platform.toLowerCase() as 'threads' | 'x' | 'external')
+                : undefined;
+
             return {
                 id: typeof item.id === 'string' ? item.id : createId(),
                 authorName,
@@ -163,6 +168,8 @@ const normalizeSocialContent = (value: unknown): NormalizedSocialContent[] => {
                 link,
                 mediaUrls,
                 metrics,
+                rawBody,
+                platform,
             } as NormalizedSocialContent;
         })
         .filter((item): item is NormalizedSocialContent => !!item);
@@ -823,7 +830,12 @@ export default function TopicFinderPage() {
     const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
     const [preferenceId, setPreferenceId] = useState<string | null>(null);
     const [isPreferenceLoading, setIsPreferenceLoading] = useState(false);
-    const [modalState, setModalState] = useState<{ type: 'persona' | 'audience' | 'objective' | 'addOn' | null; open: boolean }>({ type: null, open: false });
+    const [modalState, setModalState] = useState<{
+        type: 'persona' | 'audience' | 'objective' | 'addOn' | null;
+        open: boolean;
+        mode: 'create' | 'edit';
+        item: (PreferenceOption | AddOnOption) | null;
+    }>({ type: null, open: false, mode: 'create', item: null });
     const [modalSaving, setModalSaving] = useState(false);
     const { postType, language, setPostType, setLanguage } = useContentGenerationStore();
     const { setOriginalAiContent } = useAiContentStore();
@@ -865,7 +877,7 @@ export default function TopicFinderPage() {
     }, [submittedContext]);
     const profileAnalytics = useProfileAnalytics(currentSocialId, 7);
     const profileSummaryText = useMemo(() => buildProfileSummaryText(profileAnalytics), [profileAnalytics]);
-                const requestAudienceAnalysis = useMemo(
+    const requestAudienceAnalysis = useMemo(
         () => buildAudienceAnalysis(selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList),
         [selectedPersona, selectedAudience, selectedObjective, selectedAddOnsList]
     );
@@ -1020,6 +1032,12 @@ export default function TopicFinderPage() {
         audience: selectedAudience ? { id: selectedAudience.id, name: selectedAudience.name, description: selectedAudience.description || '' } : null,
         objective: selectedObjective ? { id: selectedObjective.id, name: selectedObjective.name, description: selectedObjective.description || '' } : null,
         addOns: selectedAddOnsList.map(addOn => ({ id: addOn.id, name: addOn.name, description: addOn.description || '' })),
+        sourceReference: null as null | {
+            id: string;
+            link?: string;
+            platform: 'threads' | 'x';
+            excerpt: string;
+        },
     }), [selectedAddOnsList, selectedAudience, selectedObjective, selectedPersona]);
 
     const updatePreference = useCallback(
@@ -1132,14 +1150,18 @@ export default function TopicFinderPage() {
     );
 
     const openCreateModal = useCallback((type: 'persona' | 'audience' | 'objective' | 'addOn') => {
-        setModalState({ type, open: true });
+        setModalState({ type, open: true, mode: 'create', item: null });
+    }, []);
+
+    const openEditModal = useCallback((type: 'persona' | 'audience' | 'objective' | 'addOn', option: PreferenceOption | AddOnOption) => {
+        setModalState({ type, open: true, mode: 'edit', item: option });
     }, []);
 
     const closeCreateModal = useCallback(() => {
-        setModalState({ type: null, open: false });
+        setModalState({ type: null, open: false, mode: 'create', item: null });
     }, []);
 
-    const handleCreatePreferenceItem = useCallback(
+    const handleSavePreferenceItem = useCallback(
         async ({ name, description, isPublic }: { name: string; description: string; isPublic?: boolean }) => {
             if (!modalState.type || !userId) {
                 toast.error('Please sign in to manage preferences.');
@@ -1164,6 +1186,55 @@ export default function TopicFinderPage() {
             setModalSaving(true);
 
             try {
+                if (modalState.mode === 'edit' && modalState.item) {
+                    const updatePayload: Record<string, any> = {
+                        name,
+                        description: description || null,
+                    };
+
+                    if (modalState.type === 'addOn') {
+                        updatePayload.is_public = !!isPublic;
+                    }
+
+                    const { data, error } = await supabase
+                        .from(table)
+                        .update(updatePayload)
+                        .eq('id', modalState.item.id)
+                        .select('id, name, description, is_public')
+                        .single();
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    if (modalState.type === 'persona') {
+                        const updated = data as PreferenceOption;
+                        setPersonas(prev => prev.map(item => (item.id === updated.id ? updated : item)));
+                        if (selectedPersonaId === updated.id) {
+                            setSelectedPersonaId(updated.id);
+                        }
+                    } else if (modalState.type === 'audience') {
+                        const updated = data as PreferenceOption;
+                        setAudiences(prev => prev.map(item => (item.id === updated.id ? updated : item)));
+                        if (selectedAudienceId === updated.id) {
+                            setSelectedAudienceId(updated.id);
+                        }
+                    } else if (modalState.type === 'objective') {
+                        const updated = data as PreferenceOption;
+                        setObjectives(prev => prev.map(item => (item.id === updated.id ? updated : item)));
+                        if (selectedObjectiveId === updated.id) {
+                            setSelectedObjectiveId(updated.id);
+                        }
+                    } else if (modalState.type === 'addOn') {
+                        const updated = data as AddOnOption;
+                        setAddOns(prev => prev.map(item => (item.id === updated.id ? updated : item)));
+                    }
+
+                    toast.success(`${titleMap[modalState.type]} updated.`);
+                    closeCreateModal();
+                    return;
+                }
+
                 const payload: Record<string, any> = {
                     name,
                     description: description || null,
@@ -1209,8 +1280,76 @@ export default function TopicFinderPage() {
                 setModalSaving(false);
             }
         },
-        [closeCreateModal, handleAudienceSelect, handleObjectiveSelect, handlePersonaSelect, handleToggleAddOn, modalState.type, supabase, userId]
+        [closeCreateModal, handleAudienceSelect, handleObjectiveSelect, handlePersonaSelect, handleToggleAddOn, modalState.item, modalState.mode, modalState.type, selectedAudienceId, selectedObjectiveId, selectedPersonaId, supabase, userId]
     );
+
+    const handleDeletePreferenceItem = useCallback(async () => {
+        if (!modalState.type || modalState.mode !== 'edit' || !modalState.item || !userId) {
+            toast.error('Unable to delete this item.');
+            return;
+        }
+
+        const tableMap = {
+            persona: 'personas',
+            audience: 'audiences',
+            objective: 'objectives',
+            addOn: 'add_ons'
+        } as const;
+
+        const titleMap = {
+            persona: 'Persona',
+            audience: 'Audience',
+            objective: 'Objective',
+            addOn: 'Add-on'
+        } as const;
+
+        const table = tableMap[modalState.type];
+
+        setModalSaving(true);
+
+        try {
+            const { error } = await supabase.from(table).delete().eq('id', modalState.item.id);
+            if (error) {
+                throw error;
+            }
+
+            if (modalState.type === 'persona') {
+                setPersonas(prev => prev.filter(item => item.id !== modalState.item?.id));
+                if (selectedPersonaId === modalState.item.id) {
+                    await updatePreference({ persona_id: null });
+                }
+            } else if (modalState.type === 'audience') {
+                setAudiences(prev => prev.filter(item => item.id !== modalState.item?.id));
+                if (selectedAudienceId === modalState.item.id) {
+                    await updatePreference({ audience_id: null });
+                }
+            } else if (modalState.type === 'objective') {
+                setObjectives(prev => prev.filter(item => item.id !== modalState.item?.id));
+                if (selectedObjectiveId === modalState.item.id) {
+                    await updatePreference({ objective_id: null });
+                }
+            } else if (modalState.type === 'addOn') {
+                setAddOns(prev => prev.filter(item => item.id !== modalState.item?.id));
+                setSelectedAddOnIds(prev => prev.filter(id => id !== modalState.item?.id));
+                const preferenceIdValue = preferenceId || (await ensurePreference());
+                if (preferenceIdValue) {
+                    await supabase
+                        .from('topic_finder_preference_add_ons')
+                        .delete()
+                        .eq('preference_id', preferenceIdValue)
+                        .eq('add_on_id', modalState.item.id);
+                }
+            }
+
+            toast.success(`${titleMap[modalState.type]} deleted.`);
+            closeCreateModal();
+        } catch (error) {
+            console.error('Failed to delete preference item', error);
+            toast.error('Failed to delete item.');
+        } finally {
+            setModalSaving(false);
+        }
+    }, [closeCreateModal, ensurePreference, modalState.item, modalState.mode, modalState.type, preferenceId, selectedAudienceId, selectedObjectiveId, selectedPersonaId, setSelectedAddOnIds, supabase, updatePreference, userId]);
 
     // topicResults zustand store
     const {
@@ -1499,12 +1638,22 @@ export default function TopicFinderPage() {
             instruction,
             context,
             statusLabel = 'thinking how to write...',
+            mode = 'default',
         }: {
             topic: string;
             accountInfo: string;
             instruction?: string;
-            context: ReturnType<typeof mapSubmittedContextToStructured>;
+            context: ReturnType<typeof mapSubmittedContextToStructured> & {
+                sourceReference?: {
+                    id: string;
+                    link?: string;
+                    platform: 'threads' | 'x';
+                    excerpt: string;
+                    body?: string;
+                } | null;
+            };
             statusLabel?: string;
+            mode?: 'default' | 'repurpose';
         }): Promise<string[]> => {
             if (!topic) {
                 throw new Error('Missing topic for generation');
@@ -1531,6 +1680,7 @@ export default function TopicFinderPage() {
                     postType,
                     language,
                     context,
+                    mode,
                 }),
             });
 
@@ -1907,7 +2057,7 @@ export default function TopicFinderPage() {
             const hasReferenceBlocks = blocks.some((block) => block.type === 'threads' || block.type === 'x');
             const hasRecommendationWidget = blocks.some((block) => block.type === 'widget' && block.widgetType === 'topics');
 
-updateThinkingProcess((steps) =>
+            updateThinkingProcess((steps) =>
                 steps.map((step) => {
                     if (step.id === 'audience') {
                         return { ...step, status: 'complete' };
@@ -2038,8 +2188,11 @@ updateThinkingProcess((steps) =>
                 const repurposeInstruction = [
                     'Repurpose the provided source content into a fresh and original piece aligned with the current persona, audience, objective, and add-ons.',
                     'Preserve the key idea while introducing a novel hook or perspective that fits the configured settings.',
+                    'Use the verbatim source transcript when grounding claims, then rewrite to feel tailored for the configured persona and audience.',
                     `Source (${platform.toUpperCase()}):`,
-                    text,
+                    item.rawBody?.trim() && item.rawBody.trim().length > 0
+                        ? item.rawBody.trim()
+                        : text,
                 ]
                     .filter(Boolean)
                     .join('\n\n');
@@ -2053,8 +2206,18 @@ updateThinkingProcess((steps) =>
                     topic: repurposedTopic,
                     accountInfo: contextInfo,
                     instruction: repurposeInstruction,
-                    context: structuredContext,
+                    context: {
+                        ...structuredContext,
+                        sourceReference: {
+                            id: item.id,
+                            link: item.link,
+                            platform,
+                            excerpt: text,
+                            body: item.rawBody?.trim() && item.rawBody.trim().length > 0 ? item.rawBody.trim() : text,
+                        },
+                    },
                     statusLabel: `Repurposing from ${platform.toUpperCase()}...`,
+                    mode: 'repurpose',
                 });
 
                 toast.success(t('threadsGenerated', { count: threads.length }));
@@ -2123,6 +2286,7 @@ updateThinkingProcess((steps) =>
                             onObjectiveSelect={handleObjectiveSelect}
                             onAddOnToggle={handleToggleAddOn}
                             onOpenCreateModal={openCreateModal}
+                            onOpenEditModal={openEditModal}
                             headline={selectedHeadline}
                             onHeadlineChange={setSelectedHeadline}
                             postType={postType}
@@ -2174,11 +2338,18 @@ updateThinkingProcess((steps) =>
                         closeCreateModal();
                     }
                 }}
-                onSave={handleCreatePreferenceItem}
+                onSave={handleSavePreferenceItem}
                 loading={modalSaving}
                 includePublicToggle={modalConfig.includePublicToggle}
                 namePlaceholder={modalConfig.namePlaceholder}
                 descriptionPlaceholder={modalConfig.descriptionPlaceholder}
+                initialValues={modalState.item ? {
+                    name: modalState.item.name,
+                    description: modalState.item.description || '',
+                    isPublic: 'is_public' in modalState.item ? (modalState.item as AddOnOption).is_public ?? false : false,
+                } : undefined}
+                mode={modalState.mode}
+                onDelete={modalState.mode === 'edit' ? handleDeletePreferenceItem : undefined}
             />
         </div>
     );
