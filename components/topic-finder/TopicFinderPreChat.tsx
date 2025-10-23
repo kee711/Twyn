@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Settings2, Send } from 'lucide-react';
+import { Settings2, Send, Dices, Loader2 } from 'lucide-react';
 
 import { HeadlineInput } from '@/components/contents-helper/HeadlineInput';
 import { ThreadsProfilePicture } from '@/components/ThreadsProfilePicture';
@@ -61,6 +61,7 @@ interface TopicFinderPreChatProps {
     onInitialSend: () => void | Promise<void>;
     isPreChatReady: boolean;
     isSubmittingMessage: boolean;
+    onGenerateTopics: () => void | Promise<void>;
     topicResults: TopicResult[];
     onTopicChange: (idx: number, value: string) => void;
     onInstructionChange: (value: string) => void;
@@ -100,6 +101,7 @@ export const TopicFinderPreChat = ({
     onInitialSend,
     isPreChatReady,
     isSubmittingMessage,
+    onGenerateTopics,
     topicResults,
     onTopicChange,
     onInstructionChange,
@@ -111,11 +113,10 @@ export const TopicFinderPreChat = ({
     return (
         <>
             <motion.div
-                layout
                 transition={{ type: 'spring', stiffness: 240, damping: 28 }}
                 className="flex flex-col items-center gap-4 text-center md:gap-6"
             >
-                <motion.div layout className="flex items-center justify-center gap-3 text-sm md:items-start md:text-xl">
+                <motion.div className="flex items-center justify-center gap-3 text-sm md:items-start md:text-xl">
                     {mounted && (
                         <ThreadsProfilePicture
                             socialId={currentSocialId}
@@ -123,11 +124,11 @@ export const TopicFinderPreChat = ({
                             className="h-10 w-10 rounded-full"
                         />
                     )}
-                    <motion.div layout className="flex flex-col items-center gap-1 md:items-start">
-                        <motion.h1 layout className="text-xl font-semibold md:text-2xl">
+                    <motion.div className="flex flex-col items-center gap-1 md:items-start">
+                        <motion.h1 className="text-xl font-semibold md:text-2xl">
                             {t('greeting', { username: mounted ? (currentUsername || t('defaultUser')) : t('defaultUser') })}
                         </motion.h1>
-                        <motion.h1 layout className="text-center text-xl font-semibold md:text-2xl">
+                        <motion.h1 className="text-center text-xl font-semibold md:text-2xl">
                             {t('question')}
                         </motion.h1>
                     </motion.div>
@@ -136,12 +137,11 @@ export const TopicFinderPreChat = ({
 
             <motion.div
                 key="pre-chat"
-                layout
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.25 }}
-                className="flex w-full max-w-3xl flex-col gap-6"
+                className="flex w-full max-w-3xl flex-col gap-3"
             >
                 <div className="grid w-full grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <PreferenceCard
@@ -190,68 +190,87 @@ export const TopicFinderPreChat = ({
 
                 <HeadlineInput value={headline} onChange={onHeadlineChange} />
 
-                <div className="flex items-center justify-between gap-3">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-10 rounded-full px-3"
-                                aria-label="Open generation settings"
-                            >
-                                <Settings2 className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-64 rounded-2xl">
-                            <DropdownMenuLabel>{t('generationSettings')}</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <div className="space-y-4 px-2 py-3">
-                                <div className="flex items-center justify-between gap-3">
-                                    <label htmlFor="post-type" className="text-sm font-medium">
-                                        {t('postType')}
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs text-muted-foreground">
-                                            {postType === 'single' ? t('single') : t('thread')}
-                                        </span>
-                                        <Switch
-                                            id="post-type"
-                                            checked={postType === 'thread'}
-                                            onCheckedChange={(checked) => onPostTypeChange(checked ? 'thread' : 'single')}
-                                        />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-10 rounded-full px-3"
+                                    aria-label="Open generation settings"
+                                >
+                                    <Settings2 className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-64 rounded-2xl">
+                                <DropdownMenuLabel>{t('generationSettings')}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <div className="space-y-4 px-2 py-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <label htmlFor="post-type" className="text-sm font-medium">
+                                            {t('postType')}
+                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">
+                                                {postType === 'single' ? t('single') : t('thread')}
+                                            </span>
+                                            <Switch
+                                                id="post-type"
+                                                checked={postType === 'thread'}
+                                                onCheckedChange={(checked) => onPostTypeChange(checked ? 'thread' : 'single')}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <label htmlFor="language" className="text-sm font-medium">
+                                            {t('language')}
+                                        </label>
+                                        <Select value={language} onValueChange={onLanguageChange}>
+                                            <SelectTrigger id="language" className="h-9 w-32 rounded-full">
+                                                <SelectValue placeholder={t('selectLanguage')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="en">English</SelectItem>
+                                                <SelectItem value="ko">Korean</SelectItem>
+                                                <SelectItem value="ja">Japanese</SelectItem>
+                                                <SelectItem value="zh">Chinese</SelectItem>
+                                                <SelectItem value="es">Spanish</SelectItem>
+                                                <SelectItem value="fr">French</SelectItem>
+                                                <SelectItem value="de">German</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between gap-3">
-                                    <label htmlFor="language" className="text-sm font-medium">
-                                        {t('language')}
-                                    </label>
-                                    <Select value={language} onValueChange={onLanguageChange}>
-                                        <SelectTrigger id="language" className="h-9 w-32 rounded-full">
-                                            <SelectValue placeholder={t('selectLanguage')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="en">English</SelectItem>
-                                            <SelectItem value="ko">Korean</SelectItem>
-                                            <SelectItem value="ja">Japanese</SelectItem>
-                                            <SelectItem value="zh">Chinese</SelectItem>
-                                            <SelectItem value="es">Spanish</SelectItem>
-                                            <SelectItem value="fr">French</SelectItem>
-                                            <SelectItem value="de">German</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Button
-                        type="button"
-                        size="icon"
-                        className="h-12 w-12 rounded-full bg-black text-white hover:bg-black/85"
-                        onClick={onInitialSend}
-                        disabled={!isPreChatReady || isSubmittingMessage}
-                    >
-                        <Send className="h-5 w-5" />
-                    </Button>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <div className='flex gap-2'>
+                        <Button
+                            type="button"
+                            className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => {
+                                void onGenerateTopics();
+                            }}
+                            disabled={!isPreChatReady || isGeneratingTopics || isSubmittingMessage}
+                        >
+                            {isGeneratingTopics ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Dices className="h-4 w-4" />
+                            )}
+                            <span>{t('ideas')}</span>
+                        </Button>
+                        <Button
+                            type="button"
+                            size="icon"
+                            className="rounded-full bg-black text-white hover:bg-black/85"
+                            onClick={onInitialSend}
+                            disabled={!isPreChatReady || isSubmittingMessage}
+                        >
+                            <Send className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="w-full max-w-3xl">

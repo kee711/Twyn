@@ -151,8 +151,7 @@ body[data-scroll-locked] {
 .ai-glow {
   position: relative;
   overflow: hidden;
-  z-index: 0;
-  /* 새로운 스태킹 컨텍스트 생성 */
+  isolation: isolate;
 }
 
 /* 버튼 내부 아이콘/텍스트를 오버레이 위로 */
@@ -164,20 +163,16 @@ body[data-scroll-locked] {
 .ai-glow::after {
   content: '';
   position: absolute;
-  left: 50%;
-  bottom: -35%;
-  transform: translateX(-50%);
-  width: 180%;
-  height: 140%;
+  inset: 0;
+  border-radius: inherit;
   background: radial-gradient(ellipse at center bottom,
       rgba(28, 73, 255, 0.85) 0%,
       rgba(28, 73, 255, 0.45) 35%,
       rgba(28, 73, 255, 0.20) 60%,
       rgba(28, 73, 255, 0.00) 75%);
-  filter: blur(10px);
+  transform: scale(1.05);
+  opacity: 0.75;
   pointer-events: none;
-  z-index: 0;
-  /* 오버레이는 부모 콘텐츠 아래 */
 }
 
 /* 상태 인디케이터 애니메이션 */

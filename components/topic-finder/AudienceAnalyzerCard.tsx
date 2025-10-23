@@ -40,7 +40,6 @@ export const AudienceAnalyzerCard = ({ analysis }: AudienceAnalyzerCardProps) =>
     return (
         <Card className="w-full border border-border/70 bg-white/70 shadow-sm">
             <motion.div
-                layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}

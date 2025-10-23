@@ -61,7 +61,6 @@ export const ProfileAnalyzerCard = ({ analytics }: ProfileAnalyzerCardProps) => 
     return (
         <Card className="w-full overflow-hidden border border-border/70 bg-white/60 shadow-sm backdrop-blur-sm">
             <motion.div
-                layout
                 className="flex flex-col gap-6"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}

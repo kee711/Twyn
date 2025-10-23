@@ -86,7 +86,6 @@ export const TopicFinderChatView = ({
             {hasSubmittedContext && (
                 <motion.div
                     key="conversation-header"
-                    layout
                     transition={{ type: 'spring', stiffness: 240, damping: 28 }}
                     className="flex flex-col items-start text-left"
                 >
@@ -98,7 +97,6 @@ export const TopicFinderChatView = ({
                 {isChatActive && (
                     <motion.div
                         key="chat-log"
-                        layout
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 16 }}
@@ -118,7 +116,7 @@ export const TopicFinderChatView = ({
                                 }
 
                                 return (
-                                    <motion.div key={message.id} layout className="w-full">
+                                    <motion.div key={message.id} className="w-full">
                                         {message.role === 'user' ? (
                                             <div className="flex justify-end">
                                                 <div className="max-w-[85%] rounded-3xl bg-primary px-4 py-3 text-sm font-medium leading-relaxed text-primary-foreground shadow">
