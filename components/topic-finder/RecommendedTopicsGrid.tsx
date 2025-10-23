@@ -18,7 +18,6 @@ export const RecommendedTopicsGrid = ({ topics, onUseTopic }: RecommendedTopicsG
     return (
         <Card className="w-full border border-border/60 bg-white/70">
             <motion.div
-                layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -38,7 +37,6 @@ export const RecommendedTopicsGrid = ({ topics, onUseTopic }: RecommendedTopicsG
                     {topics.map((topic) => (
                         <motion.div
                             key={topic.id}
-                            layout
                             className="flex flex-col gap-3 rounded-xl border border-border/60 bg-background/75 p-4 shadow-sm"
                         >
                             <div className="flex items-start justify-between gap-4">

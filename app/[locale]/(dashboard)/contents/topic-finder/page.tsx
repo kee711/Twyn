@@ -2717,6 +2717,7 @@ export default function TopicFinderPage() {
                             onInitialSend={handleInitialSend}
                             isPreChatReady={isPreChatReady}
                             isSubmittingMessage={isSubmittingMessage}
+                            onGenerateTopics={generateTopics}
                             topicResults={topicResults}
                             onTopicChange={handleTopicChange}
                             onInstructionChange={handleInstructionChange}
