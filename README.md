@@ -45,6 +45,14 @@ THREADS_CLIENT_ID=your_threads_client_id
 THREADS_CLIENT_SECRET=your_threads_client_secret_key
 # Threads Auth
 NEXT_PUBLIC_THREADS_ACCESS_TOKEN=your_threads_access_token
+# WalletConnect
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+# Farcaster Relay (required for Farcaster login/signing)
+NEXT_PUBLIC_FARCASTER_RELAY_URL=/api/farcaster/relay
+# In production, FARCASTER_API_KEY must contain your Warpcast Relay API key
+FARCASTER_API_KEY=your_farcaster_relay_api_key
+# Optional: override relay origin (defaults to https://relay.farcaster.xyz)
+# FARCASTER_RELAY_ORIGIN=https://relay.farcaster.xyz
 # Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret_key

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 interface CreatePreferenceModalProps {
     open: boolean;
@@ -17,6 +18,13 @@ interface CreatePreferenceModalProps {
     includePublicToggle?: boolean;
     namePlaceholder?: string;
     descriptionPlaceholder?: string;
+    initialValues?: {
+        name?: string;
+        description?: string;
+        isPublic?: boolean;
+    } | null;
+    mode?: 'create' | 'edit';
+    onDelete?: () => Promise<void> | void;
 }
 
 export function CreatePreferenceModal({
@@ -28,18 +36,25 @@ export function CreatePreferenceModal({
     includePublicToggle,
     namePlaceholder,
     descriptionPlaceholder,
+    initialValues,
+    mode = 'create',
+    onDelete,
 }: CreatePreferenceModalProps) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [isPublic, setIsPublic] = useState(false);
 
     useEffect(() => {
-        if (!open) {
+        if (open) {
+            setName(initialValues?.name ?? '');
+            setDescription(initialValues?.description ?? '');
+            setIsPublic(initialValues?.isPublic ?? false);
+        } else {
             setName('');
             setDescription('');
             setIsPublic(false);
         }
-    }, [open]);
+    }, [initialValues?.description, initialValues?.isPublic, initialValues?.name, open]);
 
     const handleSave = async () => {
         if (!name.trim()) return;
@@ -50,7 +65,9 @@ export function CreatePreferenceModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="rounded-3xl p-6 sm:p-8">
                 <DialogHeader className="space-y-2">
-                    <DialogTitle className="text-2xl font-semibold text-neutral-900">Create {title}</DialogTitle>
+                    <DialogTitle className="text-2xl font-semibold text-neutral-900">
+                        {mode === 'edit' ? 'Edit' : 'Create'} {title}
+                    </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                     <div className="space-y-2">
@@ -93,24 +110,38 @@ export function CreatePreferenceModal({
                         </div>
                     ) : null}
                 </div>
-                <DialogFooter className="mt-6 flex w-full flex-row justify-end gap-3">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onOpenChange(false)}
-                        className="rounded-full px-5"
-                        disabled={loading}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        type="button"
-                        onClick={handleSave}
-                        className="rounded-full bg-neutral-900 px-6 hover:bg-neutral-800"
-                        disabled={loading || !name.trim()}
-                    >
-                        {loading ? 'Saving...' : 'Save'}
-                    </Button>
+                <DialogFooter className="mt-6 flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                    {mode === 'edit' && onDelete ? (
+                        <div className="w-full text-left sm:w-auto sm:mr-auto">
+                            <button
+                                type="button"
+                                onClick={onDelete}
+                                className="text-sm font-medium text-destructive transition hover:text-destructive/80 focus:outline-none disabled:opacity-60"
+                                disabled={loading}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    ) : null}
+                    <div className="flex items-center justify-end gap-3 sm:justify-end">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => onOpenChange(false)}
+                            className="rounded-full px-5"
+                            disabled={loading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleSave}
+                            className="rounded-full bg-neutral-900 px-6 hover:bg-neutral-800"
+                            disabled={loading || !name.trim()}
+                        >
+                            {loading ? 'Saving...' : mode === 'edit' ? 'Update' : 'Save'}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { format, isSameDay, startOfMonth } from 'date-fns'
 import { Image, Video, FileText, Images } from 'lucide-react'
 import useSocialAccountStore from '@/stores/useSocialAccountStore'
@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getContents, updateContent } from '@/app/actions/content' // ⭐ 서버 액션 import
-import { updateThreadChain } from '@/app/actions/threadChain' // ⭐ threadChain 업데이트 import
+import { updateThreadChain, type ThreadContent, getThreadChainByParentId } from '@/app/actions/threadChain' // ⭐ threadChain 업데이트 import
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScheduleHeader } from './ScheduleHeader'
 import { List } from './List'
@@ -18,6 +18,8 @@ import { Event } from './types'
 import { deleteSchedule } from '@/app/actions/schedule'
 import { utcISOToLocalTime } from '@/lib/utils/time'
 import { useTranslations } from 'next-intl'
+import { useOwnershipFlow } from '@/hooks/useOwnershipFlow'
+import { buildOwnershipEditMetadata } from '@/lib/ownership'
 
 interface CalendarProps {
   defaultView?: 'calendar' | 'list'
@@ -38,6 +40,25 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null)
   const listContainerRef = useRef<HTMLDivElement>(null)
   const { currentSocialId } = useSocialAccountStore()
+  const { runOwnershipFlow, OwnershipModal } = useOwnershipFlow()
+
+  const mapThreadsFromEvent = useCallback((target: Event): ThreadContent[] => {
+    if (target.is_thread_chain && target.threads && target.threads.length > 0) {
+      return target.threads.map((thread) => ({
+        content: thread.content,
+        media_urls: thread.media_urls || [],
+        media_type: thread.media_type || 'TEXT',
+      }));
+    }
+
+    return [
+      {
+        content: target.title,
+        media_urls: target.media_urls || [],
+        media_type: target.media_type,
+      },
+    ];
+  }, []);
 
   // Check if social account is connected
   const checkSocialAccountConnection = () => {
@@ -168,34 +189,66 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
         return
       }
 
-      if (updatedEvent.is_thread_chain && updatedEvent.threads) {
-        // ⭐ threadChain인 경우 updateThreadChain 사용
-        const parentId = updatedEvent.parent_media_id || updatedEvent.id
-        const { success, error } = await updateThreadChain(
-          parentId,
-          updatedEvent.threads,
-          updatedEvent.date.toISOString()
-        )
-
-        if (!success) {
-          throw new Error(error || 'Failed to update thread chain')
-        }
-      } else {
-        // ⭐ 단일 포스트인 경우 updateContent 사용
-        const { data } = await updateContent(updatedEvent.id, {
-          content: updatedEvent.title,
-          scheduled_at: updatedEvent.date.toISOString(),
-        })
-
-        if (!data) {
-          throw new Error('Failed to update content')
-        }
+      const originalEvent = events.find(event => event.id === updatedEvent.id)
+      if (!originalEvent) {
+        throw new Error('Original event not found')
       }
 
-      // UI 상태 업데이트
-      setEvents(events.map(event =>
-        event.id === updatedEvent.id ? updatedEvent : event
-      ))
+      let beforeThreads = mapThreadsFromEvent(originalEvent)
+
+      if (originalEvent.is_thread_chain) {
+        try {
+          const parentId = originalEvent.parent_media_id || originalEvent.id
+          const { data, error } = await getThreadChainByParentId(parentId)
+          if (!error && data && data.length > 0) {
+            beforeThreads = data.map((thread) => ({
+              content: thread.content,
+              media_urls: thread.media_urls || [],
+              media_type: thread.media_type || 'TEXT',
+            }))
+          }
+        } catch (fetchError) {
+          console.warn('[calendar] Failed to load original thread chain', fetchError)
+        }
+      }
+      const afterThreads = mapThreadsFromEvent(updatedEvent)
+
+      const metadata = buildOwnershipEditMetadata(
+        beforeThreads,
+        afterThreads,
+        updatedEvent.date.toISOString()
+      )
+
+      await runOwnershipFlow(metadata, async () => {
+        if (updatedEvent.is_thread_chain && updatedEvent.threads) {
+          const parentId = updatedEvent.parent_media_id || updatedEvent.id
+          const { success, error } = await updateThreadChain(
+            parentId,
+            updatedEvent.threads,
+            updatedEvent.date.toISOString()
+          )
+
+          if (!success) {
+            throw new Error(error || 'Failed to update thread chain')
+          }
+        } else {
+          const { data } = await updateContent(updatedEvent.id, {
+            content: updatedEvent.title,
+            scheduled_at: updatedEvent.date.toISOString(),
+          })
+
+          if (!data) {
+            throw new Error('Failed to update content')
+          }
+        }
+
+        setEvents((prevEvents) =>
+          prevEvents.map(event =>
+            event.id === updatedEvent.id ? updatedEvent : event
+          )
+        )
+        toast.success(t('scheduleUpdated'))
+      })
     } catch (error) {
       console.error('Error updating event:', error)
       toast.error('Update failed.')
@@ -486,6 +539,8 @@ export function Calendar({ defaultView = 'calendar' }: CalendarProps) {
         }}
         event={selectedEvent}
       />
+
+      <OwnershipModal />
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>

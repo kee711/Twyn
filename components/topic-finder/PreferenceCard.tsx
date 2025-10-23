@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CheckCircle2, ChevronDown, Plus } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface PreferenceOption {
@@ -18,6 +18,7 @@ interface PreferenceCardProps {
     selectedId: string | null;
     onSelect: (option: PreferenceOption) => void;
     onCreateNew: () => void;
+    onEdit?: (option: PreferenceOption) => void;
     placeholder?: string;
     disabled?: boolean;
     loading?: boolean;
@@ -29,6 +30,7 @@ export function PreferenceCard({
     selectedId,
     onSelect,
     onCreateNew,
+    onEdit,
     placeholder,
     disabled,
     loading,
@@ -72,20 +74,40 @@ export function PreferenceCard({
                         <div className="px-3 py-4 text-sm text-muted-foreground">No options yet. Create one to get started.</div>
                     )}
                     {options.map(option => (
-                        <button
-                            type="button"
+                        <div
                             key={option.id}
-                            onClick={() => handleSelect(option)}
                             className={cn(
-                                'flex w-full flex-col items-start rounded-xl mb-1 px-3 py-2 text-left transition hover:bg-neutral-50',
+                                'relative mb-1 flex w-full flex-col rounded-xl transition hover:bg-neutral-50',
                                 selectedId === option.id && 'bg-neutral-100'
                             )}
                         >
-                            <span className="text-xs font-medium text-neutral-800">{option.name}</span>
-                            {option.description ? (
-                                <span className="text-xs font-light text-neutral-400 line-clamp-1">{option.description}</span>
+                            <button
+                                type="button"
+                                onClick={() => handleSelect(option)}
+                                className="flex w-full flex-col items-start rounded-xl px-3 py-2 text-left pr-10"
+                            >
+                                <span className="text-xs font-medium text-neutral-800">{option.name}</span>
+                                {option.description ? (
+                                    <span className="text-xs font-light text-neutral-400 line-clamp-1">
+                                        {option.description}
+                                    </span>
+                                ) : null}
+                            </button>
+                            {onEdit ? (
+                                <button
+                                    type="button"
+                                    onClick={event => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        setOpen(false);
+                                        onEdit(option);
+                                    }}
+                                    className="absolute right-2 top-2 rounded-full p-1 text-neutral-400 transition hover:bg-neutral-200/80 hover:text-neutral-700 focus:outline-none"
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                </button>
                             ) : null}
-                        </button>
+                        </div>
                     ))}
                 </div>
                 <div className="pb-3">

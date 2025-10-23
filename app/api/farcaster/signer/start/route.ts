@@ -24,8 +24,10 @@ const SIGNED_KEY_REQUEST_TYPE = [
 
 export async function POST(req: Request) {
   try {
+    console.log('[signer/start] Request received');
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
+      console.warn('[signer/start] Unauthenticated request');
       return NextResponse.json({ ok: false, error: "Unauthenticated" }, { status: 401 });
     }
 
@@ -45,12 +47,14 @@ export async function POST(req: Request) {
 
     const userFid = providedFid ?? fa?.fid;
     if (!userFid) {
+      console.warn('[signer/start] No fid found for user', session.user.id);
       return NextResponse.json({ ok: false, error: "No Farcaster fid for user. Connect with AuthKit first." }, { status: 400 });
     }
 
     const appFid = process.env.NEXT_PUBLIC_FARCASTER_APP_FID;
     const appMnemonic = process.env.FARCASTER_APP_MNEMONIC;
     if (!appFid || !appMnemonic) {
+      console.error('[signer/start] Missing application credentials');
       return NextResponse.json({ ok: false, error: "Missing NEXT_PUBLIC_FARCASTER_APP_FID or FARCASTER_APP_MNEMONIC" }, { status: 500 });
     }
 
@@ -94,8 +98,15 @@ export async function POST(req: Request) {
     const token = createData?.result?.signedKeyRequest?.token as string | undefined;
     const deeplinkUrl = createData?.result?.signedKeyRequest?.deeplinkUrl as string | undefined;
     if (!token || !deeplinkUrl) {
+      console.error('[signer/start] Invalid Farcaster API response', createData);
       return NextResponse.json({ ok: false, error: "Invalid response from Farcaster API" }, { status: 502 });
     }
+
+    console.log('[signer/start] Signed key request created', {
+      userId: session.user.id,
+      fid: userFid,
+      token,
+    });
 
     // 4) Persist signer (encrypted)
     const encryptedPriv = encryptToken(Buffer.from(privateKeyBytes).toString('base64'));

@@ -5,12 +5,19 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
   try {
+    console.log('[farcaster/account] Request received');
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ ok: false, error: "Unauthenticated" }, { status: 401 });
+    if (!session?.user?.id) {
+      console.warn('[farcaster/account] Unauthenticated request');
+      return NextResponse.json({ ok: false, error: "Unauthenticated" }, { status: 401 });
+    }
 
     const body = await req.json();
     const { fid, username } = body || {};
-    if (!fid) return NextResponse.json({ ok: false, error: "Missing fid" }, { status: 400 });
+    if (!fid) {
+      console.warn('[farcaster/account] Missing fid in payload', body);
+      return NextResponse.json({ ok: false, error: "Missing fid" }, { status: 400 });
+    }
 
     const supabase = await createClient();
     const { data: existingAccount, error: fetchError } = await supabase
@@ -126,7 +133,12 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      message: 'Farcaster account linked successfully',
+      socialAccountId: socialAccountId,
+      fid: Number(fid)
+    });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
   }

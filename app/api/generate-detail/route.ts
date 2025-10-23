@@ -20,16 +20,24 @@ type DetailContextPayload = {
     audience?: PreferenceContext | null;
     objective?: PreferenceContext | null;
     addOns?: PreferenceContext[];
+    sourceReference?: {
+        id: string;
+        link?: string;
+        platform: 'threads' | 'x';
+        excerpt: string;
+        body?: string;
+    } | null;
 };
 
 export async function POST(req: NextRequest) {
-    const { accountInfo, topic, instruction, postType = 'thread', language = 'en', context }: {
+    const { accountInfo, topic, instruction, postType = 'thread', language = 'en', context, mode = 'default' }: {
         accountInfo?: string;
         topic: string;
         instruction?: string;
         postType?: string;
         language?: string;
         context?: DetailContextPayload;
+        mode?: 'default' | 'repurpose';
     } = await req.json();
 
     const buildSection = (label: string, value?: PreferenceContext | null) => {
@@ -69,8 +77,25 @@ export async function POST(req: NextRequest) {
     const promptSettings = postType === 'single' ? SINGLE_THREAD_SETTINGS : THREAD_CHAIN_SETTINGS;
     const promptExamples = postType === 'single' ? '' : THREAD_CHAIN_EXAMPLES.map(example => `Example: ${example}`).join('\n');
 
+    const referenceBody = context?.sourceReference?.body || context?.sourceReference?.excerpt;
+
+    const repurposeGuidelines = mode === 'repurpose'
+        ? `# Repurpose Rules
+- The following reference content is the single source of truth.
+- Rephrase and reorganize it for the configured persona, audience, objective, and add-ons.
+- Do not invent facts beyond the reference or the structured context.
+- Highlight the core insight from the reference before adding any new framing.
+- Credit the original voice subtly; keep tone aligned with persona but retain factual details.
+`
+        : '';
+
     const promptParts = [
         promptSettings,
+        repurposeGuidelines,
+        context?.sourceReference
+            ? `Reference (${context.sourceReference.platform.toUpperCase()}):\n${referenceBody}`
+            : '',
+        context?.sourceReference?.link ? `Reference Link: ${context.sourceReference.link}` : '',
         effectiveAccountInfo ? USER_SETTINGS(effectiveAccountInfo) : '',
         GIVEN_TOPIC(topic),
         instruction ? GIVEN_INSTRUCTIONS(instruction) : '',
@@ -94,7 +119,7 @@ export async function POST(req: NextRequest) {
                 prompt: postType === 'single'
                     ? promptParts
                     : promptParts + '\n\nReturn your response strictly as a JSON array of strings only.',
-                temperature: 0.5,
+                temperature: mode === 'repurpose' ? 0.3 : 0.5,
                 maxTokens: postType === 'single' ? 120 : 1200,
                 onChunk() {
                     writer.write({

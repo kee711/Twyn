@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { statisticsKeys } from './statisticsKeys';
 
 // 타입 정의
-interface InsightsData {
+export interface InsightsData {
   name: string;
   period: string;
   values?: Array<{ value: number; end_time?: string }>;

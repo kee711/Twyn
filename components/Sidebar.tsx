@@ -25,9 +25,20 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { LucideIcon } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
@@ -37,6 +48,9 @@ import { useThreadsProfilePicture } from '@/hooks/useThreadsProfilePicture';
 import { toast } from 'sonner';
 import { useSignIn, QRCode } from '@farcaster/auth-kit';
 import type { StatusAPIResponse } from '@farcaster/auth-client';
+import { WalletConnectButton } from '@/components/wallet/WalletConnectButton';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 
 
 // Navigation item type definition
@@ -654,6 +668,7 @@ interface AccountSelectionModalProps {
   userId: string | null;
 }
 
+
 function AccountSelectionModal({
   open,
   onOpenChange,
@@ -665,8 +680,110 @@ function AccountSelectionModal({
 }: AccountSelectionModalProps) {
   const tAccounts = useTranslations('SocialAccountSelector');
   const [isFarcasterModalOpen, setIsFarcasterModalOpen] = useState(false);
+  const [isWalletFlowActive, setIsWalletFlowActive] = useState(false);
+  const [accountPendingRemoval, setAccountPendingRemoval] = useState<SocialAccount | null>(null);
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [isRemovingAccount, setIsRemovingAccount] = useState(false);
 
-  const groupedAccounts = useMemo(() => {
+  const { connectModalOpen } = useConnectModal();
+  const { isConnected } = useAccount();
+  const prevIsConnectedRef = useRef(isConnected);
+  const prevConnectModalOpenRef = useRef(connectModalOpen);
+
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const shouldRestoreAccountModalRef = useRef(false);
+  const hasProcessedSignInRef = useRef(false);
+  const lastProcessedFidRef = useRef<number | null>(null);
+
+  const handleFarcasterError = useCallback((error?: unknown) => {
+    console.error('[AccountSelectionModal] Farcaster sign-in error:', error);
+    toast.error(tAccounts('farcasterSignInError'));
+    setIsFarcasterModalOpen(false);
+  }, [tAccounts]);
+
+  const handleFarcasterStatus = useCallback(async (status?: StatusAPIResponse) => {
+    if (!status) return;
+    const { state, fid, username } = status;
+    if (!fid) return;
+
+    if (state && state !== 'completed') {
+      return;
+    }
+
+    if (!userId) {
+      toast.error(tAccounts('farcasterSignInError'));
+      return;
+    }
+
+    if (hasProcessedSignInRef.current && lastProcessedFidRef.current === fid) {
+      return;
+    }
+
+    hasProcessedSignInRef.current = true;
+    lastProcessedFidRef.current = fid;
+
+    try {
+      const response = await fetch('/api/farcaster/account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fid, username }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Failed to persist Farcaster account');
+        throw new Error(errorText);
+      }
+
+      toast.success(tAccounts('farcasterLinkSuccess'));
+      await fetchAccounts(userId);
+    } catch (error) {
+      console.error('[AccountSelectionModal] Farcaster account link failed:', error);
+      toast.error(tAccounts('farcasterSignInError'));
+    } finally {
+      setIsFarcasterModalOpen(false);
+    }
+  }, [fetchAccounts, tAccounts, userId]);
+
+  const {
+    connect: connectFarcaster,
+    signIn: signInFarcaster,
+    reconnect: reconnectFarcaster,
+    isError: isFarcasterError,
+    error: farcasterError,
+    url: farcasterUrl,
+    isPolling: isFarcasterPolling,
+  } = useSignIn({
+    onSuccess: handleFarcasterStatus,
+    onStatusResponse: handleFarcasterStatus,
+    onError: handleFarcasterError,
+  });
+
+  const handleFarcasterConnectClick = useCallback(async () => {
+    if (!userId) {
+      toast.error(tAccounts('farcasterSignInError'));
+      return;
+    }
+
+    try {
+      hasProcessedSignInRef.current = false;
+      lastProcessedFidRef.current = null;
+      setIsFarcasterModalOpen(true);
+
+      if (isFarcasterError) {
+        reconnectFarcaster();
+      }
+
+      await connectFarcaster();
+      await signInFarcaster();
+    } catch (error) {
+      console.error('[AccountSelectionModal] Farcaster connect failed:', error);
+      toast.error(tAccounts('farcasterSignInError'));
+      setIsFarcasterModalOpen(false);
+    }
+  }, [connectFarcaster, isFarcasterError, reconnectFarcaster, signInFarcaster, tAccounts, userId]);
+
+  const accountsByPlatform = useMemo(() => {
     return PLATFORM_KEYS.reduce<Record<PlatformKey, SocialAccount[]>>((acc, platform) => {
       acc[platform] = accounts.filter((account) => account.platform === platform);
       return acc;
@@ -677,11 +794,106 @@ function AccountSelectionModal({
     } as Record<PlatformKey, SocialAccount[]>);
   }, [accounts]);
 
-  const handleSelect = (platform: PlatformKey, accountId: string) => {
-    onSelectAccount(platform, accountId);
-  };
+  const removalPlatformName = accountPendingRemoval ? PLATFORM_DISPLAY_NAMES[accountPendingRemoval.platform] : '';
+  const removalAccountLabel = accountPendingRemoval?.username || accountPendingRemoval?.social_id || '';
 
-  const handleConnect = (platform: PlatformKey) => {
+  const handleSelect = useCallback((platform: PlatformKey, accountId: string) => {
+    onSelectAccount(platform, accountId);
+  }, [onSelectAccount]);
+
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+    longPressTriggeredRef.current = false;
+  }, []);
+
+  const triggerAccountRemoval = useCallback((account: SocialAccount) => {
+    longPressTriggeredRef.current = true;
+    shouldRestoreAccountModalRef.current = open;
+    setAccountPendingRemoval(account);
+    setIsRemoveDialogOpen(true);
+    if (open) {
+      onOpenChange(false);
+    }
+  }, [open, onOpenChange]);
+
+  const handleAccountPointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>, account: SocialAccount) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    longPressTriggeredRef.current = false;
+    clearLongPressTimer();
+    longPressTimeoutRef.current = setTimeout(() => {
+      triggerAccountRemoval(account);
+    }, 600);
+  }, [clearLongPressTimer, triggerAccountRemoval]);
+
+  const handleAccountPointerUp = useCallback((event: ReactPointerEvent<HTMLButtonElement>, platform: PlatformKey, account: SocialAccount) => {
+    const wasTriggered = longPressTriggeredRef.current;
+    clearLongPressTimer();
+    if (wasTriggered) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    handleSelect(platform, account.id);
+  }, [clearLongPressTimer, handleSelect]);
+
+  const handleAccountPointerLeave = useCallback(() => {
+    clearLongPressTimer();
+  }, [clearLongPressTimer]);
+
+  const closeRemoveDialog = useCallback(() => {
+    setIsRemoveDialogOpen(false);
+    setAccountPendingRemoval(null);
+    clearLongPressTimer();
+    if (shouldRestoreAccountModalRef.current) {
+      onOpenChange(true);
+    }
+    shouldRestoreAccountModalRef.current = false;
+  }, [clearLongPressTimer, onOpenChange]);
+
+  const handleDialogOpenChange = useCallback((nextOpen: boolean) => {
+    if (!nextOpen) {
+      clearLongPressTimer();
+      setAccountPendingRemoval(null);
+      setIsRemoveDialogOpen(false);
+      setIsFarcasterModalOpen(false);
+    }
+    onOpenChange(nextOpen);
+  }, [clearLongPressTimer, onOpenChange]);
+
+  const handleRemoveAccount = useCallback(async () => {
+    if (!accountPendingRemoval || !userId) return;
+
+    try {
+      setIsRemovingAccount(true);
+      const response = await fetch('/api/social/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          socialAccountId: accountPendingRemoval.id,
+          platform: accountPendingRemoval.platform,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'Failed to remove account');
+        throw new Error(message);
+      }
+
+      toast.success(tAccounts('accountRemoved'));
+      await fetchAccounts(userId);
+      closeRemoveDialog();
+    } catch (error) {
+      console.error('[AccountSelectionModal] Failed to remove account:', error);
+      toast.error(tAccounts('accountRemoveError'));
+    } finally {
+      setIsRemovingAccount(false);
+    }
+  }, [accountPendingRemoval, closeRemoveDialog, fetchAccounts, tAccounts, userId]);
+
+  const handleConnect = useCallback((platform: PlatformKey) => {
     if (typeof window === 'undefined') return;
 
     const redirectMap: Record<PlatformKey, string> = {
@@ -693,100 +905,80 @@ function AccountSelectionModal({
     const target = redirectMap[platform];
     if (!target) return;
     window.location.href = target;
-  };
+  }, []);
 
-  const handleFarcasterSuccess = async (status?: StatusAPIResponse) => {
-    const fid = status?.fid;
-    const username = status?.username;
-    if (!fid || !userId) {
-      toast.error(tAccounts('farcasterSignInError'));
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/farcaster/account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fid, username }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to persist Farcaster account');
-      }
-
-      toast.success(tAccounts('farcasterLinkSuccess'));
-      await fetchAccounts(userId);
-    } catch (error) {
-      console.error('[AccountSelectionModal] Farcaster account link failed:', error);
-      toast.error(tAccounts('farcasterSignInError'));
-    }
-  };
-
-  const handleFarcasterError = (error?: unknown) => {
-    console.error('[AccountSelectionModal] Farcaster sign-in error:', error);
-    toast.error(tAccounts('farcasterSignInError'));
-  };
-
-  const {
-    connect: initiateFarcasterConnect,
-    signIn: startFarcasterSignIn,
-    reconnect: reconnectFarcaster,
-    isError: isFarcasterError,
-    error: farcasterError,
-    url: farcasterUrl,
-    isPolling: isFarcasterPolling,
-  } = useSignIn({
-    onSuccess: async (status) => {
-      if (status?.state === 'completed') {
-        await handleFarcasterSuccess(status);
-        setIsFarcasterModalOpen(false);
-      }
-    },
-    onError: handleFarcasterError,
-  });
-
-  const handleFarcasterConnectClick = async () => {
-    if (!userId) {
-      toast.error(tAccounts('farcasterSignInError'));
-      return;
-    }
-
-    try {
-      if (isFarcasterError) {
-        reconnectFarcaster();
-      }
-      setIsFarcasterModalOpen(true);
-      await initiateFarcasterConnect();
-      startFarcasterSignIn();
-    } catch (error) {
-      setIsFarcasterModalOpen(false);
-      handleFarcasterError(error);
-    }
-  };
+  const handleWalletConnectStart = useCallback(() => {
+    setIsWalletFlowActive(true);
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   useEffect(() => {
-    if (!isFarcasterModalOpen || !farcasterUrl) return;
+    const wasConnected = prevIsConnectedRef.current;
 
-    const isMobileDevice = typeof navigator !== 'undefined'
-      && /android|iphone|ipad|ipod/i.test(navigator.userAgent);
-
-    if (isMobileDevice) {
-      window.open(farcasterUrl, '_blank', 'noopener,noreferrer');
+    if (isWalletFlowActive && !wasConnected && isConnected) {
+      setIsWalletFlowActive(false);
+      if (!open) {
+        onOpenChange(true);
+      }
     }
-  }, [isFarcasterModalOpen, farcasterUrl]);
+
+    prevIsConnectedRef.current = isConnected;
+  }, [isConnected, isWalletFlowActive, onOpenChange, open]);
+
+  useEffect(() => {
+    const wasOpen = prevConnectModalOpenRef.current;
+
+    if (isWalletFlowActive && wasOpen && !connectModalOpen && !isConnected) {
+      setIsWalletFlowActive(false);
+      if (!open) {
+        onOpenChange(true);
+      }
+    }
+
+    prevConnectModalOpenRef.current = connectModalOpen;
+  }, [connectModalOpen, isWalletFlowActive, isConnected, onOpenChange, open]);
+
+  useEffect(() => {
+    if (!isFarcasterModalOpen) {
+      hasProcessedSignInRef.current = false;
+      lastProcessedFidRef.current = null;
+    }
+  }, [isFarcasterModalOpen]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md overflow-hidden p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle className="text-lg text-left font-semibold">
-            {tAccounts('accountList')}
-          </DialogTitle>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent hideClose className="max-w-md overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-lg text-left font-semibold">
+              {tAccounts('accountList')}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <WalletConnectButton
+                className="shrink-0"
+                onOpenConnectModal={handleWalletConnectStart}
+              />
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">{tAccounts('close')}</span>
+                </Button>
+              </DialogClose>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="px-6 pb-6 space-y-6">
-          {PLATFORM_KEYS.map((platform, index) => {
-            const platformAccounts = groupedAccounts[platform];
+        <div
+          className="px-6 pb-6 space-y-6"
+          aria-hidden={connectModalOpen}
+        >
+          {PLATFORM_KEYS.map((platform) => {
+            const platformAccounts = accountsByPlatform[platform];
             const selectedId = selectedAccounts?.[platform];
             return (
               <div key={platform} className="space-y-3">
@@ -794,7 +986,6 @@ function AccountSelectionModal({
                   <span className="text-xs font-light text-muted-foreground">
                     {PLATFORM_DISPLAY_NAMES[platform]}
                   </span>
-                  {/* Line */}
                   <div className="h-px w-full bg-border/60" />
                 </div>
 
@@ -808,7 +999,16 @@ function AccountSelectionModal({
                         <button
                           type="button"
                           key={account.id}
-                          onClick={() => handleSelect(platform, account.id)}
+                          onPointerDown={(event) => handleAccountPointerDown(event, account)}
+                          onPointerUp={(event) => handleAccountPointerUp(event, platform, account)}
+                          onPointerLeave={handleAccountPointerLeave}
+                          onPointerCancel={handleAccountPointerLeave}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              handleSelect(platform, account.id);
+                            }
+                          }}
                           className={cn(
                             'flex w-full rounded-full p-1 items-center gap-3 text-left transition',
                             isSelected
@@ -883,7 +1083,7 @@ function AccountSelectionModal({
       </DialogContent>
 
       <Dialog open={isFarcasterModalOpen} onOpenChange={setIsFarcasterModalOpen}>
-        <DialogContent className="max-w-sm space-y-4">
+        <DialogContent className="max-w-sm space-y-4 z-[60]" overlayClassName="z-[60]">
           <DialogHeader>
             <DialogTitle>Connect Farcaster</DialogTitle>
           </DialogHeader>
@@ -904,31 +1104,43 @@ function AccountSelectionModal({
               {farcasterError instanceof Error ? farcasterError.message : tAccounts('farcasterSignInError')}
             </div>
           ) : null}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full gap-2"
-              onClick={() => {
-                if (!farcasterUrl) return;
-                window.open(farcasterUrl, '_blank', 'noopener,noreferrer');
-              }}
-              disabled={!farcasterUrl}
-            >
-              <ExternalLink className="h-4 w-4" />
-              Open in Warpcast
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => setIsFarcasterModalOpen(false)}
-            >
-              Close
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isRemoveDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            closeRemoveDialog();
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tAccounts('removeAccountTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tAccounts('removeAccountDescription', {
+                platform: removalPlatformName,
+                account: removalAccountLabel,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRemovingAccount} onClick={closeRemoveDialog}>
+              {tAccounts('removeAccountCancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isRemovingAccount}
+              onClick={(event) => {
+                event.preventDefault();
+                handleRemoveAccount();
+              }}
+            >
+              {isRemovingAccount ? tAccounts('removeAccountProcessing') : tAccounts('removeAccountConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
