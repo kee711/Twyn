@@ -8,14 +8,19 @@ const FARCASTER_API_URL = process.env.FARCASTER_API_URL || "https://api.farcaste
 
 export async function GET(req: Request) {
   try {
+    console.log('[signer/status] Request received', req.url);
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
+      console.warn('[signer/status] Unauthenticated request');
       return NextResponse.json({ ok: false, error: "Unauthenticated" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
     const token = searchParams.get("token");
-    if (!token) return NextResponse.json({ ok: false, error: "Missing token" }, { status: 400 });
+    if (!token) {
+      console.warn('[signer/status] Missing token parameter');
+      return NextResponse.json({ ok: false, error: "Missing token" }, { status: 400 });
+    }
 
     const headers: Record<string, string> = {};
     const apiKey = process.env.FARCASTER_API_KEY;
@@ -23,7 +28,18 @@ export async function GET(req: Request) {
 
     const { data } = await axios.get(`${FARCASTER_API_URL}/v2/signed-key-request`, { params: { token }, headers });
     const skr = data?.result?.signedKeyRequest;
-    if (!skr) return NextResponse.json({ ok: false, error: "Invalid response" }, { status: 502 });
+    if (!skr) {
+      console.error('[signer/status] Invalid response from Farcaster', data);
+      return NextResponse.json({ ok: false, error: "Invalid response" }, { status: 502 });
+    }
+
+    console.log('[signer/status] Received state update', {
+      userId: session.user.id,
+      token,
+      state: skr.state,
+      expiresAt: skr.expiresAt,
+      fid: skr.userFid,
+    });
 
     const supabase = await createClient();
 
@@ -53,12 +69,15 @@ export async function GET(req: Request) {
       updates.fid = Number(skr.userFid);
     }
 
-    if (skr.state === 'completed') {
+    const successStates = new Set(['completed', 'approved']);
+    const inactiveStates = new Set(['expired', 'revoked']);
+
+    if (successStates.has(skr.state)) {
       updates.is_active = true;
       updates.signer_approved_at = nowIso;
     }
 
-    if (skr.state === 'expired' || skr.state === 'revoked') {
+    if (inactiveStates.has(skr.state)) {
       updates.is_active = false;
       updates.signer_approved_at = null;
     }
@@ -78,4 +97,3 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
   }
 }
-

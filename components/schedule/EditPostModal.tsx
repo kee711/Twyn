@@ -174,7 +174,7 @@ export function EditPostModal({
   }
 
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (!event || !editDate) return
 
     if (!editTime || typeof editTime !== 'string') {
@@ -188,18 +188,16 @@ export function EditPostModal({
       return;
     }
 
-    // 로컬 시간을 UTC ISO 문자열로 변환
     const utcDateTime = localTimeToUTCISO(editTime, new Date(editDate))
     const newDate = new Date(utcDateTime)
 
-    // 과거 시간 확인 (현재 시간보다 이전인지 체크)
     const currentTime = new Date()
     if (newDate <= currentTime) {
       toast.error(t('futureTimeRequired'))
       return
     }
 
-    const updatedEvent = {
+    const updatedEvent: Event = {
       ...event,
       title: event.is_thread_chain ? editThreads[0]?.content || '' : editContent,
       time: editTime,
@@ -207,9 +205,14 @@ export function EditPostModal({
       threads: event.is_thread_chain ? editThreads : undefined
     }
 
-    onEventUpdate(updatedEvent)
-    toast.success(t('scheduleUpdated'))
-    onOpenChange(false)
+    try {
+      await onEventUpdate(updatedEvent)
+      toast.success(t('scheduleUpdated'))
+      onOpenChange(false)
+    } catch (error) {
+      console.error('Error updating event:', error)
+      toast.error('Update failed.')
+    }
   }
 
   // Thread chain handlers
@@ -363,4 +366,4 @@ export function EditPostModal({
       </Dialog>
     </>
   )
-} 
+}

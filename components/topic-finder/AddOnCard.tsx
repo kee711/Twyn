@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CheckCircle2, ChevronDown, Plus } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface AddOnOption {
@@ -18,6 +18,7 @@ interface AddOnCardProps {
     selectedIds: string[];
     onToggle: (option: AddOnOption) => void;
     onCreateNew: () => void;
+    onEdit?: (option: AddOnOption) => void;
     disabled?: boolean;
     loading?: boolean;
 }
@@ -28,6 +29,7 @@ export function AddOnCard({
     selectedIds,
     onToggle,
     onCreateNew,
+    onEdit,
     disabled,
     loading,
 }: AddOnCardProps) {
@@ -76,24 +78,47 @@ export function AddOnCard({
                             {options.map(option => {
                                 const active = selectedIds.includes(option.id);
                                 return (
-                                    <button
-                                        type="button"
+                                    <div
                                         key={option.id}
-                                        onClick={() => onToggle(option)}
                                         className={cn(
-                                            'flex h-full flex-col items-start rounded-xl border px-3 py-3 text-left transition',
+                                            'relative flex h-full flex-col rounded-xl border px-3 py-3 text-left transition pr-10',
                                             active
                                                 ? 'border-neutral-500 bg-neutral-800 text-white shadow-lg'
                                                 : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
                                         )}
                                     >
-                                        <span className="text-sm font-semibold">{option.name}</span>
-                                        {option.description ? (
-                                            <span className={cn('mt-1 text-xs', active ? 'text-neutral-200' : 'text-neutral-500 line-clamp-3')}>
-                                                {option.description}
-                                            </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => onToggle(option)}
+                                            className="flex w-full flex-col items-start text-left"
+                                        >
+                                            <span className="text-sm font-semibold">{option.name}</span>
+                                            {option.description ? (
+                                                <span className={cn('mt-1 text-xs', active ? 'text-neutral-200' : 'text-neutral-500 line-clamp-3')}>
+                                                    {option.description}
+                                                </span>
+                                            ) : null}
+                                        </button>
+                                        {onEdit ? (
+                                            <button
+                                                type="button"
+                                                onClick={event => {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    setOpen(false);
+                                                    onEdit(option);
+                                                }}
+                                                className={cn(
+                                                    'absolute right-2 top-2 rounded-full p-1 text-neutral-300 transition focus:outline-none',
+                                                    active
+                                                        ? 'hover:bg-neutral-700/80 hover:text-white'
+                                                        : 'text-neutral-400 hover:bg-neutral-200/80 hover:text-neutral-700'
+                                                )}
+                                            >
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </button>
                                         ) : null}
-                                    </button>
+                                    </div>
                                 );
                             })}
                         </div>

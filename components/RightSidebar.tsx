@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ThreadChain } from "@/components/ThreadChain";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ import { useThreadsProfilePicture } from "@/hooks/useThreadsProfilePicture";
 import { useTranslations } from 'next-intl';
 import useAiContentStore from '@/stores/useAiContentStore';
 import { trackUserAction } from '@/lib/analytics/mixpanel';
+import { useOwnershipFlow } from '@/hooks/useOwnershipFlow';
+import { buildOwnershipMetadataFromThreads } from '@/lib/ownership';
 
 // 문자열이 아닐 수도 있는 content를 안전하게 문자열로 변환
 function getContentString(value: unknown): string {
@@ -99,6 +101,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey>('threads');
   const isUnlinked = platformMode === 'unlinked';
+  const { runOwnershipFlow, OwnershipModal } = useOwnershipFlow();
 
   useEffect(() => {
     if (!isUnlinked) {
@@ -606,48 +609,61 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const handleConfirmSchedule = async (selectedDateTime: string) => {
     try {
       const payloads = buildActivePlatformPayloads();
-      const threadPayload = payloads.find(payload => payload.platform === 'threads');
+      const threadPayload = payloads.find((payload) => payload.platform === 'threads');
       const unsupportedPlatforms = payloads
-        .filter(payload => !SUPPORTED_SCHEDULE_PLATFORMS.includes(payload.platform))
-        .map(payload => payload.platform);
+        .filter((payload) => !SUPPORTED_SCHEDULE_PLATFORMS.includes(payload.platform))
+        .map((payload) => payload.platform);
 
       if (!threadPayload) {
         toast.error(t('threadsScheduleMissing'));
         return;
       }
 
-      const message = threadPayload.threads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
-      toast.success(message);
-
       const preservedPlatforms: Partial<Record<PlatformKey, ThreadContent[]>> = {};
-      unsupportedPlatforms.forEach(platform => {
+      unsupportedPlatforms.forEach((platform) => {
         preservedPlatforms[platform] = getThreadsForPlatform(platform);
       });
 
-      const result = await scheduleThreadChain(threadPayload.threads, selectedDateTime, originalAiContent);
+      const metadata = buildOwnershipMetadataFromThreads(
+        threadPayload.threads,
+        'schedule',
+        selectedDateTime,
+      );
 
-      if (!result.success) throw new Error(result.error);
+      await runOwnershipFlow(metadata, async () => {
+        const message =
+          threadPayload.threads.length > 1 ? t('threadChainScheduled') : t('postScheduled');
+        toast.success(message);
 
-      // Reset to empty thread
-      clearThreadChain();
-      localStorage.removeItem("draftContent");
-      fetchScheduledTimes();
-      setScheduleTime(null); // Reset schedule time after successful scheduling
+        const result = await scheduleThreadChain(
+          threadPayload.threads,
+          selectedDateTime,
+          originalAiContent,
+        );
 
-      Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
-        if (threads && threads.length > 0) {
-          setPlatformThreads(platform as PlatformKey, threads);
+        if (!result.success) {
+          throw new Error(result.error);
         }
-      });
 
-      // Track content scheduled
-      trackUserAction.contentScheduled({
-        scheduledTime: selectedDateTime,
-        threadCount: threadPayload.threads.length,
-        isAiGenerated: !!originalAiContent
+        clearThreadChain();
+        localStorage.removeItem('draftContent');
+        fetchScheduledTimes();
+        setScheduleTime(null);
+
+        Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
+          if (threads && threads.length > 0) {
+            setPlatformThreads(platform as PlatformKey, threads);
+          }
+        });
+
+        trackUserAction.contentScheduled({
+          scheduledTime: selectedDateTime,
+          threadCount: threadPayload.threads.length,
+          isAiGenerated: !!originalAiContent,
+        });
       });
     } catch (error) {
-      console.error("Error scheduling:", error);
+      console.error('Error scheduling:', error);
       toast.error(t('scheduleFailed'));
     }
   };
@@ -685,73 +701,79 @@ export function RightSidebar({ className }: RightSidebarProps) {
     const farcasterPayload = payloads.find(payload => payload.platform === 'farcaster');
     const xPayload = payloads.find(payload => payload.platform === 'x');
 
+    const metadata = buildOwnershipMetadataFromThreads(threadPayload.threads, 'publish');
+
     try {
-      const message = threadPayload.threads.length > 1 ? t('threadChainPublishing') : t('postPublished');
-      toast.success(message);
+      await runOwnershipFlow(metadata, async () => {
+        try {
+          const message =
+            threadPayload.threads.length > 1 ? t('threadChainPublishing') : t('postPublished');
+          toast.success(message);
 
-      // Reset UI immediately
-      clearThreadChain();
-      localStorage.removeItem("draftContent");
+          clearThreadChain();
+          localStorage.removeItem('draftContent');
 
-      const result = await postThreadChain(threadPayload.threads);
+          const result = await postThreadChain(threadPayload.threads);
 
-      if (!result.success) {
-        console.error("❌ Publish error:", result.error);
-      } else {
-        console.log("✅ Published:", result.threadIds);
+          if (!result.success) {
+            console.error('❌ Publish error:', result.error);
+          } else {
+            console.log('✅ Published:', result.threadIds);
 
-        trackUserAction.contentPublished({
-          threadCount: threadPayload.threads.length,
-          isAiGenerated: !!originalAiContent,
-          publishType: 'immediate'
-        });
-
-        if (originalAiContent && result.parentThreadId) {
-          try {
-            const response = await fetch('/api/contents/update-ai-generated', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                parentMediaId: result.parentThreadId,
-                aiGenerated: originalAiContent
-              })
+            trackUserAction.contentPublished({
+              threadCount: threadPayload.threads.length,
+              isAiGenerated: !!originalAiContent,
+              publishType: 'immediate',
             });
-            if (!response.ok) {
-              console.error('Failed to update ai_generated field');
+
+            if (originalAiContent && result.parentThreadId) {
+              try {
+                const response = await fetch('/api/contents/update-ai-generated', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    parentMediaId: result.parentThreadId,
+                    aiGenerated: originalAiContent,
+                  }),
+                });
+                if (!response.ok) {
+                  console.error('Failed to update ai_generated field');
+                }
+              } catch (error) {
+                console.error('Error updating ai_generated field:', error);
+              }
             }
-          } catch (error) {
-            console.error('Error updating ai_generated field:', error);
-          }
-        }
 
-        if (farcasterPayload) {
-          const farcasterResult = await publishToFarcaster(farcasterPayload.threads);
-          if (farcasterResult.ok) {
-            toast.success(t('farcasterPostSuccess'));
-          } else if (farcasterResult.error !== 'EMPTY_CONTENT') {
-            toast.error(t('farcasterPostFailure'));
-            console.error('Farcaster post failed:', farcasterResult.error);
-          }
-        }
+            if (farcasterPayload) {
+              const farcasterResult = await publishToFarcaster(farcasterPayload.threads);
+              if (farcasterResult.ok) {
+                toast.success(t('farcasterPostSuccess'));
+              } else if (farcasterResult.error !== 'EMPTY_CONTENT') {
+                toast.error(t('farcasterPostFailure'));
+                console.error('Farcaster post failed:', farcasterResult.error);
+              }
+            }
 
-        if (xPayload) {
-          const xResult = await publishToX(xPayload.threads);
-          if (xResult.ok) {
-            toast.success(t('xPostSuccess'));
-          } else if (xResult.error !== 'EMPTY_CONTENT') {
-            toast.error(t('xPostFailure'));
-            console.error('X post failed:', xResult.error);
+            if (xPayload) {
+              const xResult = await publishToX(xPayload.threads);
+              if (xResult.ok) {
+                toast.success(t('xPostSuccess'));
+              } else if (xResult.error !== 'EMPTY_CONTENT') {
+                toast.error(t('xPostFailure'));
+                console.error('X post failed:', xResult.error);
+              }
+            }
           }
-        }
-      }
-    } catch (error) {
-      console.error("❌ handlePublish error:", error);
-    } finally {
-      Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
-        if (threads && threads.length > 0) {
-          setPlatformThreads(platform as PlatformKey, threads);
+        } finally {
+          Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
+            if (threads && threads.length > 0) {
+              setPlatformThreads(platform as PlatformKey, threads);
+            }
+          });
         }
       });
+    } catch (error) {
+      console.error('❌ handlePublish error:', error);
     }
   };
 
@@ -892,6 +914,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
         onConfirm={handleConfirmSchedule}
         currentScheduledTime={scheduleTime}
       />
+      <OwnershipModal />
     </>
   );
 }
