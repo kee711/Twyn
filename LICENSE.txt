@@ -1,0 +1,36 @@
+Business Source License 1.1
+
+Parameters
+Licensor: Twyn Labs, Inc.
+Licensed Work: Twyn SaaS Platform, including all source code, documentation, and assets contained in this repository.
+Additional Use Grant: You may make Production Use of the Licensed Work to support up to 3 active internal seats within a single organization whose annualized revenue does not exceed USD 250,000, or for evaluation, testing, proofs of concept, or non-revenue-generating personal projects.
+Change Date: 2027-01-01
+Change License: Apache License, Version 2.0
+
+Terms
+
+1. License Grant. The Licensor hereby grants you a non-exclusive, worldwide, non-transferable, and non-sublicensable license to copy, modify, create derivative works of, redistribute, and make Use of the Licensed Work, subject to the limitations and conditions in this License.
+
+2. Production Use Limitation. Except for the Additional Use Grant, you may not make Production Use of the Licensed Work prior to the Change Date. “Production Use” means any use of the Licensed Work in or for the benefit of a third party or external customers, or any use of the Licensed Work to provide a hosted or managed service. Internal development, testing, evaluation, and the Additional Use Grant do not constitute Production Use.
+
+3. Redistribution. You may distribute the Licensed Work or derivative works thereof only (a) under this License, (b) with a copy of this License included, and (c) with prominent notice of any modifications you make. You must not remove or alter any copyright, patent, trademark, or attribution notices.
+
+4. Derivative Works. Any modifications or derivative works you create are subject to this License. You must provide the source code of any derivative work you distribute under the same terms, and maintain all notices required by this License.
+
+5. Termination. If you fail to comply with any term of this License, your rights under this License terminate automatically. If you cure the violation within 30 days of discovery, your rights are reinstated prospectively unless the violation was intentional or repeated.
+
+6. Change Date and Change License. On the Change Date, this License automatically terminates and the Licensed Work is thereafter licensed to you under the Change License. Any rights granted under this License before the Change Date remain in effect unless terminated as described above.
+
+7. Disclaimer of Warranty. THE LICENSED WORK IS PROVIDED “AS IS” WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF TITLE, NONINFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+
+8. Limitation of Liability. IN NO EVENT WILL THE LICENSOR OR ANY COPYRIGHT HOLDER BE LIABLE FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE LICENSED WORK OR THE USE OF OR OTHER DEALINGS IN THE LICENSED WORK.
+
+9. Trademark. This License does not grant you rights to use the Licensor’s name, logo, or trademarks, except as required for reasonable and customary use in describing the origin of the Licensed Work and reproducing the content of notices.
+
+10. Miscellaneous. If any term of this License is held invalid or unenforceable, the remaining terms will remain in full force and effect. This License is governed by the laws of the State of Delaware and the United States of America, without regard to conflict-of-law principles.
+
+Change License
+
+Apache License, Version 2.0
+
+You may obtain a copy of the Change License at https://www.apache.org/licenses/LICENSE-2.0.
