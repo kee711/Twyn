@@ -1,89 +1,159 @@
-# Threads 콘텐츠 생성기
+# Twyn
 
-AI를 이용해 Threads에 발행할 콘텐츠를 자동으로 생성하고 발행할 수 있는 서비스입니다.
+Twyn is the self-learning digital marketing twin that compresses social media research, creation, and orchestration into a single on-brand workflow. It helps creators move from ideation to verified on-chain outcomes in minutes instead of hours.
 
-## 주요 기능
+## Quick Links
 
-- AI를 통한 Threads 콘텐츠 자동 생성
-- 생성된 콘텐츠 편집 및 확정
-- Threads 계정 연동
-- 콘텐츠 자동 예약 발행
+- Live experience: https://www.twyn.sh/contents/topic-finder
+- GitHub repository: https://github.com/kee711/Twyn
 
-## 기술 스택
+## Problem We Solve
 
-- [Next.js 15](https://nextjs.org/) - 리액트 프레임워크
-- [React 19](https://react.dev/) - UI 라이브러리
-- [TypeScript](https://www.typescriptlang.org/) - 정적 타입 지원
-- [Tailwind CSS](https://tailwindcss.com/) - CSS 프레임워크
-- [shadcn/ui](https://ui.shadcn.com/) - UI 컴포넌트 라이브러리
-- [Supabase](https://supabase.com/) - 백엔드 서비스
-- [OpenAI API](https://openai.com/) - AI 콘텐츠 생성
-- [Threads API](https://www.npmjs.com/package/threads-api) - Threads 연동
+Viral marketing is bottlenecked by hidden operations work. Ideation and research often consume more than half of a creator’s time. AI-generated copy frequently drifts off-brand and demands heavy edits. Publishing across channels is still a manual, error-prone process.
 
-## 시작하기
+## Our Solution
 
-### 환경 설정
+Twyn unifies research → creation → orchestration and ties published results to verifiable on-chain actions on Base. The platform empowers users to:
 
-먼저 프로젝트에 필요한 환경 변수를 설정하세요. 루트 디렉토리에 `.env.local` 파일을 생성하고 다음 내용을 추가하세요:
+- Run account-fit research that surfaces top-performing references, keyword clusters, and hook patterns.
+- Generate hyper-personalized drafts that learn from every edit while preserving privacy via FLock.io.
+- Publish everywhere in one click with analytics and on-chain attribution that prove impact.
+
+The result is a shorter draft-to-publish cycle, fewer edits, and a measurable bridge from attention to provable on-chain value.
+
+## Product Overview
+
+- **Topic Finder workspace**: guided flow that gathers audience intel, surfaces reference insights, and drafts platform-ready posts.
+- **Thinking process timeline**: transparent view into the research steps the agent took before generating copy.
+- **Personalization loops**: edits feed a secure learning system that improves future drafts without exporting raw data.
+- **Unified orchestration**: publish to multiple platforms, track analytics, and attribute conversions to on-chain actions.
+- **Ownership safeguards**: Base Chain integration reinforces provenance and revenue share logic for creators.
+
+## Key Features
+
+- Account-fit social research with engagement analytics.
+- Topic and keyword intelligence clustering.
+- Reference and hook pattern analysis.
+- Draft generation with structured editor feedback.
+- One-click multi-channel publishing and scheduling.
+- Wallet-aware ownership prompts and signature flows.
+- On-chain attribution for outcomes and rewards.
+
+## Challenges & What We Learned
+
+Early onboarding was the toughest hurdle. Asking new users to connect multiple accounts and grasp the research → draft → orchestrate → on-chain loop at once caused drop-off. We introduced a guided, single-account-first setup and are adding one-click starter briefs plus curated reference packs to deliver faster “A-ha!” moments in the first session.
+
+## Target Customers
+
+- **Primary**: micro-creators with 3K–20K followers seeking leverage without large teams.
+- **Secondary**: SMB marketing leads managing two to three channels who need proof of impact.
+
+Validation to date includes user interviews, MVP test cycles, micro-creator cohorts, and a Day1 Company (KOSPI-listed) proof of concept that drove faster drafts, higher acceptance rates, and weekly retention.
+
+## Unique Value Proposition
+
+Twyn is the only self-learning, end-to-end marketing twin that learns from edits, keeps workflows on-brand, and anchors ownership on-chain. One unified flow cuts time-to-first-draft by 30%+ while turning attention into verifiable on-chain outcomes.
+
+### Alpha Validation Plan
+
+We are running a four-week program with micro-creators (3K–20K followers) to measure improvements in:
+
+- Time to first draft.
+- Accepted draft percentage (edit distance).
+- Reach, saves, and click-through rate per post.
+- On-chain actions per 1K reach.
+
+Success looks like a materially faster publish path (>30% time saved), visible learning effects, and defensible on-chain attribution.
+
+## Competitive Landscape
+
+| Competitor | Focus | How Twyn Differs |
+| --- | --- | --- |
+| [Hootsuite](https://www.hootsuite.com) | Scheduling & analytics | Lacks AI learning loop and on-chain attribution. |
+| [Buffer](https://buffer.com) | Lightweight publishing | No integrated research or ownership signals. |
+| [Jasper](https://www.jasper.ai) | Generic AI copy | Doesn’t tie research, creation, and orchestration together. |
+
+Twyn unifies research, hyper-personalized generation, and one-click orchestration with on-chain attribution, keeping the entire flow creator-owned.
+
+## Distribution Strategy
+
+- **Community cohorts & ambassadors**: trust-based onboarding with low acquisition cost.
+- **Ecosystem partnerships**: Base Batch, Farcaster, and creator networks provide concentrated reach.
+- **Product-led loops**: free tier, shareable research packs, and “Made with Twyn” tags amplify organic growth.
+- **SMB/agency land → expand**: start self-serve, then layer multi-seat offerings once ROI is proven.
+
+These motions match how creators adopt tools—peer recommendations, ecosystem endorsements, and visible outcomes.
+
+## Architecture & Stack
+
+- Next.js 15, React 19, and TypeScript for the application shell.
+- Tailwind CSS and shadcn/ui for design system components.
+- Supabase for auth, database, and edge functions.
+- OpenAI and LangGraph-powered research & generation agents.
+- Base Chain integrations for on-chain verification and payouts.
+- WalletConnect-driven wallet experiences plus Farcaster relay endpoints.
+
+## Getting Started
+
+### Prerequisites
+
+Create a `.env.local` at the project root and populate it with the required secrets:
 
 ```
-# Supabase for server
+# Supabase (server)
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
-# Supabase for client
+
+# Supabase (client)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 DATABASE_URL=your_supabase_db_url
-# OpenAI API
+
+# OpenAI
 OPENAI_API_KEY=your_openai_api_key
+
 # NextAuth
-NEXTAUTH_URL=your_nextauth_url # e.g. http://localhost:3000
-NEXTAUTH_SECRET=your_nextauth_key # openssl rand -base64 32
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret
 NEXTAUTH_DEBUG=true
+
 # Threads OAuth
 THREADS_CLIENT_ID=your_threads_client_id
-THREADS_CLIENT_SECRET=your_threads_client_secret_key
-# Threads Auth
+THREADS_CLIENT_SECRET=your_threads_client_secret
 NEXT_PUBLIC_THREADS_ACCESS_TOKEN=your_threads_access_token
-# WalletConnect
+
+# WalletConnect & Farcaster
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-# Farcaster Relay (required for Farcaster login/signing)
 NEXT_PUBLIC_FARCASTER_RELAY_URL=/api/farcaster/relay
-# In production, FARCASTER_API_KEY must contain your Warpcast Relay API key
 FARCASTER_API_KEY=your_farcaster_relay_api_key
-# Optional: override relay origin (defaults to https://relay.farcaster.xyz)
 # FARCASTER_RELAY_ORIGIN=https://relay.farcaster.xyz
+
 # Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret_key
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-CRON_SECRET=your_cron_key # openssl rand -hex 32
+# Cron
+CRON_SECRET=your_cron_secret
 ```
 
-### 설치 및 실행
+### Install & Run
 
 ```bash
-# 종속성 설치
 npm install
-
-# 개발 서버 실행
 npm run dev
 
-# 프로덕션 빌드
+# Production
 npm run build
-
-# 프로덕션 서버 실행
 npm start
 ```
 
-## 사용 방법
+## Roadmap
 
-1. Threads 계정으로 로그인합니다.
-2. 콘텐츠 생성 양식에서 주제와 선택적으로 참고 자료를 입력합니다.
-3. AI가 생성한 콘텐츠를 검토하고 필요에 따라 편집합니다.
-4. 발행하고 싶은 콘텐츠를 확정합니다.
-5. '확정된 콘텐츠 발행' 버튼을 클릭하여 콘텐츠를 Threads에 자동으로 발행합니다.
+- Guided starter briefs and sample reference packs for immediate value.
+- Deeper learning loops that adapt to brand voice faster.
+- Expanded analytics for cross-channel lift and on-chain contribution.
+- Multi-seat collaboration for SMB teams and agencies.
 
-## 라이선스
+## License
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+This project is licensed under the MIT License.
