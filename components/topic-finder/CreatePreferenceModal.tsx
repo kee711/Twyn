@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface CreatePreferenceModalProps {
     open: boolean;
@@ -43,6 +43,7 @@ export function CreatePreferenceModal({
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [isPublic, setIsPublic] = useState(false);
+    const t = useTranslations('pages.contents.topicFinder');
 
     useEffect(() => {
         if (open) {
@@ -66,32 +67,32 @@ export function CreatePreferenceModal({
             <DialogContent className="rounded-3xl p-6 sm:p-8">
                 <DialogHeader className="space-y-2">
                     <DialogTitle className="text-2xl font-semibold text-neutral-900">
-                        {mode === 'edit' ? 'Edit' : 'Create'} {title}
+                        {mode === 'edit' ? t('editTitle', { title }) : t('createTitle', { title })}
                     </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="preference-name" className="text-sm font-medium text-neutral-700">
-                            Name
+                            {t('nameLabel')}
                         </Label>
                         <Input
                             id="preference-name"
                             value={name}
                             onChange={event => setName(event.target.value)}
-                            placeholder={namePlaceholder || `Name your ${title.toLowerCase()}`}
+                            placeholder={namePlaceholder || t('namePlaceholder', { title })}
                             disabled={loading}
                             className="rounded-2xl border-neutral-200 bg-neutral-50/80 px-4 py-3 text-neutral-800 focus-visible:ring-neutral-400"
                         />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="preference-description" className="text-sm font-medium text-neutral-700">
-                            Description
+                            {t('descriptionLabel')}
                         </Label>
                         <Textarea
                             id="preference-description"
                             value={description}
                             onChange={event => setDescription(event.target.value)}
-                            placeholder={descriptionPlaceholder || `Describe this ${title.toLowerCase()}`}
+                            placeholder={descriptionPlaceholder || t('descriptionPlaceholder', { title })}
                             disabled={loading}
                             className="min-h-[120px] rounded-2xl border-neutral-200 bg-neutral-50/80 px-4 py-3 text-neutral-800 focus-visible:ring-neutral-400"
                         />
@@ -99,8 +100,8 @@ export function CreatePreferenceModal({
                     {includePublicToggle ? (
                         <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50/60 px-4 py-3">
                             <div>
-                                <p className="text-sm font-medium text-neutral-800">Make public</p>
-                                <p className="text-xs text-neutral-500">Allow other users to reuse this add-on.</p>
+                                <p className="text-sm font-medium text-neutral-800">{t('makePublic')}</p>
+                                <p className="text-xs text-neutral-500">{t('makePublicDescription')}</p>
                             </div>
                             <Switch
                                 checked={isPublic}
@@ -119,7 +120,7 @@ export function CreatePreferenceModal({
                                 className="text-sm font-medium text-destructive transition hover:text-destructive/80 focus:outline-none disabled:opacity-60"
                                 disabled={loading}
                             >
-                                Delete
+                                {t('delete')}
                             </button>
                         </div>
                     ) : null}
@@ -131,7 +132,7 @@ export function CreatePreferenceModal({
                             className="rounded-full px-5"
                             disabled={loading}
                         >
-                            Cancel
+                            {t('cancel')}
                         </Button>
                         <Button
                             type="button"
@@ -139,7 +140,7 @@ export function CreatePreferenceModal({
                             className="rounded-full bg-neutral-900 px-6 hover:bg-neutral-800"
                             disabled={loading || !name.trim()}
                         >
-                            {loading ? 'Saving...' : mode === 'edit' ? 'Update' : 'Save'}
+                            {loading ? t('saving') : mode === 'edit' ? t('update') : t('save')}
                         </Button>
                     </div>
                 </DialogFooter>
