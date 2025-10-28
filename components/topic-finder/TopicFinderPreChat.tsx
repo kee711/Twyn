@@ -145,39 +145,40 @@ export const TopicFinderPreChat = ({
             >
                 <div className="grid w-full grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <PreferenceCard
-                        title="Persona"
+                        title={t('personaTitle')}
                         options={personas}
                         selectedId={selectedPersonaId}
                         onSelect={onPersonaSelect}
                         onCreateNew={() => onOpenCreateModal('persona')}
                         onEdit={option => onOpenEditModal('persona', option)}
-                        placeholder="Select persona"
+                        placeholder={t('selectPersona')}
                         disabled={!userId}
                         loading={isPreferenceLoading && personas.length === 0}
                     />
                     <PreferenceCard
-                        title="Audience"
+                        title={t('audienceTitle')}
                         options={audiences}
                         selectedId={selectedAudienceId}
                         onSelect={onAudienceSelect}
                         onCreateNew={() => onOpenCreateModal('audience')}
                         onEdit={option => onOpenEditModal('audience', option)}
-                        placeholder="Select audience"
+                        placeholder={t('selectAudience')}
                         disabled={!userId}
                         loading={isPreferenceLoading && audiences.length === 0}
                     />
                     <PreferenceCard
-                        title="Objective"
+                        title={t('objectiveTitle')}
                         options={objectives}
                         selectedId={selectedObjectiveId}
                         onSelect={onObjectiveSelect}
                         onCreateNew={() => onOpenCreateModal('objective')}
                         onEdit={option => onOpenEditModal('objective', option)}
-                        placeholder="Select objective"
+                        placeholder={t('selectObjective')}
                         disabled={!userId}
                         loading={isPreferenceLoading && objectives.length === 0}
                     />
                     <AddOnCard
+                        title={t('addOnTitle')}
                         options={addOns}
                         selectedIds={selectedAddOnIds}
                         onToggle={onAddOnToggle}
@@ -198,7 +199,7 @@ export const TopicFinderPreChat = ({
                                     variant="outline"
                                     size="sm"
                                     className="h-10 rounded-full px-3"
-                                    aria-label="Open generation settings"
+                                    aria-label={t('openGenerationSettings')}
                                 >
                                     <Settings2 className="h-4 w-4" />
                                 </Button>

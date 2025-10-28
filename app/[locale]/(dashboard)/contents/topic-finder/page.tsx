@@ -31,6 +31,7 @@ import { TopicFinderPreChat } from '@/components/topic-finder/TopicFinderPreChat
 import { TopicFinderChatView } from '@/components/topic-finder/TopicFinderChatView';
 import { AddOnOption } from '@/components/topic-finder/AddOnCard';
 import { PreferenceOption } from '@/components/topic-finder/PreferenceCard';
+import { Button } from '@/components/ui/button';
 import type { RecommendedTopic } from '@/lib/topic-finder/recommendations';
 import type { AudienceAnalysis } from '@/lib/topic-finder/audience';
 import { useProfileAnalytics } from '@/hooks/useProfileAnalytics';
@@ -1413,30 +1414,30 @@ export default function TopicFinderPage() {
         switch (modalState.type) {
             case 'persona':
                 return {
-                    title: 'Persona',
-                    namePlaceholder: 'e.g. Insightful marketing expert',
-                    descriptionPlaceholder: 'Describe the persona voice, experience, and tone.',
+                    title: t('personaTitle'),
+                    namePlaceholder: t('personaNamePlaceholder'),
+                    descriptionPlaceholder: t('personaDescriptionPlaceholder'),
                     includePublicToggle: false,
                 };
             case 'audience':
                 return {
-                    title: 'Audience',
-                    namePlaceholder: 'e.g. Aspiring SaaS founders',
-                    descriptionPlaceholder: 'Who are you writing for? Mention goals, pain points, and preferences.',
+                    title: t('audienceTitle'),
+                    namePlaceholder: t('audienceNamePlaceholder'),
+                    descriptionPlaceholder: t('audienceDescriptionPlaceholder'),
                     includePublicToggle: false,
                 };
             case 'objective':
                 return {
-                    title: 'Objective',
-                    namePlaceholder: 'e.g. Drive sign-ups for beta launch',
-                    descriptionPlaceholder: 'Clarify the campaign goal, CTA, and success metrics.',
+                    title: t('objectiveTitle'),
+                    namePlaceholder: t('objectiveNamePlaceholder'),
+                    descriptionPlaceholder: t('objectiveDescriptionPlaceholder'),
                     includePublicToggle: false,
                 };
             case 'addOn':
                 return {
-                    title: 'Add-on',
-                    namePlaceholder: 'e.g. Include storytelling hook',
-                    descriptionPlaceholder: 'Explain how this add-on should influence the generated content.',
+                    title: t('addOnTitle'),
+                    namePlaceholder: t('addOnNamePlaceholder'),
+                    descriptionPlaceholder: t('addOnDescriptionPlaceholder'),
                     includePublicToggle: true,
                 };
             default:
@@ -1447,7 +1448,7 @@ export default function TopicFinderPage() {
                     includePublicToggle: false,
                 };
         }
-    }, [modalState.type]);
+    }, [modalState.type, t]);
 
     const structuredContext = useMemo(() => ({
         persona: selectedPersona ? { id: selectedPersona.id, name: selectedPersona.name, description: selectedPersona.description || '' } : null,
