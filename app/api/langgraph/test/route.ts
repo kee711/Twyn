@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const DEFAULT_TOPIC = 'social media marketing strategy for AI startups';
-const API_BASE = (process.env.LANGGRAPH_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+const API_BASE = process.env.LANGGRAPH_API_URL;
 
 export async function POST(request: Request) {
   let body: any = {};
