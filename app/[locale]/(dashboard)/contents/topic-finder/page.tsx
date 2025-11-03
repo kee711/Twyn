@@ -40,6 +40,10 @@ import type { AssistantBlock, AssistantMessage, ConversationMessage, ThinkingPro
 
 const DEFAULT_LANGGRAPH_TOPIC = 'social media marketing strategy for AI startups';
 
+// Base URL for LangGraph FastAPI server
+// Prefer client-exposed env var if available; fallback to server env at build time.
+const LANGGRAPH_API_BASE = (process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || process.env.LANGGRAPH_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+
 interface SubmittedContext {
     headline: string;
     persona?: PreferenceOption | null;
@@ -2420,34 +2424,10 @@ export default function TopicFinderPage() {
                 .filter(Boolean)
                 .join('\n\n');
             const resolvedTopic = trimmed || lockedContext.headline || DEFAULT_LANGGRAPH_TOPIC;
-            const response = await fetch('/api/langgraph/test', {
+            const response = await fetch(`${LANGGRAPH_API_BASE}/research/enhanced`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    topic: resolvedTopic,
-                    prompt: trimmed,
-                    input: {
-                        topic: resolvedTopic,
-                        prompt: trimmed,
-                        message: trimmed,
-                        context: dynamicContext,
-                        persona: structuredForRequest.persona,
-                        audience: structuredForRequest.audience,
-                        objective: structuredForRequest.objective,
-                        addOns: structuredForRequest.addOns,
-                        language,
-                        locale,
-                        history: historyPayload,
-                        profileInsights: profileAnalytics
-                            ? {
-                                followerTrend: profileAnalytics.followerTrend,
-                                metrics: profileAnalytics.metrics,
-                                summary: profileSummaryText,
-                            }
-                            : null,
-                        audienceInsights: requestAudienceAnalysis,
-                    },
-                }),
+                body: JSON.stringify({ topic: resolvedTopic }),
             });
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) {
@@ -2459,7 +2439,10 @@ export default function TopicFinderPage() {
             }
 
             const events: LanggraphEvent[] = Array.isArray(payload?.events) ? payload.events : [];
-            const aggregated = aggregateLanggraphPayload(events);
+            let aggregated = aggregateLanggraphPayload(events);
+            if (!aggregated && payload && typeof payload === 'object') {
+                aggregated = payload as Record<string, unknown>;
+            }
             const blocks = aggregated
                 ? buildAssistantBlocks(aggregated)
                 : [
