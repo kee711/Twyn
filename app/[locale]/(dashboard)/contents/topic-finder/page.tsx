@@ -42,7 +42,7 @@ const DEFAULT_LANGGRAPH_TOPIC = 'social media marketing strategy for AI startups
 
 // Base URL for LangGraph FastAPI server
 // Prefer client-exposed env var if available; fallback to server env at build time.
-const LANGGRAPH_API_BASE = (process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || process.env.LANGGRAPH_API_URL || '').replace(/\/$/, '');
+const LANGGRAPH_API_BASE = (process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || process.env.LANGGRAPH_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 
 interface SubmittedContext {
     headline: string;
@@ -2424,9 +2424,6 @@ export default function TopicFinderPage() {
                 .filter(Boolean)
                 .join('\n\n');
             const resolvedTopic = trimmed || lockedContext.headline || DEFAULT_LANGGRAPH_TOPIC;
-            if (!LANGGRAPH_API_BASE) {
-                throw new Error('LANGGRAPH_API_URL is not configured');
-            }
             const response = await fetch(`${LANGGRAPH_API_BASE}/research/enhanced`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
