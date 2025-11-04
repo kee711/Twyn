@@ -23,6 +23,7 @@ interface SocialAccountStore {
   isLoading: boolean;
   currentSocialId: string;
   currentUsername: string;
+  farcasterSignerActive: boolean;
   setAccounts: (accounts: SocialAccount[], selected: SelectedAccountMap) => void;
   fetchAccounts: (userId: string) => Promise<void>;
   fetchSocialAccounts: (userId: string) => Promise<void>;
@@ -38,6 +39,7 @@ const useSocialAccountStore = create<SocialAccountStore>()(
       isLoading: false,
       currentSocialId: '',
       currentUsername: '',
+      farcasterSignerActive: false,
 
       setAccounts: (accounts, selected) => {
         const nextSelected: SelectedAccountMap = { ...selected };
@@ -61,6 +63,7 @@ const useSocialAccountStore = create<SocialAccountStore>()(
           selectedAccounts: nextSelected,
           currentSocialId: threadsAccount ? threadsAccount.social_id : '',
           currentUsername: threadsAccount ? (threadsAccount.username || threadsAccount.social_id) : '',
+          // Keep existing farcaster signer state as is; fetchAccounts will update it.
         });
       },
 
@@ -99,6 +102,24 @@ const useSocialAccountStore = create<SocialAccountStore>()(
 
           if (selectionError) {
             console.warn('[useSocialAccountStore] selection fetch error', selectionError);
+          }
+
+          let farcasterSignerActive = false;
+          try {
+            const { data: farcasterAccounts, error: farcasterError } = await supabase
+              .from('farcaster_accounts')
+              .select('is_active')
+              .eq('owner', userId);
+
+            if (farcasterError) {
+              console.warn('[useSocialAccountStore] farcaster accounts fetch error', farcasterError);
+            } else {
+              farcasterSignerActive = (farcasterAccounts || []).some(
+                (row: any) => row?.is_active,
+              );
+            }
+          } catch (error) {
+            console.warn('[useSocialAccountStore] farcaster accounts fetch threw', error);
           }
 
           const accountsByPlatform: Record<PlatformKey, SocialAccount[]> = {
@@ -156,9 +177,10 @@ const useSocialAccountStore = create<SocialAccountStore>()(
           }
 
           get().setAccounts(accounts, selectedMap);
+          set({ farcasterSignerActive });
         } catch (error) {
           console.error('[useSocialAccountStore] fetchAccounts error', error);
-          set({ accounts: [], selectedAccounts: {} });
+          set({ accounts: [], selectedAccounts: {}, farcasterSignerActive: false });
         } finally {
           set({ isLoading: false });
         }
@@ -225,6 +247,7 @@ const useSocialAccountStore = create<SocialAccountStore>()(
         selectedAccounts: state.selectedAccounts,
         currentSocialId: state.currentSocialId,
         currentUsername: state.currentUsername,
+        farcasterSignerActive: state.farcasterSignerActive,
       }),
     }
   )

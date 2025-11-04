@@ -70,7 +70,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const [showAiInput, setShowAiInput] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number>(0);
-  const { accounts, currentSocialId, getSelectedAccount } = useSocialAccountStore();
+  const { accounts, currentSocialId, getSelectedAccount, farcasterSignerActive } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
   const pathname = usePathname();
   const { originalAiContent } = useAiContentStore();
@@ -91,6 +91,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
     setPlatformMode,
     activePlatforms,
     togglePlatformActive,
+    setPlatformActive,
     platformContents,
     setPlatformThreads,
     updatePlatformThreadContent,
@@ -119,12 +120,6 @@ export function RightSidebar({ className }: RightSidebarProps) {
     setPlatformMode(isUnlinked ? 'linked' : 'unlinked');
   };
 
-  const handlePlatformSelect = (platform: PlatformKey) => {
-    if (isUnlinked) {
-      setSelectedPlatform(platform);
-    }
-  };
-
   const platformButtons: PlatformButtonConfig[] = [
     {
       key: 'threads',
@@ -144,7 +139,34 @@ export function RightSidebar({ className }: RightSidebarProps) {
   ];
 
   const handlePlatformToggle = (platform: PlatformKey) => {
+    const currentlyActive = activePlatforms[platform];
+    if (!currentlyActive) {
+      const account = getAccountForPlatform(platform);
+      if (!account) {
+        const platformName = PLATFORM_DISPLAY_NAMES[platform];
+        toast.error(t('accountConnectionRequired'), {
+          description: t('connectAccountsList', { platforms: platformName })
+        });
+        return;
+      }
+      if (platform === 'farcaster' && !farcasterSignerActive) {
+        toast.error(t('farcasterSignerRequired'));
+        return;
+      }
+    }
     togglePlatformActive(platform);
+  };
+
+  const handlePlatformSelect = (platform: PlatformKey) => {
+    if (isUnlinked) {
+      setSelectedPlatform(platform);
+      return;
+    }
+    if (platform === 'farcaster' && (!hasFarcasterAccount || !farcasterSignerActive)) {
+      toast.error(t('farcasterSignerRequired'));
+      return;
+    }
+    handlePlatformToggle(platform);
   };
 
   const getThreadsForPlatform = (platform: PlatformKey): ThreadContent[] => {
@@ -180,11 +202,16 @@ export function RightSidebar({ className }: RightSidebarProps) {
     return accounts.find(account => account.platform?.toLowerCase?.() === platform && account.is_active);
   };
 
+  const hasFarcasterAccount = Boolean(getAccountForPlatform('farcaster'));
+
+  useEffect(() => {
+    if ((!hasFarcasterAccount || !farcasterSignerActive) && activePlatforms.farcaster) {
+      setPlatformActive('farcaster', false);
+    }
+  }, [hasFarcasterAccount, farcasterSignerActive, activePlatforms.farcaster, setPlatformActive]);
+
   const ensureAccountsForPlatforms = (platforms: PlatformKey[]) => {
-    const missing = platforms.filter(platform => {
-      if (platform === 'farcaster') return false;
-      return !getAccountForPlatform(platform);
-    });
+    const missing = platforms.filter(platform => !getAccountForPlatform(platform));
     if (missing.length > 0) {
       const names = missing.map(platform => PLATFORM_DISPLAY_NAMES[platform]).join(', ');
       toast.error(t('accountConnectionRequired'), {
@@ -688,90 +715,104 @@ export function RightSidebar({ className }: RightSidebarProps) {
     notifyUnsupportedPlatforms(unsupported, 'publish');
 
     const threadPayload = payloads.find(payload => payload.platform === 'threads');
-    if (!threadPayload) {
-      toast.error(t('threadsOnlyPublish'));
-      return;
-    }
-
     const preservedPlatforms: Partial<Record<PlatformKey, ThreadContent[]>> = {};
     unsupported.forEach(platform => {
       preservedPlatforms[platform] = getThreadsForPlatform(platform);
     });
 
     const farcasterPayload = payloads.find(payload => payload.platform === 'farcaster');
+    if (farcasterPayload && !farcasterSignerActive) {
+      toast.error(t('farcasterSignerRequired'));
+      return;
+    }
     const xPayload = payloads.find(payload => payload.platform === 'x');
 
-    const metadata = buildOwnershipMetadataFromThreads(threadPayload.threads, 'publish');
-
-    try {
-      await runOwnershipFlow(metadata, async () => {
-        try {
-          const message =
-            threadPayload.threads.length > 1 ? t('threadChainPublishing') : t('postPublished');
-          toast.success(message);
-
-          clearThreadChain();
-          localStorage.removeItem('draftContent');
-
-          const result = await postThreadChain(threadPayload.threads);
-
-          if (!result.success) {
-            console.error('❌ Publish error:', result.error);
-          } else {
-            console.log('✅ Published:', result.threadIds);
-
-            trackUserAction.contentPublished({
-              threadCount: threadPayload.threads.length,
-              isAiGenerated: !!originalAiContent,
-              publishType: 'immediate',
-            });
-
-            if (originalAiContent && result.parentThreadId) {
-              try {
-                const response = await fetch('/api/contents/update-ai-generated', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    parentMediaId: result.parentThreadId,
-                    aiGenerated: originalAiContent,
-                  }),
-                });
-                if (!response.ok) {
-                  console.error('Failed to update ai_generated field');
-                }
-              } catch (error) {
-                console.error('Error updating ai_generated field:', error);
-              }
-            }
-
-            if (farcasterPayload) {
-              const farcasterResult = await publishToFarcaster(farcasterPayload.threads);
-              if (farcasterResult.ok) {
-                toast.success(t('farcasterPostSuccess'));
-              } else if (farcasterResult.error !== 'EMPTY_CONTENT') {
-                toast.error(t('farcasterPostFailure'));
-                console.error('Farcaster post failed:', farcasterResult.error);
-              }
-            }
-
-            if (xPayload) {
-              const xResult = await publishToX(xPayload.threads);
-              if (xResult.ok) {
-                toast.success(t('xPostSuccess'));
-              } else if (xResult.error !== 'EMPTY_CONTENT') {
-                toast.error(t('xPostFailure'));
-                console.error('X post failed:', xResult.error);
-              }
-            }
-          }
-        } finally {
-          Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
-            if (threads && threads.length > 0) {
-              setPlatformThreads(platform as PlatformKey, threads);
-            }
+    const publishExternalPlatforms = async () => {
+      if (farcasterPayload) {
+        const farcasterResult = await publishToFarcaster(farcasterPayload.threads);
+        if (farcasterResult.ok) {
+          toast.success(t('farcasterPostSuccess'));
+        } else if (farcasterResult.error !== 'EMPTY_CONTENT') {
+          toast.error(t('farcasterPostFailure'), {
+            description: farcasterResult.error,
           });
+          console.error('Farcaster post failed:', farcasterResult.error);
+        }
+      }
+
+      if (xPayload) {
+        const xResult = await publishToX(xPayload.threads);
+        if (xResult.ok) {
+          toast.success(t('xPostSuccess'));
+        } else if (xResult.error !== 'EMPTY_CONTENT') {
+          toast.error(t('xPostFailure'));
+          console.error('X post failed:', xResult.error);
+        }
+      }
+    };
+
+    const restoreUnsupportedPlatforms = () => {
+      Object.entries(preservedPlatforms).forEach(([platform, threads]) => {
+        if (threads && threads.length > 0) {
+          setPlatformThreads(platform as PlatformKey, threads);
         }
       });
+    };
+
+    try {
+      if (threadPayload) {
+        const metadata = buildOwnershipMetadataFromThreads(threadPayload.threads, 'publish');
+
+        await runOwnershipFlow(metadata, async () => {
+          try {
+            const message =
+              threadPayload.threads.length > 1 ? t('threadChainPublishing') : t('postPublished');
+            toast.success(message);
+
+            clearThreadChain();
+            localStorage.removeItem('draftContent');
+
+            const result = await postThreadChain(threadPayload.threads);
+
+            if (!result.success) {
+              console.error('❌ Publish error:', result.error);
+            } else {
+              console.log('✅ Published:', result.threadIds);
+
+              trackUserAction.contentPublished({
+                threadCount: threadPayload.threads.length,
+                isAiGenerated: !!originalAiContent,
+                publishType: 'immediate',
+              });
+
+              if (originalAiContent && result.parentThreadId) {
+                try {
+                  const response = await fetch('/api/contents/update-ai-generated', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      parentMediaId: result.parentThreadId,
+                      aiGenerated: originalAiContent,
+                    }),
+                  });
+                  if (!response.ok) {
+                    console.error('Failed to update ai_generated field');
+                  }
+                } catch (error) {
+                  console.error('Error updating ai_generated field:', error);
+                }
+              }
+
+              await publishExternalPlatforms();
+            }
+          } finally {
+            restoreUnsupportedPlatforms();
+          }
+        });
+      } else {
+        await publishExternalPlatforms();
+        restoreUnsupportedPlatforms();
+      }
     } catch (error) {
       console.error('❌ handlePublish error:', error);
     }
@@ -821,6 +862,8 @@ export function RightSidebar({ className }: RightSidebarProps) {
             activePlatforms={activePlatforms}
             isUnlinked={isUnlinked}
             selectedPlatform={selectedPlatform}
+            hasFarcasterAccount={hasFarcasterAccount}
+            farcasterSignerActive={farcasterSignerActive}
             onToggleUnlink={handleUnlinkToggle}
             onSelectPlatform={handlePlatformSelect}
             onTogglePlatformActive={handlePlatformToggle}
@@ -877,14 +920,16 @@ export function RightSidebar({ className }: RightSidebarProps) {
               removeThread={removeThread}
               updateThreadContent={updateThreadContent}
               updateThreadMedia={updateThreadMedia}
-              platformButtons={platformButtons}
-              activePlatforms={activePlatforms}
-              isUnlinked={isUnlinked}
-              selectedPlatform={selectedPlatform}
-              onToggleUnlink={handleUnlinkToggle}
-              onSelectPlatform={handlePlatformSelect}
-              onTogglePlatformActive={handlePlatformToggle}
-              platformContents={platformContents}
+            platformButtons={platformButtons}
+            activePlatforms={activePlatforms}
+            isUnlinked={isUnlinked}
+            selectedPlatform={selectedPlatform}
+            hasFarcasterAccount={hasFarcasterAccount}
+            farcasterSignerActive={farcasterSignerActive}
+            onToggleUnlink={handleUnlinkToggle}
+            onSelectPlatform={handlePlatformSelect}
+            onTogglePlatformActive={handlePlatformToggle}
+            platformContents={platformContents}
               onPlatformThreadContentChange={updatePlatformThreadContent}
               onPlatformThreadMediaChange={updatePlatformThreadMedia}
               onPlatformAddThread={addPlatformThread}
@@ -944,6 +989,8 @@ function RightSidebarContent({
   activePlatforms,
   isUnlinked,
   selectedPlatform,
+  hasFarcasterAccount,
+  farcasterSignerActive,
   onToggleUnlink,
   onSelectPlatform,
   onTogglePlatformActive,
@@ -976,6 +1023,8 @@ function RightSidebarContent({
   activePlatforms: Record<PlatformKey, boolean>;
   isUnlinked: boolean;
   selectedPlatform: PlatformKey;
+  hasFarcasterAccount: boolean;
+  farcasterSignerActive: boolean;
   onToggleUnlink: () => void;
   onSelectPlatform: (platform: PlatformKey) => void;
   onTogglePlatformActive: (platform: PlatformKey) => void;
@@ -999,6 +1048,9 @@ function RightSidebarContent({
   const renderPlatformButton = ({ key, imageSrc, alt }: PlatformButtonConfig) => {
     const isActive = activePlatforms[key];
     const isSelected = selectedPlatform === key && isUnlinked;
+    const isFarcaster = key === 'farcaster';
+    const isFarcasterEnableBlocked = isFarcaster && !isActive && (!hasFarcasterAccount || !farcasterSignerActive);
+    const disabledTitle = isFarcasterEnableBlocked ? t('farcasterSignerRequired') : undefined;
 
     return (
       <div
@@ -1006,7 +1058,8 @@ function RightSidebarContent({
         className={cn(
           'flex items-center gap-1 rounded-full border px-1 py-0 transition-colors',
           'bg-muted border-border/40',
-          !isActive && 'opacity-60'
+          !isActive && 'opacity-60',
+          isFarcasterEnableBlocked && 'opacity-40'
         )}
       >
         <button
@@ -1016,6 +1069,8 @@ function RightSidebarContent({
             'flex h-8 w-8 items-center justify-center rounded-full border transition-colors',
             isSelected ? 'border-primary bg-primary/10' : 'border-transparent'
           )}
+          disabled={isFarcasterEnableBlocked}
+          title={disabledTitle}
         >
           <NextImage
             src={imageSrc}
@@ -1032,6 +1087,8 @@ function RightSidebarContent({
             'flex h-6 w-6 items-center justify-center rounded-full bg-muted-foreground/80 text-background transition-colors',
             !isActive && 'bg-muted text-muted-foreground'
           )}
+          disabled={isFarcasterEnableBlocked}
+          title={disabledTitle}
         >
           {isActive ? (
             <Check className="h-4 w-4" />

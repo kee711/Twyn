@@ -214,13 +214,6 @@ const useThreadChainStore = create<ThreadChainState>()(
 
       togglePlatformActive: (platform) => set((state) => {
         const currentlyActive = state.activePlatforms[platform]
-        if (currentlyActive) {
-          const activeCount = Object.values(state.activePlatforms).filter(Boolean).length
-          if (activeCount <= 1) {
-            return state
-          }
-        }
-
         return {
           activePlatforms: {
             ...state.activePlatforms,
@@ -230,13 +223,6 @@ const useThreadChainStore = create<ThreadChainState>()(
       }),
 
       setPlatformActive: (platform, isActive) => set((state) => {
-        if (!isActive) {
-          const activeCount = Object.values(state.activePlatforms).filter(Boolean).length
-          if (activeCount <= 1 && state.activePlatforms[platform]) {
-            return state
-          }
-        }
-
         return {
           activePlatforms: {
             ...state.activePlatforms,

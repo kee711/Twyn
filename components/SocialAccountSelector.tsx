@@ -34,7 +34,10 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
     isLoading,
     fetchAccounts,
     selectAccount,
+    farcasterSignerActive,
   } = useSocialAccountStore();
+  const [isStartingSigner, setIsStartingSigner] = useState(false);
+  const [isPollingSigner, setIsPollingSigner] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -76,45 +79,6 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
       }
 
       toast.success(t('farcasterLinkSuccess'));
-
-      // Singer Flow Autostart after login
-
-      // const signerStart = await fetch('/api/farcaster/signer/start', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ fid: Number(fid) }),
-      // });
-
-      // if (signerStart.ok) {
-      //   const startData = await signerStart.json().catch(() => ({}));
-      //   const token: string | undefined = startData?.token;
-      //   const deeplinkUrl: string | undefined = startData?.deeplinkUrl;
-
-      //   if (deeplinkUrl) {
-      //     const win = window.open(deeplinkUrl, '_blank', 'noopener');
-      //     if (!win) {
-      //       window.location.href = deeplinkUrl;
-      //     }
-      //     toast.info('Warpcast 앱에서 signer 승인을 완료해주세요.');
-      //   }
-
-      //   if (token) {
-      //     const result = await pollSignerStatus(token);
-      //     if (result === 'completed') {
-      //       toast.success('Farcaster signer가 활성화되었습니다.');
-      //     } else if (result === 'expired') {
-      //       toast.error('Signer 요청이 만료되었습니다. 다시 시도해주세요.');
-      //     } else if (result === 'revoked') {
-      //       toast.error('Signer 요청이 취소되었습니다. 다시 시도해주세요.');
-      //     } else if (result === 'timeout') {
-      //       toast.info('Signer 승인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
-      //     }
-      //   }
-      // } else {
-      //   const errorData = await signerStart.json().catch(() => ({}));
-      //   console.error('Failed to start Farcaster signer flow', errorData);
-      //   toast.error('Signer 요청을 시작하지 못했습니다. 다시 시도해주세요.');
-      // }
 
       await fetchAccounts(session.user.id);
     } catch (error) {
@@ -168,6 +132,68 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
     }
 
     return 'timeout';
+  };
+
+  const handleStartFarcasterSigner = async () => {
+    if (!session?.user?.id || isStartingSigner || isPollingSigner) return;
+
+    try {
+      setIsStartingSigner(true);
+      const body: Record<string, unknown> = {};
+      if (typeof window !== 'undefined') {
+        body.redirectUrl = window.location.origin;
+      }
+
+      const response = await fetch('/api/farcaster/signer/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.ok === false) {
+        const errorMessage = data?.error || 'Failed to start signer flow';
+        throw new Error(errorMessage);
+      }
+
+      const token: string | undefined = data?.token;
+      const deeplinkUrl: string | undefined = data?.deeplinkUrl;
+
+      if (deeplinkUrl && typeof window !== 'undefined') {
+        const win = window.open(deeplinkUrl, '_blank', 'noopener');
+        if (!win) {
+          window.location.href = deeplinkUrl;
+        }
+        toast.info(t('farcasterSignerDeeplinkOpened'));
+      } else {
+        toast.info(t('farcasterSignerPending'));
+      }
+
+      if (token) {
+        setIsPollingSigner(true);
+        const result = await pollSignerStatus(token);
+        if (result === 'completed') {
+          toast.success(t('farcasterSignerApproved'));
+        } else if (result === 'expired') {
+          toast.error(t('farcasterSignerExpired'));
+        } else if (result === 'revoked') {
+          toast.error(t('farcasterSignerRevoked'));
+        } else if (result === 'timeout') {
+          toast.info(t('farcasterSignerTimeout'));
+        } else {
+          toast.info(t('farcasterSignerPending'));
+        }
+      }
+    } catch (error) {
+      console.error('[SocialAccountSelector] Failed to start Farcaster signer flow', error);
+      toast.error(t('farcasterSignerStartError'));
+    } finally {
+      setIsStartingSigner(false);
+      setIsPollingSigner(false);
+      if (session?.user?.id) {
+        fetchAccounts(session.user.id);
+      }
+    }
   };
 
   const groupedAccounts = useMemo(() => {
@@ -257,6 +283,31 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
                       </button>
                     );
                   })}
+                  {platform === 'farcaster' ? (
+                    <div className="rounded-lg border border-border/40 bg-background px-3 py-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">
+                          {farcasterSignerActive ? t('farcasterSignerStatusActive') : t('farcasterSignerStatusInactive')}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isStartingSigner || isPollingSigner}
+                          onClick={handleStartFarcasterSigner}
+                          >
+                          {isStartingSigner || isPollingSigner
+                            ? t('farcasterSignerStarting')
+                            : farcasterSignerActive
+                              ? t('farcasterSignerRenew')
+                              : t('farcasterSignerStart')}
+                        </Button>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {t('farcasterSignerDescription')}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>
