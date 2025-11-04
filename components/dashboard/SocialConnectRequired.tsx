@@ -105,12 +105,14 @@ export function SocialConnectRequired() {
                     {isFarcasterModalOpen && farcasterUrl ? (
                         // QR 코드 표시 상태
                         <div className="flex flex-col items-center space-y-6">
-                            <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-4">
-                                <Image src="/farcaster-logo.svg" alt="Farcaster" width={32} height={32} />
+                            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                    <span className="text-white font-bold text-sm">B</span>
+                                </div>
                             </div>
-                            <h2 className="text-xl font-semibold mb-2">Connect Your Farcaster Account</h2>
+                            <h2 className="text-xl font-semibold mb-2">Connect Your Base Account</h2>
                             <p className="text-muted-foreground mb-6">
-                                Scan the QR code with Warpcast to connect your Farcaster account and start using the app.
+                                Connect your Base Account to start using the app. Your account will be automatically detected.
                             </p>
                             <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
                                 <QRCode uri={farcasterUrl} size={200} />
@@ -134,12 +136,14 @@ export function SocialConnectRequired() {
                     ) : (
                         // 연결 버튼 상태
                         <div className="flex flex-col items-center space-y-6">
-                            <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-4">
-                                <Image src="/farcaster-logo.svg" alt="Farcaster" width={32} height={32} />
+                            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                    <span className="text-white font-bold text-sm">B</span>
+                                </div>
                             </div>
-                            <h2 className="text-xl font-semibold mb-2">Connect Your Farcaster Account</h2>
+                            <h2 className="text-xl font-semibold mb-2">Connect Your Base Account</h2>
                             <p className="text-muted-foreground mb-6">
-                                To use this app, you need to connect your Farcaster account. This allows you to create and manage content for your Farcaster profile.
+                                To use this app, you need to connect your Base Account. This allows you to create and manage content for your social profiles.
                             </p>
                             <Button
                                 onClick={handleFarcasterConnect}

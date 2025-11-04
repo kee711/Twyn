@@ -13,6 +13,11 @@ import { Button } from '@/components/ui/button'
 import { featureFlags } from '@/lib/config/web3'
 import { useSignIn, QRCode } from '@farcaster/auth-kit'
 import type { StatusAPIResponse } from '@farcaster/auth-client'
+import { useAccount, useConnect } from 'wagmi'
+import { coinbaseWallet } from 'wagmi/connectors'
+import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity'
+import { base } from 'wagmi/chains'
+import { useBaseAccount } from '@/hooks/useBaseAccount'
 
 export default function SignInClient() {
   const t = useTranslations('auth')
@@ -24,10 +29,29 @@ export default function SignInClient() {
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Farcaster authentication state
+  // Base Account and Farcaster authentication state
   const [isFarcasterModalOpen, setIsFarcasterModalOpen] = useState(false)
+  const [isConnectingBase, setIsConnectingBase] = useState(false)
   const hasProcessedSignInRef = useRef(false)
   const lastProcessedFidRef = useRef<number | null>(null)
+
+  // Base Account integration - Wagmi hooks
+  const { address, isConnected } = useAccount()
+  const { connect, connectors } = useConnect()
+
+  // Get Coinbase Wallet connector
+  const coinbaseConnector = connectors.find(
+    (connector) => connector.id === 'coinbaseWalletSDK'
+  )
+
+  // Base Account hook for mini app environment
+  const {
+    account: baseAccount,
+    isConnected: isBaseConnected,
+    isLoading: isBaseLoading,
+    connect: connectBase,
+    error: baseError
+  } = useBaseAccount()
 
   // Check for error messages in URL after page load
   useEffect(() => {
@@ -92,6 +116,60 @@ export default function SignInClient() {
 
     return () => clearTimeout(timer)
   }, [searchParams, router])
+
+  // Base Account 자동 감지 및 로그인
+  useEffect(() => {
+    // Check for Base Account from mini app SDK
+    if (isBaseConnected && baseAccount && !session && featureFlags.showOnlyFarcasterAuth()) {
+      console.log('[SignIn] Base Account detected from mini app:', baseAccount);
+      handleBaseAccountAuth(baseAccount);
+    }
+    // Check for Wagmi wallet connection
+    else if (isConnected && address && !session && featureFlags.showOnlyFarcasterAuth()) {
+      console.log('[SignIn] Wallet connected:', address);
+      handleBaseAccountAuth(address);
+    }
+  }, [isBaseConnected, baseAccount, isConnected, address, session]);
+
+  // Base Account 인증 처리
+  const handleBaseAccountAuth = useCallback(async (walletAddress: string) => {
+    try {
+      setIsConnectingBase(true);
+
+      // Base Account로 사용자 생성/인증
+      const response = await fetch('/api/base/account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: walletAddress,
+          isSignIn: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to authenticate with Base Account');
+      }
+
+      const data = await response.json();
+
+      // NextAuth로 로그인
+      if (data.user) {
+        await signIn('credentials', {
+          email: data.user.email,
+          password: 'base_account_auth',
+          isBaseAccount: 'true',
+          address: walletAddress,
+          redirect: true,
+          callbackUrl,
+        });
+      }
+    } catch (error) {
+      console.error('[SignIn] Base Account auth failed:', error);
+      toast.error('Base Account authentication failed');
+    } finally {
+      setIsConnectingBase(false);
+    }
+  }, [callbackUrl]);
 
   // 세션이 있으면 온보딩 상태 확인 후 리다이렉트
   useEffect(() => {
@@ -211,6 +289,7 @@ export default function SignInClient() {
     onError: handleFarcasterError,
   });
 
+  // Farcaster 로그인 핸들러 (먼저 정의)
   const handleFarcasterSignIn = useCallback(async () => {
     try {
       hasProcessedSignInRef.current = false;
@@ -229,6 +308,37 @@ export default function SignInClient() {
       setIsFarcasterModalOpen(false);
     }
   }, [connectFarcaster, isFarcasterError, reconnectFarcaster, signInFarcaster, t]);
+
+  // Base Account 연결 핸들러
+  const handleBaseAccountConnect = useCallback(async () => {
+    try {
+      setIsConnectingBase(true);
+
+      // First try mini app SDK connection
+      if (typeof window !== 'undefined') {
+        try {
+          await connectBase();
+          return; // If successful, the useEffect will handle authentication
+        } catch (miniAppError) {
+          console.log('[SignIn] Mini app connection failed, trying wallet connection:', miniAppError);
+        }
+      }
+
+      // Fallback to Coinbase Wallet connection
+      if (coinbaseConnector) {
+        connect({ connector: coinbaseConnector });
+      } else {
+        // If no Coinbase Wallet, fallback to Farcaster
+        toast.info('Coinbase Wallet not found. Using Farcaster login instead.');
+        handleFarcasterSignIn();
+      }
+
+    } catch (error) {
+      console.error('[SignIn] Base Account connect failed:', error);
+      toast.error('Failed to connect Base Account');
+      setIsConnectingBase(false);
+    }
+  }, [coinbaseConnector, connect, connectBase, handleFarcasterSignIn]);
 
   // 폼 제출 핸들러
   const handleGoBack = () => {
@@ -305,7 +415,7 @@ export default function SignInClient() {
 
         {/* 블러 처리 오버레이 */}
         <div className="fixed inset-0 w-full h-full backdrop-blur-sm bg-black/30 flex items-center justify-center">
-          {/* Farcaster 전용 로그인 모달 */}
+          {/* Base App 전용 로그인 모달 */}
           <div className="w-full m-4 max-w-md space-y-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-background/95 shadow-2xl p-8">
             <button
               onClick={handleGoBack}
@@ -320,47 +430,87 @@ export default function SignInClient() {
 
             <div className="space-y-2 text-center">
               <div className="flex justify-center mb-4">
-                <img src="/farcaster-logo.svg" alt="Farcaster" className="w-12 h-12" />
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">B</span>
+                </div>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Farcaster로 로그인
+                Base App으로 로그인
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                {t('farcasterSignInDescription') || 'Farcaster 계정으로 로그인하세요'}
+                Base Account가 자동으로 감지되면 로그인됩니다
               </p>
             </div>
 
             <div className="space-y-6">
-              {isFarcasterModalOpen && farcasterUrl ? (
-                // QR 코드 표시 상태
+              {(isConnected && address) || (isBaseConnected && baseAccount) ? (
+                // Base Account 연결됨 상태
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-                    <QRCode uri={farcasterUrl} size={200} />
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
                   <div className="text-center space-y-2">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      Warpcast로 QR 코드를 스캔하세요
+                      Base Account 연결됨
                     </p>
+                    <div className="text-xs text-gray-500 font-mono">
+                      {address || baseAccount || ''}
+                    </div>
                     <p className="text-xs text-gray-500">
-                      {t('scanQRCode') || 'Warpcast 앱에서 이 QR 코드를 스캔하여 로그인하세요'}
+                      {isConnectingBase ? '로그인 중...' : '자동으로 로그인됩니다'}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsFarcasterModalOpen(false)}
-                    className="mt-4"
-                  >
-                    {t('cancel') || '취소'}
-                  </Button>
                 </div>
               ) : (
-                // 로그인 버튼 상태
+                // Base Account 연결 버튼 상태
                 <div className="space-y-4">
                   <Button
-                    onClick={handleFarcasterSignIn}
+                    onClick={handleBaseAccountConnect}
                     size="lg"
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={isConnectingBase}
+                  >
+                    {isConnectingBase ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        연결 중...
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-5 h-5 bg-white rounded mr-2 flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-xs">B</span>
+                        </div>
+                        Base Account로 로그인
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500">
+                      Base Account가 자동으로 감지되어 로그인됩니다
+                    </p>
+                  </div>
+
+                  {/* Fallback Farcaster 로그인 */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">또는</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleFarcasterSignIn}
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
                     disabled={isFarcasterPolling}
                   >
                     {isFarcasterPolling ? (
@@ -369,20 +519,38 @@ export default function SignInClient() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        {t('connecting') || '연결 중...'}
+                        연결 중...
                       </>
                     ) : (
                       <>
                         <img src="/farcaster-logo.svg" alt="Farcaster" className="w-5 h-5 mr-2" />
-                        {t('signInWithFarcaster') || 'Farcaster로 로그인'}
+                        Farcaster로 로그인
                       </>
                     )}
                   </Button>
+                </div>
+              )}
 
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">
-                      Warpcast 앱이 필요합니다
-                    </p>
+              {/* Farcaster QR 코드 모달 */}
+              {isFarcasterModalOpen && farcasterUrl && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-2xl p-6 max-w-sm mx-4">
+                    <div className="text-center space-y-4">
+                      <h3 className="text-lg font-semibold">Farcaster로 로그인</h3>
+                      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+                        <QRCode uri={farcasterUrl} size={200} />
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Warpcast 앱으로 QR 코드를 스캔하세요
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsFarcasterModalOpen(false)}
+                        className="w-full"
+                      >
+                        취소
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}

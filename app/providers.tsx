@@ -10,6 +10,8 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode, useMemo, useState } from 'react'
 import { WagmiProvider } from 'wagmi'
+import { OnchainKitProvider } from '@coinbase/onchainkit'
+import { base } from 'wagmi/chains'
 
 import { createWalletConfig } from '@/lib/wallet'
 
@@ -53,11 +55,17 @@ export function Providers({
   }, []);
 
   const walletConfig = useMemo(() => createWalletConfig(), []);
+
   const walletWrappedChildren = walletConfig ? (
     <WagmiProvider config={walletConfig}>
-      <RainbowKitProvider modalSize="compact">
-        {children}
-      </RainbowKitProvider>
+      <OnchainKitProvider
+        apiKey={process.env.NEXT_PUBLIC_COINBASE_API_KEY}
+        chain={base}
+      >
+        <RainbowKitProvider modalSize="compact">
+          {children}
+        </RainbowKitProvider>
+      </OnchainKitProvider>
     </WagmiProvider>
   ) : children;
 
