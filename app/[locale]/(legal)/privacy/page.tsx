@@ -58,6 +58,7 @@ export default function PrivacyPolicy() {
                     <li><strong>threads_manage_insights</strong>: Access analytics for your Threads profile and individual posts to display performance metrics.</li>
                     <li><strong>threads_read_replies</strong>: Get replies to your Threads posts.</li>
                     <li><strong>threads_manage_mentions</strong>: Get content where you're mentioned.</li>
+                    <li><strong>threads_keyword_search</strong>: Get content based on keywords.</li>
                   </ul>
                   <p className="text-muted-foreground leading-relaxed">
                     All Threads-related data is accessed solely to support Twyn's core functionalities, and only with your explicit consent.
