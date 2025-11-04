@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   authors: [{ name: miniAppName }],
   creator: miniAppName,
   publisher: miniAppName,
-  metadataBase: new URL('https://twyn.sh'),
+  metadataBase: new URL('https://app.twyn.sh'),
   alternates: {
     canonical: '/',
   },
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: baseTitle,
     description: '스레드에서 더 빠르게 성장하세요. AI가 콘텐츠를 생성하고 최적의 시간에 자동 게시해드립니다.',
-    url: 'https://twyn.sh',
+    url: 'https://app.twyn.sh',
     siteName: 'twyn',
     images: [
       {

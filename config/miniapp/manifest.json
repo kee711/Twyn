@@ -11,27 +11,30 @@
   },
   "miniapp": {
     "version": "1",
-    "name": "twyn",
-    "homeUrl": "https://twyn.sh",
-    "iconUrl": "https://twyn.sh/icon.png",
-    "splashImageUrl": "https://twyn.sh/splash.png",
+    "name": "Twyn",
+    "homeUrl": "https://app.twyn.sh",
+    "iconUrl": "https://app.twyn.sh/icon.png",
+    "splashImageUrl": "https://app.twyn.sh/splash.png",
     "splashBackgroundColor": "#FFFFFF",
-    "webhookUrl": "https://twyn.sh/api/webhook",
+    "webhookUrl": "https://app.twyn.sh/api/webhook",
     "subtitle": "Grow faster on Social Media",
     "description": "Your AI Twin for Contents Creation",
     "screenshotUrls": [
-      "https://twyn.sh/screen.png"
+      "https://app.twyn.sh/screen.png"
     ],
     "primaryCategory": "social",
     "tags": [
       "twyn",
       "miniapp",
-      "baseapp"
+      "baseapp",
+      "social",
+      "ai",
+      "content"
     ],
-    "heroImageUrl": "https://twyn.sh/opengraph.png",
+    "heroImageUrl": "https://app.twyn.sh/opengraph.png",
     "tagline": "Create contents nonstop",
     "ogTitle": "Grow faster on Social Media",
     "ogDescription": "Your AI Twin for Contents Creation",
-    "ogImageUrl": "https://twyn.sh/opengraph.png"
+    "ogImageUrl": "https://app.twyn.sh/opengraph.png"
   }
 }
