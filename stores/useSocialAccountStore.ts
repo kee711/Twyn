@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createClient } from '@/utils/supabase/client';
+import { getSupportedPlatforms, type PlatformKey } from '@/lib/config/web3';
 
-export type PlatformKey = 'threads' | 'x' | 'farcaster';
+export type { PlatformKey };
 
 export interface SocialAccount {
   id: string;
@@ -15,7 +16,8 @@ export interface SocialAccount {
 
 export type SelectedAccountMap = Partial<Record<PlatformKey, string>>;
 
-const PLATFORM_KEYS: PlatformKey[] = ['threads', 'x', 'farcaster'];
+// Use environment-dependent platform keys
+const PLATFORM_KEYS: PlatformKey[] = getSupportedPlatforms();
 
 interface SocialAccountStore {
   accounts: SocialAccount[];
@@ -122,11 +124,10 @@ const useSocialAccountStore = create<SocialAccountStore>()(
             console.warn('[useSocialAccountStore] farcaster accounts fetch threw', error);
           }
 
-          const accountsByPlatform: Record<PlatformKey, SocialAccount[]> = {
-            threads: [],
-            x: [],
-            farcaster: [],
-          };
+          const accountsByPlatform: Record<PlatformKey, SocialAccount[]> = PLATFORM_KEYS.reduce((acc, platform) => {
+            acc[platform] = [];
+            return acc;
+          }, {} as Record<PlatformKey, SocialAccount[]>);
 
           accounts.forEach((account) => {
             accountsByPlatform[account.platform].push(account);

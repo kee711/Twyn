@@ -11,16 +11,14 @@ import { OnboardingModal } from './OnboardingModal';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { SignInButton } from '@farcaster/auth-kit';
+import { getSupportedPlatforms, getPlatformDisplayNames } from '@/lib/config/web3';
 
 interface SocialAccountSelectorProps {
   className?: string;
 }
 
-const PLATFORM_LABELS: Record<PlatformKey, string> = {
-  threads: 'Threads',
-  x: 'X',
-  farcaster: 'Farcaster',
-};
+// Use web3-aware platform display names
+const PLATFORM_LABELS = getPlatformDisplayNames() as Record<PlatformKey, string>;
 
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
   const t = useTranslations('SocialAccountSelector');
@@ -197,11 +195,12 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
   };
 
   const groupedAccounts = useMemo(() => {
-    const groups: Record<PlatformKey, SocialAccount[]> = {
-      threads: [],
-      x: [],
-      farcaster: [],
-    };
+    const supportedPlatforms = getSupportedPlatforms();
+    const groups = supportedPlatforms.reduce<Record<PlatformKey, SocialAccount[]>>((acc, platform) => {
+      acc[platform] = [];
+      return acc;
+    }, {} as Record<PlatformKey, SocialAccount[]>);
+
     accounts.forEach((account) => {
       if (groups[account.platform as PlatformKey]) {
         groups[account.platform as PlatformKey].push(account);
@@ -295,7 +294,7 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
                           size="sm"
                           disabled={isStartingSigner || isPollingSigner}
                           onClick={handleStartFarcasterSigner}
-                          >
+                        >
                           {isStartingSigner || isPollingSigner
                             ? t('farcasterSignerStarting')
                             : farcasterSignerActive
@@ -321,30 +320,36 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
             <DialogTitle>{t('choosePlatform')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <button
-              type="button"
-              onClick={() => { window.location.href = '/api/threads/oauth'; closeProviderModal(); }}
-              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
-            >
-              <Image src="/threads_logo_blk.svg" alt="Threads logo" width={32} height={32} className="h-8 w-8 object-contain" />
-              <span className="font-medium">Threads</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { window.location.href = '/api/x/oauth'; closeProviderModal(); }}
-              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
-            >
-              <Image src="/x-logo.jpg" alt="X logo" width={32} height={32} className="h-8 w-8 object-contain" />
-              <span className="font-medium">X</span>
-            </button>
-            <div className="farcaster-signin-wrapper">
-              <SignInButton
-                hideSignOut
-                onSuccess={handleFarcasterSuccess}
-                onError={handleFarcasterError}
-              />
-              Farcaster
-            </div>
+            {getSupportedPlatforms().includes('threads') && (
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/api/threads/oauth'; closeProviderModal(); }}
+                className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
+              >
+                <Image src="/threads_logo_blk.svg" alt="Threads logo" width={32} height={32} className="h-8 w-8 object-contain" />
+                <span className="font-medium">Threads</span>
+              </button>
+            )}
+            {getSupportedPlatforms().includes('x') && (
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/api/x/oauth'; closeProviderModal(); }}
+                className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
+              >
+                <Image src="/x-logo.jpg" alt="X logo" width={32} height={32} className="h-8 w-8 object-contain" />
+                <span className="font-medium">X</span>
+              </button>
+            )}
+            {getSupportedPlatforms().includes('farcaster') && (
+              <div className="farcaster-signin-wrapper">
+                <SignInButton
+                  hideSignOut
+                  onSuccess={handleFarcasterSuccess}
+                  onError={handleFarcasterError}
+                />
+                Farcaster
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

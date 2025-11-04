@@ -45,6 +45,7 @@ import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import useSocialAccountStore, { type SocialAccount, type PlatformKey } from '@/stores/useSocialAccountStore';
 import { PLATFORM_KEYS } from '@/stores/useThreadChainStore';
 import { useThreadsProfilePicture } from '@/hooks/useThreadsProfilePicture';
+import { getNavigationConfig, getPlatformDisplayNames, getSupportedPlatforms } from '@/lib/config/web3';
 import { toast } from 'sonner';
 import { useSignIn, QRCode } from '@farcaster/auth-kit';
 import type { StatusAPIResponse } from '@farcaster/auth-client';
@@ -73,11 +74,8 @@ interface SidebarProps {
 // Local storage key for persisting sidebar state
 const STORAGE_KEY = 'sidebar-open-items';
 
-const PLATFORM_DISPLAY_NAMES: Record<PlatformKey, string> = {
-  threads: 'Threads',
-  x: 'X',
-  farcaster: 'Farcaster',
-};
+// Use web3-aware platform display names
+const PLATFORM_DISPLAY_NAMES = getPlatformDisplayNames() as Record<PlatformKey, string>;
 
 const PLATFORM_ICON_MAP: Record<PlatformKey, { src: string; alt: string }> = {
   threads: { src: '/threads_logo_wh.svg', alt: 'Threads logo' },
@@ -170,39 +168,57 @@ export function Sidebar({ className }: SidebarProps) {
     }
   };
 
-  // Navigation configuration
-  const navigation: NavItem[] = [
-    {
-      name: t('contentsCooker'),
-      icon: FileEdit,
-      isExpandable: true,
-      subItems: [
-        { name: t('topicFinder'), href: '/contents/topic-finder', icon: TrendingUp },
-        // { name: t('postRadar'), href: '/contents/post-radar', icon: Newspaper },
-        { name: t('draft'), href: '/contents/draft', icon: FileText },
-        // { name: t('saved'), href: '/contents/saved', icon: Bookmark },
-      ],
-    },
-    {
-      name: t('schedule'),
-      href: '/schedule',
-      icon: Calendar,
-    },
-    {
-      name: t('statistics'),
-      href: '/statistics',
-      icon: BarChart2,
-    },
-    {
-      name: t('comments'),
-      icon: MessageSquare,
-      isExpandable: true,
-      subItems: [
-        { name: t('comments'), href: '/comments', icon: MessageSquareReply },
-        { name: t('mentions'), href: '/mentions', icon: AtSign },
-      ],
-    },
-  ];
+  // Navigation configuration using web3-aware config
+  const baseNavConfig = getNavigationConfig();
+  const navigation: NavItem[] = baseNavConfig.map((item) => {
+    switch (item.key) {
+      case 'contents':
+        return {
+          name: t('contentsCooker'),
+          icon: FileEdit,
+          isExpandable: true,
+          subItems: item.subItems?.map((subItem) => ({
+            name: subItem.key === 'topic-finder' ? t('topicFinder') : t('draft'),
+            href: subItem.href,
+            icon: subItem.key === 'topic-finder' ? TrendingUp : FileText,
+          })) || [],
+        };
+      case 'schedule':
+        return {
+          name: t('schedule'),
+          href: item.href,
+          icon: Calendar,
+        };
+      case 'statistics':
+        return {
+          name: t('statistics'),
+          href: item.href,
+          icon: BarChart2,
+        };
+      case 'comments':
+        return {
+          name: t('comments'),
+          icon: MessageSquare,
+          isExpandable: true,
+          subItems: [
+            { name: t('comments'), href: '/comments', icon: MessageSquareReply },
+            { name: t('mentions'), href: '/mentions', icon: AtSign },
+          ],
+        };
+      case 'settings':
+        return {
+          name: t('settings'),
+          href: item.href,
+          icon: Settings,
+        };
+      default:
+        return {
+          name: item.name,
+          href: item.href,
+          icon: Settings, // fallback icon
+        };
+    }
+  });
 
   // 항상 라이트 테마 로고 사용
   const logoSrc = '/twyn-logo-blk.svg';
@@ -784,14 +800,11 @@ function AccountSelectionModal({
   }, [connectFarcaster, isFarcasterError, reconnectFarcaster, signInFarcaster, tAccounts, userId]);
 
   const accountsByPlatform = useMemo(() => {
-    return PLATFORM_KEYS.reduce<Record<PlatformKey, SocialAccount[]>>((acc, platform) => {
+    const supportedPlatforms = getSupportedPlatforms();
+    return supportedPlatforms.reduce<Record<PlatformKey, SocialAccount[]>>((acc, platform) => {
       acc[platform] = accounts.filter((account) => account.platform === platform);
       return acc;
-    }, {
-      threads: [],
-      x: [],
-      farcaster: [],
-    } as Record<PlatformKey, SocialAccount[]>);
+    }, {} as Record<PlatformKey, SocialAccount[]>);
   }, [accounts]);
 
   const removalPlatformName = accountPendingRemoval ? PLATFORM_DISPLAY_NAMES[accountPendingRemoval.platform] : '';

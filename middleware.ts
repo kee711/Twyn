@@ -3,6 +3,7 @@ import createIntlMiddleware from 'next-intl/middleware'
 import { NextRequest, NextResponse } from 'next/server'
 import { routing } from './i18n/routing'
 import { getToken } from 'next-auth/jwt'
+import { featureFlags, web3Config } from './lib/config/web3'
 
 const publicPages = ['/', '/signin', '/signup', '/error', '/privacy', '/data-deletion-policy']
 
@@ -10,10 +11,10 @@ const intlMiddleware = createIntlMiddleware(routing)
 
 const authMiddleware = withAuth(
   async function onSuccess(req) {
-    const token = await getToken({ 
+    const token = await getToken({
       req,
       secret: process.env.NEXTAUTH_SECRET,
-      cookieName: process.env.NODE_ENV === 'production' 
+      cookieName: process.env.NODE_ENV === 'production'
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token'
     })
@@ -31,7 +32,25 @@ const authMiddleware = withAuth(
       const forceParam = req.nextUrl.searchParams.get('force')
       const allowForce = forceParam === '1' || forceParam === 'true'
       if (!allowForce) {
-        return NextResponse.redirect(new URL('/contents/topic-finder', req.url))
+        // In web3 mode, redirect to topic-finder; otherwise use existing logic
+        const redirectPath = featureFlags.enableDirectTopicFinderRouting()
+          ? web3Config.defaultRedirectPath
+          : '/contents/topic-finder'
+        return NextResponse.redirect(new URL(redirectPath, req.url))
+      }
+    }
+
+    // In web3 mode, redirect authenticated users from root to topic-finder
+    if (featureFlags.enableDirectTopicFinderRouting()) {
+      // Remove locale prefix for checking
+      const pathnameWithoutLocale = routing.locales.reduce(
+        (path, locale) => path.replace(new RegExp(`^/${locale}(/|$)`), '/'),
+        pathname
+      )
+
+      // If user is on root path, redirect to topic-finder
+      if (pathnameWithoutLocale === '/' || pathnameWithoutLocale === '') {
+        return NextResponse.redirect(new URL(web3Config.defaultRedirectPath, req.url))
       }
     }
 
@@ -50,19 +69,19 @@ const authMiddleware = withAuth(
 
 export default function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
-  
+
   // Remove locale prefix for checking
   const pathnameWithoutLocale = routing.locales.reduce(
     (path, locale) => path.replace(new RegExp(`^/${locale}(/|$)`), '/'),
     pathname
   )
-  
+
   // Check if it's a public page
-  const isPublicPage = publicPages.some(page => 
-    pathnameWithoutLocale === page || 
+  const isPublicPage = publicPages.some(page =>
+    pathnameWithoutLocale === page ||
     pathnameWithoutLocale.startsWith(`${page}/`)
   )
-  
+
   // Always apply intl middleware for public pages
   if (isPublicPage) {
     return intlMiddleware(req)

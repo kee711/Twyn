@@ -23,6 +23,7 @@ import useAiContentStore from '@/stores/useAiContentStore';
 import { trackUserAction } from '@/lib/analytics/mixpanel';
 import { useOwnershipFlow } from '@/hooks/useOwnershipFlow';
 import { buildOwnershipMetadataFromThreads } from '@/lib/ownership';
+import { getSupportedPlatforms, getPlatformDisplayNames, isPlatformSupported } from '@/lib/config/web3';
 
 // 문자열이 아닐 수도 있는 content를 안전하게 문자열로 변환
 function getContentString(value: unknown): string {
@@ -40,14 +41,16 @@ interface PlatformPublishPayload {
   threads: ThreadContent[];
 }
 
-const PLATFORM_DISPLAY_NAMES: Record<PlatformKey, string> = {
-  threads: 'Threads',
-  x: 'X',
-  farcaster: 'Farcaster'
-};
+// Use web3-aware platform display names
+const PLATFORM_DISPLAY_NAMES = getPlatformDisplayNames() as Record<PlatformKey, string>;
 
-const SUPPORTED_IMMEDIATE_PLATFORMS: PlatformKey[] = ['threads', 'farcaster', 'x'];
-const SUPPORTED_SCHEDULE_PLATFORMS: PlatformKey[] = ['threads'];
+// Filter supported platforms based on web3 mode
+const SUPPORTED_IMMEDIATE_PLATFORMS: PlatformKey[] = getSupportedPlatforms().filter(platform =>
+  ['threads', 'farcaster', 'x'].includes(platform)
+);
+const SUPPORTED_SCHEDULE_PLATFORMS: PlatformKey[] = getSupportedPlatforms().filter(platform =>
+  ['threads'].includes(platform)
+);
 
 const cloneThreadsForPayload = (threads: ThreadContent[]): ThreadContent[] =>
   threads.map((thread) => ({
@@ -100,18 +103,24 @@ export function RightSidebar({ className }: RightSidebarProps) {
     removePlatformThread
   } = useThreadChainStore();
 
-  const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey>('threads');
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey>(() => {
+    const supportedPlatforms = getSupportedPlatforms();
+    return supportedPlatforms.includes('threads') ? 'threads' : supportedPlatforms[0];
+  });
   const isUnlinked = platformMode === 'unlinked';
   const { runOwnershipFlow, OwnershipModal } = useOwnershipFlow();
 
   useEffect(() => {
+    const supportedPlatforms = getSupportedPlatforms();
+    const defaultPlatform = supportedPlatforms.includes('threads') ? 'threads' : supportedPlatforms[0];
+
     if (!isUnlinked) {
-      setSelectedPlatform('threads');
+      setSelectedPlatform(defaultPlatform);
       return;
     }
 
     if (!activePlatforms[selectedPlatform]) {
-      const fallback = PLATFORM_KEYS.find(platform => activePlatforms[platform]) || 'threads';
+      const fallback = PLATFORM_KEYS.find(platform => activePlatforms[platform]) || defaultPlatform;
       setSelectedPlatform(fallback);
     }
   }, [isUnlinked, activePlatforms, selectedPlatform]);
@@ -122,21 +131,21 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
   const platformButtons: PlatformButtonConfig[] = [
     {
-      key: 'threads',
+      key: 'threads' as PlatformKey,
       imageSrc: '/threads_logo_blk.svg',
       alt: 'Threads logo'
     },
     {
-      key: 'x',
+      key: 'x' as PlatformKey,
       imageSrc: '/x-logo.jpg',
       alt: 'X logo'
     },
     {
-      key: 'farcaster',
+      key: 'farcaster' as PlatformKey,
       imageSrc: '/farcaster-logo.svg',
       alt: 'Farcaster logo'
     }
-  ];
+  ].filter(button => isPlatformSupported(button.key));
 
   const handlePlatformToggle = (platform: PlatformKey) => {
     const currentlyActive = activePlatforms[platform];
@@ -920,16 +929,16 @@ export function RightSidebar({ className }: RightSidebarProps) {
               removeThread={removeThread}
               updateThreadContent={updateThreadContent}
               updateThreadMedia={updateThreadMedia}
-            platformButtons={platformButtons}
-            activePlatforms={activePlatforms}
-            isUnlinked={isUnlinked}
-            selectedPlatform={selectedPlatform}
-            hasFarcasterAccount={hasFarcasterAccount}
-            farcasterSignerActive={farcasterSignerActive}
-            onToggleUnlink={handleUnlinkToggle}
-            onSelectPlatform={handlePlatformSelect}
-            onTogglePlatformActive={handlePlatformToggle}
-            platformContents={platformContents}
+              platformButtons={platformButtons}
+              activePlatforms={activePlatforms}
+              isUnlinked={isUnlinked}
+              selectedPlatform={selectedPlatform}
+              hasFarcasterAccount={hasFarcasterAccount}
+              farcasterSignerActive={farcasterSignerActive}
+              onToggleUnlink={handleUnlinkToggle}
+              onSelectPlatform={handlePlatformSelect}
+              onTogglePlatformActive={handlePlatformToggle}
+              platformContents={platformContents}
               onPlatformThreadContentChange={updatePlatformThreadContent}
               onPlatformThreadMediaChange={updatePlatformThreadMedia}
               onPlatformAddThread={addPlatformThread}

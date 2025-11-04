@@ -33,6 +33,7 @@ const config: NextConfig = {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     THREADS_CLIENT_ID: process.env.THREADS_CLIENT_ID,
     THREADS_CLIENT_SECRET: process.env.THREADS_CLIENT_SECRET,
+    NEXT_PUBLIC_WEB3_MODE: process.env.NEXT_PUBLIC_WEB3_MODE,
   },
   images: {
     remotePatterns: [

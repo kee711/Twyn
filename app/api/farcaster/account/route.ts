@@ -6,20 +6,196 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(req: Request) {
   try {
     console.log('[farcaster/account] Request received');
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      console.warn('[farcaster/account] Unauthenticated request');
-      return NextResponse.json({ ok: false, error: "Unauthenticated" }, { status: 401 });
-    }
 
     const body = await req.json();
-    const { fid, username } = body || {};
+    const { fid, username, isSignIn } = body || {};
     if (!fid) {
       console.warn('[farcaster/account] Missing fid in payload', body);
       return NextResponse.json({ ok: false, error: "Missing fid" }, { status: 400 });
     }
 
     const supabase = await createClient();
+
+    // Handle sign-in flow (user creation/authentication)
+    if (isSignIn) {
+      // Check if user already exists with this Farcaster FID
+      const { data: existingUser, error: userFetchError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('farcaster_fid', Number(fid))
+        .maybeSingle();
+
+      if (userFetchError && userFetchError.code !== 'PGRST116') {
+        console.error('[farcaster/account] Error fetching user:', userFetchError);
+        return NextResponse.json({ ok: false, error: userFetchError.message }, { status: 500 });
+      }
+
+      let userId: string;
+      let userEmail: string;
+
+      if (existingUser) {
+        // User exists, use existing data
+        userId = existingUser.user_id;
+        userEmail = existingUser.email;
+
+        // Update user profile with latest Farcaster data
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({
+            farcaster_username: username,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
+
+        if (updateError) {
+          console.error('[farcaster/account] Error updating user profile:', updateError);
+        }
+      } else {
+        // Create new user
+        userId = `fc_${fid}_${Date.now()}`;
+        userEmail = `${username || fid}@farcaster.local`;
+
+        const { error: createError } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: userId,
+            email: userEmail,
+            name: username || `Farcaster User ${fid}`,
+            farcaster_fid: Number(fid),
+            farcaster_username: username,
+            provider: 'farcaster',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (createError) {
+          console.error('[farcaster/account] Error creating user:', createError);
+          return NextResponse.json({ ok: false, error: createError.message }, { status: 500 });
+        }
+      }
+
+      // Create or update Farcaster account
+      const { data: existingFarcasterAccount } = await supabase
+        .from('farcaster_accounts')
+        .select('*')
+        .eq('owner', userId)
+        .eq('fid', Number(fid))
+        .maybeSingle();
+
+      const farcasterAccountPayload = {
+        username: username || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existingFarcasterAccount) {
+        const { error: updateError } = await supabase
+          .from('farcaster_accounts')
+          .update(farcasterAccountPayload)
+          .eq('owner', userId)
+          .eq('fid', Number(fid));
+
+        if (updateError) {
+          console.error('[farcaster/account] Error updating Farcaster account:', updateError);
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from('farcaster_accounts')
+          .insert({
+            owner: userId,
+            fid: Number(fid),
+            ...farcasterAccountPayload,
+            created_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('[farcaster/account] Error creating Farcaster account:', insertError);
+        }
+      }
+
+      // Create or update social account
+      const socialId = String(fid);
+      const { data: existingSocialAccount } = await supabase
+        .from('social_accounts')
+        .select('id')
+        .eq('owner', userId)
+        .eq('platform', 'farcaster')
+        .eq('social_id', socialId)
+        .maybeSingle();
+
+      let socialAccountId: string | undefined = existingSocialAccount?.id;
+
+      if (socialAccountId) {
+        const { error: updateSocialError } = await supabase
+          .from('social_accounts')
+          .update({
+            username: username || socialId,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', socialAccountId);
+
+        if (updateSocialError) {
+          console.warn('[farcaster/account] Failed to update social_accounts entry:', updateSocialError);
+        }
+      } else {
+        const { data: insertedSocial, error: insertSocialError } = await supabase
+          .from('social_accounts')
+          .insert({
+            owner: userId,
+            platform: 'farcaster',
+            social_id: socialId,
+            username: username || socialId,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (insertSocialError) {
+          console.warn('[farcaster/account] Failed to insert social_accounts entry:', insertSocialError);
+        } else {
+          socialAccountId = insertedSocial?.id;
+        }
+      }
+
+      // Set as selected account
+      if (socialAccountId) {
+        const { error: selectionError } = await supabase
+          .from('user_selected_accounts')
+          .upsert({
+            user_id: userId,
+            platform: 'farcaster',
+            social_account_id: socialAccountId,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id,platform' });
+
+        if (selectionError) {
+          console.warn('[farcaster/account] Failed to upsert user_selected_accounts:', selectionError);
+        }
+      }
+
+      return NextResponse.json({
+        ok: true,
+        message: 'Farcaster authentication successful',
+        user: {
+          id: userId,
+          email: userEmail,
+          name: username || `Farcaster User ${fid}`,
+          fid: Number(fid),
+        },
+        socialAccountId,
+      });
+    }
+
+    // Regular account linking flow (existing functionality)
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      console.warn('[farcaster/account] Unauthenticated request for account linking');
+      return NextResponse.json({ ok: false, error: "Unauthenticated" }, { status: 401 });
+    }
+
+    // Reuse the supabase client from above
     const { data: existingAccount, error: fetchError } = await supabase
       .from('farcaster_accounts')
       .select('custody_address, signer_public_key_hex, signer_private_key_enc, signed_key_request_token, signed_key_request_state, signed_key_request_expires_at, signer_approved_at, is_active')

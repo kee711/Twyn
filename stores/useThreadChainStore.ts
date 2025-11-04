@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { getSupportedPlatforms, type PlatformKey } from '@/lib/config/web3'
 
 export interface ThreadContent {
   content: string
@@ -7,9 +8,10 @@ export interface ThreadContent {
   media_type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'CAROUSEL'
 }
 
-export type PlatformKey = 'threads' | 'x' | 'farcaster'
+export type { PlatformKey }
 
-export const PLATFORM_KEYS: PlatformKey[] = ['threads', 'x', 'farcaster']
+// Use environment-dependent platform keys
+export const PLATFORM_KEYS: PlatformKey[] = getSupportedPlatforms()
 
 const createEmptyThread = (): ThreadContent => ({
   content: '',
@@ -29,17 +31,18 @@ const buildPlatformContentsFromThreads = (threads: ThreadContent[]): Record<Plat
     return acc
   }, {} as Record<PlatformKey, ThreadContent[]>)
 
-const createInitialPlatformContents = (): Record<PlatformKey, ThreadContent[]> => ({
-  threads: [createEmptyThread()],
-  x: [createEmptyThread()],
-  farcaster: [createEmptyThread()]
-})
+const createInitialPlatformContents = (): Record<PlatformKey, ThreadContent[]> =>
+  PLATFORM_KEYS.reduce((acc, platform) => {
+    acc[platform] = [createEmptyThread()]
+    return acc
+  }, {} as Record<PlatformKey, ThreadContent[]>)
 
-const createInitialPlatformStatus = (): Record<PlatformKey, boolean> => ({
-  threads: true,
-  x: false,
-  farcaster: false
-})
+const createInitialPlatformStatus = (): Record<PlatformKey, boolean> =>
+  PLATFORM_KEYS.reduce((acc, platform) => {
+    // In web3 mode, default to farcaster being active, otherwise threads
+    acc[platform] = platform === (PLATFORM_KEYS.includes('farcaster' as PlatformKey) && PLATFORM_KEYS.length === 1 ? 'farcaster' : 'threads')
+    return acc
+  }, {} as Record<PlatformKey, boolean>)
 
 const deriveMediaType = (media_urls: string[] = []): ThreadContent['media_type'] => {
   if (!media_urls || media_urls.length === 0) return 'TEXT'
@@ -287,10 +290,10 @@ const useThreadChainStore = create<ThreadChainState>()(
         const updated = threads.map((thread, i) =>
           i === index
             ? {
-                ...thread,
-                media_urls,
-                media_type: deriveMediaType(media_urls)
-              }
+              ...thread,
+              media_urls,
+              media_type: deriveMediaType(media_urls)
+            }
             : thread
         )
 

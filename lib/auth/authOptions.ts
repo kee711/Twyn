@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { featureFlags } from '@/lib/config/web3'
 
 const supabaseUrl = process.env.SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_ANON_KEY!
@@ -37,12 +38,42 @@ export const authOptions: AuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
         isSignup: { label: 'isSignup', type: 'text' },
+        isFarcaster: { label: 'isFarcaster', type: 'text' },
+        fid: { label: 'fid', type: 'text' },
       },
       async authorize(credentials, req) {
         try {
           const email = (credentials?.email || '').toLowerCase().trim()
           const password = credentials?.password || ''
           const isSignup = credentials?.isSignup === 'true'
+          const isFarcaster = credentials?.isFarcaster === 'true'
+          const fid = credentials?.fid
+
+          // Handle Farcaster authentication
+          if (isFarcaster && fid) {
+            // Look up user by Farcaster FID
+            const { data: farcasterUser, error: farcasterError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('farcaster_fid', Number(fid))
+              .maybeSingle()
+
+            if (farcasterError && farcasterError.code !== 'PGRST116') {
+              console.error('Error fetching Farcaster user:', farcasterError)
+              return null
+            }
+
+            if (farcasterUser) {
+              return {
+                id: farcasterUser.user_id,
+                email: farcasterUser.email,
+                name: farcasterUser.name || farcasterUser.farcaster_username || `Farcaster User ${fid}`,
+                image: farcasterUser.farcaster_pfp_url || farcasterUser.image || null,
+              }
+            }
+
+            return null
+          }
 
           if (!email || !password) {
             return null
