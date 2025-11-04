@@ -33,12 +33,17 @@ NEXT_PUBLIC_FARCASTER_OPTIMISM_RPC_URL=https://mainnet.optimism.io
 NEXT_PUBLIC_FARCASTER_RELAY_URL=https://relay.farcaster.xyz
 
 # Wallet Configuration
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=0d3fbf60fb6ff25889dd0cbd248793b4
+
+# NextAuth Configuration (CRITICAL for production)
+NEXTAUTH_URL=https://app.twyn.sh
+NEXTAUTH_SECRET=your_production_secret
+NEXTAUTH_DEBUG=false
 
 # Other required variables...
-NEXTAUTH_URL=https://app.twyn.sh
-NEXTAUTH_SECRET=your_secret
 ```
+
+**⚠️ IMPORTANT**: Make sure your hosting platform (Vercel, Netlify, etc.) has these environment variables configured in the production environment settings.
 
 ## 🔧 Deployment Steps
 

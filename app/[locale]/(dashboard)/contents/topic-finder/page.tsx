@@ -2,6 +2,8 @@
 
 import { useMiniAppReady } from '@/hooks/useMiniAppReady';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
+import { featureFlags, getSupportedPlatforms } from '@/lib/config/web3';
+import { SocialConnectRequired } from '@/components/dashboard/SocialConnectRequired';
 import { startTransition, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -1246,7 +1248,7 @@ export default function TopicFinderPage() {
     const { data: session } = useSession();
     const userId = session?.user?.id || null;
 
-    const { currentSocialId, currentUsername } = useSocialAccountStore()
+    const { currentSocialId, currentUsername, accounts } = useSocialAccountStore()
     const [selectedHeadline, setSelectedHeadline] = useState<string>('');
     const [givenInstruction, setGivenInstruction] = useState<string>('');
     const [personas, setPersonas] = useState<PreferenceOption[]>([]);
@@ -2669,6 +2671,26 @@ export default function TopicFinderPage() {
     useEffect(() => {
         // 필요시 topicResults 변경 추적
     }, [topicResults]);
+
+    // Web3 모드에서 Farcaster 계정 연결 체크
+    const needsAccountConnection = useMemo(() => {
+        if (!featureFlags.showOnlyFarcasterAuth()) {
+            // 일반 모드에서는 기존 로직 사용 (threads 계정 체크)
+            return !currentSocialId;
+        }
+
+        // Web3 모드에서는 Farcaster 계정 체크
+        const supportedPlatforms = getSupportedPlatforms();
+        const farcasterAccount = accounts.find(account =>
+            account.platform === 'farcaster' && supportedPlatforms.includes('farcaster')
+        );
+        return !farcasterAccount;
+    }, [currentSocialId, accounts]);
+
+    // 계정 연결이 필요한 경우 연결 화면 표시
+    if (needsAccountConnection) {
+        return <SocialConnectRequired />;
+    }
 
     return (
         <div className="flex h-screen flex-col bg-gradient-to-b from-background via-background to-muted/40">

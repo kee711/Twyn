@@ -10,7 +10,9 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "validate-miniapp": "tsx scripts/validate-miniapp.ts",
-    "miniapp:build": "npm run validate-miniapp && npm run build"
+    "check-web3-env": "node scripts/check-web3-env.js",
+    "miniapp:build": "npm run validate-miniapp && npm run build",
+    "web3:deploy": "npm run check-web3-env && npm run miniapp:build"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.16",
