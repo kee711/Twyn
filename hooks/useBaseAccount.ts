@@ -6,7 +6,7 @@ import { sdk } from '@farcaster/miniapp-sdk'
 /**
  * useBaseAccount Hook
  * 
- * This hook handles Base Account detection and authentication according to Base documentation.
+ * This hook handles Base Account detection and authentication according to Base CDP documentation.
  * It automatically detects if the user has a Base Account and provides authentication methods.
  */
 export function useBaseAccount() {
@@ -26,7 +26,7 @@ export function useBaseAccount() {
             try {
                 console.log('[useBaseAccount] Checking for Base Account...')
 
-                // Check if we're in a mini app environment
+                // Check if we're in a mini app environment first
                 const inMiniApp = await sdk.isInMiniApp()
                 if (!inMiniApp) {
                     console.log('[useBaseAccount] Not in mini app environment')
@@ -34,15 +34,18 @@ export function useBaseAccount() {
                     return
                 }
 
-                // Get Base Account information
-                const accountInfo = await sdk.account.getAccount()
-
-                if (accountInfo && accountInfo.address) {
-                    console.log('[useBaseAccount] Base Account detected:', accountInfo.address)
-                    setAccount(accountInfo.address)
-                    setIsConnected(true)
-                } else {
-                    console.log('[useBaseAccount] No Base Account found')
+                // Try to get existing Base Account connection
+                try {
+                    const accountInfo = await sdk.account.getAccount()
+                    if (accountInfo && accountInfo.address) {
+                        console.log('[useBaseAccount] Base Account detected:', accountInfo.address)
+                        setAccount(accountInfo.address)
+                        setIsConnected(true)
+                    } else {
+                        console.log('[useBaseAccount] No Base Account found')
+                    }
+                } catch (accountError) {
+                    console.log('[useBaseAccount] No existing account connection:', accountError)
                 }
 
             } catch (error) {
@@ -56,7 +59,7 @@ export function useBaseAccount() {
         checkBaseAccount()
     }, [])
 
-    // Connect to Base Account
+    // Connect to Base Account using CDP
     const connect = useCallback(async () => {
         if (typeof window === 'undefined') {
             throw new Error('Cannot connect in server environment')
@@ -68,7 +71,13 @@ export function useBaseAccount() {
 
             console.log('[useBaseAccount] Requesting Base Account connection...')
 
-            // Request Base Account connection
+            // Check if we're in mini app environment
+            const inMiniApp = await sdk.isInMiniApp()
+            if (!inMiniApp) {
+                throw new Error('Base Account connection only available in mini app environment')
+            }
+
+            // Request Base Account connection through mini app SDK
             const result = await sdk.account.requestAccount()
 
             if (result && result.address) {
@@ -77,7 +86,7 @@ export function useBaseAccount() {
                 setIsConnected(true)
                 return result.address
             } else {
-                throw new Error('Failed to connect Base Account')
+                throw new Error('Failed to connect Base Account - no address returned')
             }
 
         } catch (error) {

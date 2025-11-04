@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 /**
  * Base Account Authentication Handler
  * 
- * This endpoint handles Base Account authentication and user creation/login.
+ * This endpoint handles Base Account authentication and user creation/login using CDP.
  */
 export async function POST(request: NextRequest) {
     try {
@@ -17,22 +17,61 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        // Validate address format
+        if (!address.startsWith('0x') || address.length !== 42) {
+            return NextResponse.json(
+                { error: 'Invalid Base Account address format' },
+                { status: 400 }
+            )
+        }
+
+        console.log('[Base Account API] Processing authentication for address:', address)
+
+        // Check environment variables
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+            console.error('[Base Account API] Missing NEXT_PUBLIC_SUPABASE_URL');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+
+        // Try to use Service Role Key, fallback to anon key for development
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY &&
+            !process.env.SUPABASE_SERVICE_ROLE_KEY.includes('YourActual')
+            ? process.env.SUPABASE_SERVICE_ROLE_KEY
+            : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseKey) {
+            console.error('[Base Account API] No valid Supabase key available');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
+            supabaseKey
         )
+
+        console.log('[Base Account API] Supabase client created successfully');
 
         // Check if user already exists with this Base Account address
         const { data: existingUser, error: userError } = await supabase
-            .from('users')
+            .from('user_profiles')
             .select('*')
             .eq('base_account_address', address)
             .single()
 
         if (userError && userError.code !== 'PGRST116') {
-            console.error('Database error:', userError)
+            console.error('[Base Account API] Database error:', userError);
+
+            // Check if the error is due to missing column
+            if (userError.message?.includes('base_account_address')) {
+                console.error('[Base Account API] base_account_address column does not exist in user_profiles table');
+                return NextResponse.json(
+                    { error: 'Database schema not updated. Please add base_account_address column to user_profiles table.' },
+                    { status: 500 }
+                );
+            }
+
             return NextResponse.json(
-                { error: 'Database error' },
+                { error: 'Database error', details: userError.message },
                 { status: 500 }
             )
         }
@@ -40,16 +79,19 @@ export async function POST(request: NextRequest) {
         let user = existingUser
 
         if (!user) {
-            // Create new user with Base Account address
+            // Create new user with Base Account address (user_profiles table structure)
             const userData = {
                 email: `${address.toLowerCase()}@base.account`,
                 name: `Base User ${address.slice(0, 6)}...${address.slice(-4)}`,
                 base_account_address: address,
-                email_verified: new Date().toISOString(),
+                email_verified: true,
+                provider: 'base_account',
+                provider_type: 'web3',
+                user_id: `base_${address.toLowerCase()}`,
             }
 
             const { data: newUser, error: createError } = await supabase
-                .from('users')
+                .from('user_profiles')
                 .insert(userData)
                 .select()
                 .single()
@@ -63,18 +105,7 @@ export async function POST(request: NextRequest) {
             }
 
             user = newUser
-
-            // Create user profile
-            const { error: profileError } = await supabase
-                .from('user_profiles')
-                .insert({
-                    user_id: user.id,
-                    selected_social_id: null,
-                })
-
-            if (profileError) {
-                console.warn('Failed to create user profile:', profileError)
-            }
+            // user_profiles 테이블에 직접 생성되므로 별도 프로필 생성 불필요
 
             console.log('Created new Base Account user:', user.id)
         } else {

@@ -135,6 +135,7 @@ export default function SignInClient() {
   const handleBaseAccountAuth = useCallback(async (walletAddress: string) => {
     try {
       setIsConnectingBase(true);
+      console.log('[SignIn] Starting Base Account authentication for:', walletAddress);
 
       // Base Account로 사용자 생성/인증
       const response = await fetch('/api/base/account', {
@@ -146,14 +147,20 @@ export default function SignInClient() {
         }),
       });
 
+      console.log('[SignIn] Base Account API response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to authenticate with Base Account');
+        const errorText = await response.text();
+        console.error('[SignIn] Base Account API error:', errorText);
+        throw new Error(`Failed to authenticate with Base Account: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('[SignIn] Base Account API success:', data);
 
       // NextAuth로 로그인
       if (data.user) {
+        console.log('[SignIn] Proceeding with NextAuth login for user:', data.user.id);
         await signIn('credentials', {
           email: data.user.email,
           password: 'base_account_auth',
@@ -162,10 +169,12 @@ export default function SignInClient() {
           redirect: true,
           callbackUrl,
         });
+      } else {
+        throw new Error('No user data returned from Base Account API');
       }
     } catch (error) {
       console.error('[SignIn] Base Account auth failed:', error);
-      toast.error('Base Account authentication failed');
+      toast.error(`Base Account authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsConnectingBase(false);
     }
@@ -431,7 +440,7 @@ export default function SignInClient() {
             <div className="space-y-2 text-center">
               <div className="flex justify-center mb-4">
                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">B</span>
+                  <span className="text-white font-bold text-lg">Twyn</span>
                 </div>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
