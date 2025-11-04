@@ -12,15 +12,48 @@ export type PlatformKey = 'farcaster' | 'threads' | 'x';
  * @returns boolean indicating if web3 mode is enabled
  */
 export function isWeb3Mode(): boolean {
-    const web3Mode = process.env.NEXT_PUBLIC_WEB3_MODE === 'true';
+    // Check environment variable first
+    const envWeb3Mode = process.env.NEXT_PUBLIC_WEB3_MODE === 'true';
+
+    // Force web3 mode for app.twyn.sh domain (client-side)
+    let domainBasedWeb3Mode = false;
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        domainBasedWeb3Mode = hostname === 'app.twyn.sh';
+    }
+
+    // For server-side, check if we're likely on app.twyn.sh based on other indicators
+    let serverSideWeb3Mode = false;
+    if (typeof window === 'undefined') {
+        // Check if VERCEL_URL or other deployment indicators suggest app.twyn.sh
+        const vercelUrl = process.env.VERCEL_URL;
+        const nextAuthUrl = process.env.NEXTAUTH_URL;
+        serverSideWeb3Mode =
+            vercelUrl?.includes('app.twyn.sh') ||
+            nextAuthUrl?.includes('app.twyn.sh') ||
+            false;
+    }
+
+    const web3Mode = envWeb3Mode || domainBasedWeb3Mode || serverSideWeb3Mode;
 
     // Debug logging for production troubleshooting
     if (typeof window !== 'undefined') {
         console.log('[Web3 Config Debug]', {
             NEXT_PUBLIC_WEB3_MODE: process.env.NEXT_PUBLIC_WEB3_MODE,
-            isWeb3Mode: web3Mode,
-            userAgent: navigator.userAgent,
             hostname: window.location.hostname,
+            envWeb3Mode,
+            domainBasedWeb3Mode,
+            finalWeb3Mode: web3Mode,
+            userAgent: navigator.userAgent,
+        });
+    } else {
+        console.log('[Web3 Config Debug - Server]', {
+            NEXT_PUBLIC_WEB3_MODE: process.env.NEXT_PUBLIC_WEB3_MODE,
+            VERCEL_URL: process.env.VERCEL_URL,
+            NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+            envWeb3Mode,
+            serverSideWeb3Mode,
+            finalWeb3Mode: web3Mode,
         });
     }
 
