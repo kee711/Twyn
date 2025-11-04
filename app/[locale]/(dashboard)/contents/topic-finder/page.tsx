@@ -1,5 +1,6 @@
 'use client';
 
+import { useMiniAppReady } from '@/hooks/useMiniAppReady';
 import useSocialAccountStore from '@/stores/useSocialAccountStore';
 import { startTransition, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1229,6 +1230,9 @@ const summarizeSubmittedContext = (context: SubmittedContext | null): string => 
     return summarizeContextFromSelections(context.persona, context.audience, context.objective, context.addOns);
 };
 export default function TopicFinderPage() {
+    // Initialize Farcaster Mini App
+    useMiniAppReady();
+
     const t = useTranslations('pages.contents.topicFinder');
     const locale = useLocale();
     const [isLoading, setIsLoading] = useState(false)

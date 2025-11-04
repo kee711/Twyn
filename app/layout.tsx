@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from 'next/font/google';
 
 import { fcMiniAppMetadata, miniAppName } from '@/config/miniapp'
+import { MiniAppInitializer } from '@/components/MiniAppInitializer'
 
 const baseTitle = `${miniAppName} | Grow faster on Threads`
 
@@ -78,6 +79,7 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning className="h-full">
       <body className={`h-full bg-muted ${inter.className}`}>
+        <MiniAppInitializer />
         {children}
       </body>
     </html>
