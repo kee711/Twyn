@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp,
+  Search as SearchIcon,
   FileEdit,
   FileText,
   Calendar,
@@ -178,6 +179,12 @@ export function Sidebar({ className }: SidebarProps) {
       isExpandable: true,
       subItems: [
         { name: t('topicFinder'), href: '/contents/topic-finder', icon: TrendingUp },
+        {
+          // TODO(test-feature): remove Threads search experimental entry after validation
+          name: t('threadsSearchTest'),
+          href: '/contents/search',
+          icon: SearchIcon,
+        },
         // { name: t('postRadar'), href: '/contents/post-radar', icon: Newspaper },
         { name: t('draft'), href: '/contents/draft', icon: FileText },
         // { name: t('saved'), href: '/contents/saved', icon: Bookmark },

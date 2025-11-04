@@ -1,9 +1,0 @@
-{
-  "$schema": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/langgraph.schema.json",
-  "graphs": {
-    "researcher": {
-      "path": "./researcher.py:graph",
-      "env": ".env"
-    }
-  }
-}

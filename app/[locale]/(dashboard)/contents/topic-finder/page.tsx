@@ -81,7 +81,99 @@ const normalizeTextContent = (value: unknown): string => {
     return '';
 };
 
-const normalizeSocialContent = (items: unknown[]): NormalizedSocialContent[] => {
+const sanitizeLink = (value?: string | null): string | undefined => {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed.replace(/^\/+/, '')}`;
+    try {
+        return new URL(candidate).toString();
+    } catch {
+        return undefined;
+    }
+};
+
+const isValidThreadsPermalink = (link: string): boolean => {
+    const validateThreadsSlug = (
+        slug: string,
+        hasLetters: (value: string) => boolean,
+        hasDigits: (value: string) => boolean,
+    ) => {
+        const trimmed = slug.trim();
+        if (trimmed.length < 6) {
+            return false;
+        }
+
+        if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) {
+            return false;
+        }
+
+        const letter = hasLetters(trimmed);
+        const digit = hasDigits(trimmed);
+
+        if (!letter && digit) {
+            return trimmed.length >= 10;
+        }
+
+        if (!letter && !digit) {
+            return false;
+        }
+
+        return true;
+    };
+    try {
+        const url = new URL(link);
+        const host = url.hostname.toLowerCase();
+        if (!host.includes('threads.net')) {
+            return false;
+        }
+
+        const segments = url.pathname.split('/').filter((segment) => segment.length > 0);
+        if (segments.length === 0) {
+            return false;
+        }
+
+        const hasLetters = (value: string) => /[a-z]/i.test(value);
+        const hasDigits = (value: string) => /\d/.test(value);
+
+        if (segments[0] === 't' && segments.length >= 2) {
+            const slug = segments[1];
+            return validateThreadsSlug(slug, hasLetters, hasDigits);
+        }
+
+        if (segments[0].startsWith('@') && segments.length >= 3) {
+            const slug = segments[2];
+            const variant = segments[1];
+            if (!['post', 'thread'].includes(variant)) {
+                return false;
+            }
+            return validateThreadsSlug(slug, hasLetters, hasDigits);
+        }
+
+        return false;
+    } catch {
+        return false;
+    }
+};
+
+const isRecognizedPlatformLink = (link: string | undefined, platform: 'threads' | 'x'): boolean => {
+    if (!link) return false;
+    try {
+        const { hostname } = new URL(link);
+        const host = hostname.toLowerCase();
+        if (platform === 'threads') {
+            return host.includes('threads.net') && isValidThreadsPermalink(link);
+        }
+        return host.includes('x.com') || host.includes('twitter.com');
+    } catch {
+        return false;
+    }
+};
+
+const normalizeSocialContent = (
+    items: unknown[],
+    platform?: 'threads' | 'x',
+): NormalizedSocialContent[] => {
     if (!Array.isArray(items)) return [];
 
     return items
@@ -109,6 +201,32 @@ const normalizeSocialContent = (items: unknown[]): NormalizedSocialContent[] => 
 
             if (!combinedText) return null;
 
+            const link = sanitizeLink(
+                typeof item.url === 'string'
+                    ? item.url
+                    : typeof item.permalink === 'string'
+                        ? item.permalink
+                        : typeof item.link === 'string'
+                            ? item.link
+                            : undefined,
+            );
+
+            if (!link || (platform && !isRecognizedPlatformLink(link, platform))) {
+                return null;
+            }
+
+            const rawId =
+                typeof item.id === 'string' && item.id.trim().length > 0
+                    ? item.id.trim()
+                    : typeof item.post_id === 'string' && item.post_id.trim().length > 0
+                        ? item.post_id.trim()
+                        : typeof item.thread_id === 'string' && item.thread_id.trim().length > 0
+                            ? item.thread_id.trim()
+                            : null;
+
+            const identifier = rawId || link;
+            if (!identifier) return null;
+
             const authorName =
                 typeof item.author === 'string'
                     ? item.author
@@ -120,9 +238,9 @@ const normalizeSocialContent = (items: unknown[]): NormalizedSocialContent[] => 
 
             const handle =
                 typeof item.handle === 'string'
-                    ? item.handle.replace('@', '')
+                    ? item.handle.replace(/^@/, '')
                     : typeof item.username === 'string'
-                        ? item.username.replace('@', '')
+                        ? item.username.replace(/^@/, '')
                         : undefined;
 
             const avatarUrl =
@@ -132,26 +250,48 @@ const normalizeSocialContent = (items: unknown[]): NormalizedSocialContent[] => 
                         ? item.avatar
                         : undefined;
 
-            const link =
-                typeof item.url === 'string'
-                    ? item.url
-                    : typeof item.permalink === 'string'
-                        ? item.permalink
-                        : undefined;
-
             const mediaUrls = Array.isArray(item.media_urls)
                 ? item.media_urls.filter((media) => typeof media === 'string')
                 : Array.isArray(item.media)
                     ? item.media.filter((media) => typeof media === 'string')
                     : undefined;
 
-            const metrics = isRecord(item.metrics)
-                ? {
-                    replies: typeof item.metrics.replies === 'number' ? item.metrics.replies : undefined,
-                    likes: typeof item.metrics.likes === 'number' ? item.metrics.likes : undefined,
-                    reposts: typeof item.metrics.reposts === 'number' ? item.metrics.reposts : undefined,
-                }
-                : undefined;
+            const metricsRecord = isRecord(item.metrics) ? item.metrics : null;
+            const metricReplies =
+                typeof item.reply_count === 'number'
+                    ? item.reply_count
+                    : typeof item.replies === 'number'
+                        ? item.replies
+                        : metricsRecord && typeof metricsRecord.replies === 'number'
+                            ? metricsRecord.replies
+                            : undefined;
+            const metricLikes =
+                typeof item.like_count === 'number'
+                    ? item.like_count
+                    : typeof item.likes === 'number'
+                        ? item.likes
+                        : metricsRecord && typeof metricsRecord.likes === 'number'
+                            ? metricsRecord.likes
+                            : undefined;
+            const metricReposts =
+                typeof item.repost_count === 'number'
+                    ? item.repost_count
+                    : typeof item.reposts === 'number'
+                        ? item.reposts
+                        : typeof item.quote_count === 'number'
+                            ? item.quote_count
+                            : metricsRecord && typeof metricsRecord.reposts === 'number'
+                                ? metricsRecord.reposts
+                                : undefined;
+
+            const metrics =
+                metricReplies !== undefined || metricLikes !== undefined || metricReposts !== undefined
+                    ? {
+                        replies: metricReplies,
+                        likes: metricLikes,
+                        reposts: metricReposts,
+                    }
+                    : undefined;
 
             const createdAt =
                 typeof item.created_at === 'string'
@@ -161,12 +301,13 @@ const normalizeSocialContent = (items: unknown[]): NormalizedSocialContent[] => 
                         : undefined;
 
             const rawBody = typeof item.content === 'string' ? item.content : typeof item.body === 'string' ? item.body : undefined;
-            const platform = typeof item.platform === 'string'
+            const declaredPlatform = typeof item.platform === 'string'
                 ? (item.platform.toLowerCase() as 'threads' | 'x' | 'external')
                 : undefined;
+            const resolvedPlatform = platform ?? declaredPlatform;
 
             return {
-                id: typeof item.id === 'string' ? item.id : createId(),
+                id: identifier,
                 authorName,
                 handle,
                 avatarUrl,
@@ -176,7 +317,7 @@ const normalizeSocialContent = (items: unknown[]): NormalizedSocialContent[] => 
                 mediaUrls,
                 metrics,
                 rawBody,
-                platform,
+                platform: resolvedPlatform,
             } as NormalizedSocialContent;
         })
         .filter((item): item is NormalizedSocialContent => !!item);
@@ -191,7 +332,7 @@ const extractContents = (value: unknown): unknown[] => {
 
 const extractSocialItems = (value: unknown, platform: 'threads' | 'x'): NormalizedSocialContent[] => {
     if (!isRecord(value)) {
-        return normalizeSocialContent(extractContents(value));
+        return normalizeSocialContent(extractContents(value), platform);
     }
 
     const searchResults = value.search_results;
@@ -199,19 +340,19 @@ const extractSocialItems = (value: unknown, platform: 'threads' | 'x'): Normaliz
         const platformKey = platform === 'threads' ? 'threads' : 'x';
         const platformResults = searchResults[platformKey];
         if (Array.isArray(platformResults)) {
-            return normalizeSocialContent(platformResults);
+            return normalizeSocialContent(platformResults, platform);
         }
     }
 
     if (Array.isArray(value.contents)) {
-        return normalizeSocialContent(value.contents);
+        return normalizeSocialContent(value.contents, platform);
     }
 
     if (Array.isArray(value.results)) {
-        return normalizeSocialContent(value.results);
+        return normalizeSocialContent(value.results, platform);
     }
 
-    return normalizeSocialContent(extractContents(value));
+    return normalizeSocialContent(extractContents(value), platform);
 };
 
 const mergeRecordValues = (existing: unknown, incoming: unknown): unknown => {
@@ -939,6 +1080,18 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
         let attempted = false;
         const errors: string[] = [];
 
+        const dedupeItems = (items: NormalizedSocialContent[]) => {
+            const seen = new Set<string>();
+            return items.filter((item) => {
+                const key = (item.link || item.id || '').trim().toLowerCase();
+                if (!key || seen.has(key)) {
+                    return false;
+                }
+                seen.add(key);
+                return true;
+            });
+        };
+
         const considerValue = (value: unknown, key?: string) => {
             if (key) {
                 handled.add(key);
@@ -946,13 +1099,24 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
             if (value !== undefined) {
                 attempted = true;
                 errors.push(...extractErrors(value));
-                const items = extractSocialItems(value, platform);
+                const items = dedupeItems(extractSocialItems(value, platform));
                 if (items.length > 0) {
                     return items;
                 }
             }
             return null;
         };
+
+        if (searchResultsAggregate) {
+            const aggregatedValue = searchResultsAggregate[platform];
+            const aggregatedItems = considerValue(
+                aggregatedValue,
+                aggregatedValue !== undefined ? `search_results.${platform}` : undefined,
+            );
+            if (aggregatedItems) {
+                return { items: aggregatedItems, attempted: true, errors };
+            }
+        }
 
         const enhancedValue = result[enhancedKey];
         const enhancedItems = considerValue(enhancedValue, enhancedValue !== undefined ? enhancedKey : undefined);
@@ -966,16 +1130,8 @@ const buildAssistantBlocks = (result: Record<string, unknown>): AssistantBlock[]
             return { items: legacyItems, attempted: true, errors };
         }
 
-        if (searchResultsAggregate) {
-            const aggregatedValue = searchResultsAggregate[platform];
-            const aggregatedItems = considerValue(aggregatedValue);
-            if (aggregatedItems) {
-                return { items: aggregatedItems, attempted, errors };
-            }
-        }
-
         if (summarizeValue) {
-            const summaryItems = extractSocialItems(summarizeValue, platform);
+            const summaryItems = dedupeItems(extractSocialItems(summarizeValue, platform));
             if (summaryItems.length > 0) {
                 return {
                     items: summaryItems,
@@ -1268,6 +1424,57 @@ export default function TopicFinderPage() {
 
     // Memoize Supabase client to prevent creating new instances
     const supabase = useMemo(() => createClient(), []);
+
+    // Threads 액세스 토큰 가져오기
+    const getThreadsAccessToken = useCallback(async () => {
+        if (!userId) return null;
+
+        try {
+            // 1. user_selected_accounts에서 선택된 Threads 계정 찾기
+            const { data: selection, error: selectionError } = await supabase
+                .from('user_selected_accounts')
+                .select('social_account_id')
+                .eq('user_id', userId)
+                .eq('platform', 'threads')
+                .maybeSingle();
+
+            if (selectionError) {
+                console.error('[TopicFinder] Failed to get selected account:', selectionError);
+                return null;
+            }
+
+            if (!selection?.social_account_id) {
+                console.warn('[TopicFinder] No Threads account selected');
+                return null;
+            }
+
+            // 2. social_accounts에서 액세스 토큰 가져오기
+            const { data: account, error: accountError } = await supabase
+                .from('social_accounts')
+                .select('access_token')
+                .eq('id', selection.social_account_id)
+                .eq('platform', 'threads')
+                .eq('is_active', true)
+                .maybeSingle();
+
+            if (accountError) {
+                console.error('[TopicFinder] Failed to get account:', accountError);
+                return null;
+            }
+
+            if (!account?.access_token) {
+                console.warn('[TopicFinder] No access token found');
+                return null;
+            }
+
+            // 액세스 토큰은 이미 암호화된 상태로 저장되어 있음
+            // 서버에서 복호화할 것임
+            return account.access_token;
+        } catch (error) {
+            console.error('[TopicFinder] Error getting Threads token:', error);
+            return null;
+        }
+    }, [userId, supabase]);
 
     const selectedPersona = useMemo(() => personas.find(item => item.id === selectedPersonaId) || null, [personas, selectedPersonaId]);
     const selectedAudience = useMemo(() => audiences.find(item => item.id === selectedAudienceId) || null, [audiences, selectedAudienceId]);
@@ -2421,6 +2628,15 @@ export default function TopicFinderPage() {
                 .filter(Boolean)
                 .join('\n\n');
             const resolvedTopic = trimmed || lockedContext.headline || DEFAULT_LANGGRAPH_TOPIC;
+
+            // Threads 액세스 토큰 가져오기
+            const threadsToken = await getThreadsAccessToken();
+            if (threadsToken) {
+                console.log('[TopicFinder] Threads access token retrieved successfully');
+            } else {
+                console.warn('[TopicFinder] No Threads access token available');
+            }
+
             const response = await fetch('/api/langgraph/test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2439,6 +2655,7 @@ export default function TopicFinderPage() {
                         language,
                         locale,
                         history: historyPayload,
+                        threads_user_token: threadsToken,  // 토큰 추가
                         profileInsights: profileAnalytics
                             ? {
                                 followerTrend: profileAnalytics.followerTrend,
@@ -2461,6 +2678,29 @@ export default function TopicFinderPage() {
 
             const events: LanggraphEvent[] = Array.isArray(payload?.events) ? payload.events : [];
             const aggregated = aggregateLanggraphPayload(events);
+
+            if (process.env.NODE_ENV === 'development') {
+                console.info('[topic-finder] langgraph events', events);
+                const diagnosticsCandidate = aggregated?.search_diagnostics;
+                if (isRecord(diagnosticsCandidate)) {
+                    console.info('[topic-finder] search diagnostics', diagnosticsCandidate);
+                }
+
+                // Threads 검색 결과 디버깅
+                if (aggregated?.search_results) {
+                    const searchResults = aggregated.search_results as any;
+                    console.info('[topic-finder] search_results.threads:', searchResults.threads);
+                }
+                if (aggregated?.['Enhanced Threads Search']) {
+                    console.info('[topic-finder] Enhanced Threads Search:', aggregated['Enhanced Threads Search']);
+                }
+                if (aggregated?.['Threads Search']) {
+                    console.info('[topic-finder] Threads Search:', aggregated['Threads Search']);
+                }
+            }
+            if (aggregated?.search_results) {
+                console.log('[topic-finder] search_results payload', aggregated.search_results);
+            }
             const blocks = aggregated
                 ? buildAssistantBlocks(aggregated)
                 : [

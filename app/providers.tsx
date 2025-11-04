@@ -25,6 +25,34 @@ export function Providers({
 }: ProvidersProps) {
   const [queryClient] = useState(() => new QueryClient());
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') {
+      return;
+    }
+
+    const suppressedPrefixes = ['[Fast Refresh]'];
+    const suppressIfNeeded = <T extends (...args: any[]) => void>(original: T): T => {
+      return ((...args: Parameters<T>) => {
+        const [first] = args;
+        if (typeof first === 'string' && suppressedPrefixes.some((prefix) => first.startsWith(prefix))) {
+          return;
+        }
+        original(...args);
+      }) as T;
+    };
+
+    const originalLog = console.log;
+    const originalInfo = console.info;
+
+    console.log = suppressIfNeeded(originalLog);
+    console.info = suppressIfNeeded(originalInfo);
+
+    return () => {
+      console.log = originalLog;
+      console.info = originalInfo;
+    };
+  }, []);
+
   // Notify Base Mini App environment that the app is ready
   useEffect(() => {
     let cancelled = false;
