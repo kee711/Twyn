@@ -33,7 +33,7 @@ const authMiddleware = withAuth(
       const allowForce = forceParam === '1' || forceParam === 'true'
       if (!allowForce) {
         // In web3 mode, redirect to topic-finder; otherwise use existing logic
-        const redirectPath = featureFlags.enableDirectTopicFinderRouting()
+        const redirectPath = featureFlags.enableDirectSigninRouting()
           ? web3Config.defaultRedirectPath
           : '/contents/topic-finder'
         return NextResponse.redirect(new URL(redirectPath, req.url))
@@ -41,7 +41,7 @@ const authMiddleware = withAuth(
     }
 
     // In web3 mode, redirect authenticated users from root to topic-finder
-    if (featureFlags.enableDirectTopicFinderRouting()) {
+    if (featureFlags.enableDirectSigninRouting()) {
       // Remove locale prefix for checking
       const pathnameWithoutLocale = routing.locales.reduce(
         (path, locale) => path.replace(new RegExp(`^/${locale}(/|$)`), '/'),

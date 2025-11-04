@@ -88,9 +88,9 @@ export const featureFlags = {
     showOnlyFarcasterAuth: (): boolean => isWeb3Mode(),
 
     /**
-     * Check if direct topic-finder routing should be enabled
+     * Check if direct signin routing should be enabled (skip landing page)
      */
-    enableDirectTopicFinderRouting: (): boolean => isWeb3Mode(),
+    enableDirectSigninRouting: (): boolean => isWeb3Mode(),
 
     /**
      * Check if automatic Farcaster account linking should be enabled
