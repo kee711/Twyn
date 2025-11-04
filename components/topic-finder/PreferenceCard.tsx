@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CheckCircle2, ChevronDown, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 export interface PreferenceOption {
     id: string;
@@ -36,6 +37,7 @@ export function PreferenceCard({
     loading,
 }: PreferenceCardProps) {
     const [open, setOpen] = useState(false);
+    const t = useTranslations('pages.contents.topicFinder');
     const selectedOption = useMemo(() => options.find(option => option.id === selectedId), [options, selectedId]);
 
     const handleSelect = (option: PreferenceOption) => {
@@ -61,8 +63,8 @@ export function PreferenceCard({
                     <div className="flex items-center justify-between rounded-xl bg-neutral-100/80 sm:px-3 px-2 py-2 text-xs font-medium text-neutral-700">
                         <span className="!truncate">
                             {loading
-                                ? 'Loading...'
-                                : selectedOption?.name || placeholder || `Select ${title}`}
+                                ? t('loading')
+                                : selectedOption?.name || placeholder || t('selectOption', { title })}
                         </span>
                         <ChevronDown className="h-4 w-4 shrink-0 hidden sm:block" />
                     </div>
@@ -71,7 +73,7 @@ export function PreferenceCard({
             <PopoverContent className="w-64 p-0 rounded-2xl" align="start">
                 <div className="max-h-64 overflow-y-auto p-2">
                     {options.length === 0 && !loading && (
-                        <div className="px-3 py-4 text-sm text-muted-foreground">No options yet. Create one to get started.</div>
+                        <div className="px-3 py-4 text-sm text-muted-foreground">{t('noOptions')}</div>
                     )}
                     {options.map(option => (
                         <div
@@ -120,7 +122,7 @@ export function PreferenceCard({
                         className="flex w-full items-center justify-center gap-1 rounded-lg px-3 py-1 text-xs text-neutral-400 font-medium transition hover:text-neutral-700"
                     >
                         <Plus className="h-4 w-4" />
-                        Create new
+                        {t('createNew')}
                     </button>
                 </div>
             </PopoverContent>
