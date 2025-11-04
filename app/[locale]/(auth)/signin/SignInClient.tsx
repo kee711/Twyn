@@ -290,6 +290,12 @@ export default function SignInClient() {
     return null
   }
 
+  // Debug: Web3 mode check
+  console.log('[SignIn Debug] Environment variables:', {
+    NEXT_PUBLIC_WEB3_MODE: process.env.NEXT_PUBLIC_WEB3_MODE,
+    showOnlyFarcasterAuth: featureFlags.showOnlyFarcasterAuth(),
+  });
+
   // Web3 모드에서는 Farcaster 전용 디자인 사용
   if (featureFlags.showOnlyFarcasterAuth()) {
     return (

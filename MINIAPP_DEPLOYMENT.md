@@ -45,6 +45,32 @@ NEXTAUTH_DEBUG=false
 
 **⚠️ IMPORTANT**: Make sure your hosting platform (Vercel, Netlify, etc.) has these environment variables configured in the production environment settings.
 
+### 🔧 Platform-Specific Environment Variable Setup
+
+#### **Vercel**
+1. Go to your project dashboard on Vercel
+2. Navigate to Settings → Environment Variables
+3. Add each variable with the production values:
+   ```
+   NEXT_PUBLIC_WEB3_MODE = true
+   NEXT_PUBLIC_DOMAIN = app.twyn.sh
+   NEXT_PUBLIC_FARCASTER_SIWE_URI = https://app.twyn.sh/login
+   NEXT_PUBLIC_FARCASTER_OPTIMISM_RPC_URL = https://mainnet.optimism.io
+   NEXT_PUBLIC_FARCASTER_RELAY_URL = https://relay.farcaster.xyz
+   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID = 0d3fbf60fb6ff25889dd0cbd248793b4
+   NEXTAUTH_URL = https://app.twyn.sh
+   NEXTAUTH_SECRET = [your-production-secret]
+   ```
+4. Redeploy your application
+
+#### **Netlify**
+1. Go to Site settings → Environment variables
+2. Add the same variables as above
+3. Trigger a new deployment
+
+#### **Other Platforms**
+Ensure all `NEXT_PUBLIC_*` variables are set in your deployment environment.
+
 ## 🔧 Deployment Steps
 
 ### 1. Build the Application

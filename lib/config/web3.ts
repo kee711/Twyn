@@ -12,7 +12,19 @@ export type PlatformKey = 'farcaster' | 'threads' | 'x';
  * @returns boolean indicating if web3 mode is enabled
  */
 export function isWeb3Mode(): boolean {
-    return process.env.NEXT_PUBLIC_WEB3_MODE === 'true';
+    const web3Mode = process.env.NEXT_PUBLIC_WEB3_MODE === 'true';
+
+    // Debug logging for production troubleshooting
+    if (typeof window !== 'undefined') {
+        console.log('[Web3 Config Debug]', {
+            NEXT_PUBLIC_WEB3_MODE: process.env.NEXT_PUBLIC_WEB3_MODE,
+            isWeb3Mode: web3Mode,
+            userAgent: navigator.userAgent,
+            hostname: window.location.hostname,
+        });
+    }
+
+    return web3Mode;
 }
 
 /**
