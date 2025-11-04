@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CheckCircle2, ChevronDown, Pencil, Plus } from 'lucide-react';
+import { CheckCircle2, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 export interface AddOnOption {
     id: string;
@@ -24,7 +25,7 @@ interface AddOnCardProps {
 }
 
 export function AddOnCard({
-    title = 'Add-on',
+    title,
     options,
     selectedIds,
     onToggle,
@@ -34,14 +35,16 @@ export function AddOnCard({
     loading,
 }: AddOnCardProps) {
     const [open, setOpen] = useState(false);
+    const t = useTranslations('pages.contents.topicFinder');
     const activatedCount = selectedIds.length;
+    const cardTitle = title ?? t('addOnTitle');
 
     const description = useMemo(() => {
-        if (loading) return 'Loading...';
-        if (activatedCount === 0) return 'Select add-ons';
-        if (activatedCount === 1) return '1 Activated';
-        return `${activatedCount} Activated`;
-    }, [activatedCount, loading]);
+        if (loading) return t('loading');
+        if (activatedCount === 0) return t('selectAddOn');
+        if (activatedCount === 1) return t('activatedSingle');
+        return t('activatedMultiple', { count: activatedCount });
+    }, [activatedCount, loading, t]);
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -57,7 +60,7 @@ export function AddOnCard({
                     <div className="flex items-center sm:gap-1.5 gap-0.5 text-[11px] sm:text-xs font-medium text-neutral-600">
                         {/* Do not show icon on mobile */}
                         <CheckCircle2 className={cn('h-3 w-3', selectedIds.length > 0 ? 'text-neutral-900' : 'text-neutral-300')} />
-                        {title}
+                        {cardTitle}
                     </div>
                     <div className="flex items-center justify-between rounded-xl bg-neutral-100/80 sm:px-3 px-2 py-2 text-xs font-medium text-neutral-700">
                         <span className="truncate">{description}</span>
@@ -71,7 +74,7 @@ export function AddOnCard({
                 <div className="max-h-72 overflow-y-auto p-3">
                     {options.length === 0 && !loading ? (
                         <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-500">
-                            No add-ons yet. Create one to get started.
+                            {t('noAddOns')}
                         </div>
                     ) : (
                         <div className="grid gap-2 sm:grid-cols-2">
@@ -134,7 +137,7 @@ export function AddOnCard({
                         className="flex w-full items-center justify-center gap-1 rounded-lg px-3 py-1 text-xs text-neutral-400 font-medium transition hover:text-neutral-700"
                     >
                         <Plus className="h-4 w-4" />
-                        Create new
+                        {t('createNew')}
                     </button>
                 </div>
             </PopoverContent>

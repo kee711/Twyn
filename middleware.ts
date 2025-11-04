@@ -26,9 +26,13 @@ const authMiddleware = withAuth(
       return NextResponse.redirect(onboardingUrl)
     }
 
-    // If user is on onboarding page but doesn't need it, redirect to dashboard
+    // If user is on onboarding page but doesn't need it, allow forcing via query param
     if (!token?.needsOnboarding && pathname.includes('/onboarding')) {
-      return NextResponse.redirect(new URL('/contents/topic-finder', req.url))
+      const forceParam = req.nextUrl.searchParams.get('force')
+      const allowForce = forceParam === '1' || forceParam === 'true'
+      if (!allowForce) {
+        return NextResponse.redirect(new URL('/contents/topic-finder', req.url))
+      }
     }
 
     return intlMiddleware(req)
