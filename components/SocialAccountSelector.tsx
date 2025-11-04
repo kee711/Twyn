@@ -22,6 +22,17 @@ const PLATFORM_LABELS: Record<PlatformKey, string> = {
   farcaster: 'Farcaster',
 };
 
+const PLATFORM_DISABLED: Record<PlatformKey, boolean> = {
+  threads: false,
+  x: true,
+  farcaster: true,
+};
+
+const CONNECT_DISABLED_MESSAGE: Partial<Record<PlatformKey, string>> = {
+  x: 'xComingSoon',
+  farcaster: 'farcasterComingSoon',
+};
+
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
   const t = useTranslations('SocialAccountSelector');
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -222,6 +233,11 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
         {(Object.keys(groupedAccounts) as PlatformKey[]).map((platform) => {
           const platformAccounts = groupedAccounts[platform];
           const selection = selectedAccounts[platform];
+          const isConnectDisabled = PLATFORM_DISABLED[platform] ?? false;
+          const comingSoonKey = CONNECT_DISABLED_MESSAGE[platform];
+          const emptyStateMessage = comingSoonKey
+            ? t(comingSoonKey as any)
+            : t('noAccountsRegistered');
           return (
             <div key={platform} className="rounded-xl border border-border/50 bg-muted/20 p-3">
               <div className="mb-2 flex items-center justify-between">
@@ -232,18 +248,23 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
               </div>
               {platformAccounts.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border/60 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-                  {t('noAccountsRegistered')}
+                  {emptyStateMessage}
                 </div>
               ) : (
                 <div className="space-y-2">
                   {platformAccounts.map((account) => {
                     const isSelected = selection === account.id;
+                    const isDisabled = isConnectDisabled;
                     return (
                       <button
                         type="button"
                         key={account.id}
-                        onClick={() => handleSelectAccount(platform, account.id)}
-                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${isSelected ? 'border-primary bg-primary/5 text-foreground' : 'border-border/40 bg-card hover:border-primary'}`}
+                        disabled={isDisabled}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          handleSelectAccount(platform, account.id);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm ${isDisabled ? 'cursor-not-allowed opacity-60' : 'transition hover:border-primary'} ${isSelected ? 'border-primary bg-primary/5 text-foreground' : 'border-border/40 bg-card'}`}
                       >
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{account.username || account.social_id}</span>
@@ -272,28 +293,62 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
           <div className="grid gap-3">
             <button
               type="button"
-              onClick={() => { window.location.href = '/api/threads/oauth'; closeProviderModal(); }}
-              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
+              disabled={PLATFORM_DISABLED.threads}
+              onClick={() => {
+                if (PLATFORM_DISABLED.threads) return;
+                window.location.href = '/api/threads/oauth';
+                closeProviderModal();
+              }}
+              className={`flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 ${PLATFORM_DISABLED.threads ? 'cursor-not-allowed opacity-60' : 'transition hover:border-primary hover:bg-primary/5'}`}
             >
               <Image src="/threads_logo_blk.svg" alt="Threads logo" width={32} height={32} className="h-8 w-8 object-contain" />
-              <span className="font-medium">Threads</span>
+              <div className="flex flex-col items-start">
+                <span className="font-medium">Threads</span>
+                {PLATFORM_DISABLED.threads ? (
+                  <span className="text-xs text-muted-foreground">{t('threadsComingSoon')}</span>
+                ) : null}
+              </div>
             </button>
             <button
               type="button"
-              onClick={() => { window.location.href = '/api/x/oauth'; closeProviderModal(); }}
-              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 transition hover:border-primary hover:bg-primary/5"
+              disabled={PLATFORM_DISABLED.x}
+              onClick={() => {
+                if (PLATFORM_DISABLED.x) return;
+                window.location.href = '/api/x/oauth';
+                closeProviderModal();
+              }}
+              className={`flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 ${PLATFORM_DISABLED.x ? 'cursor-not-allowed opacity-60' : 'transition hover:border-primary hover:bg-primary/5'}`}
             >
               <Image src="/x-logo.jpg" alt="X logo" width={32} height={32} className="h-8 w-8 object-contain" />
-              <span className="font-medium">X</span>
+              <div className="flex flex-col items-start">
+                <span className="font-medium">X</span>
+                {PLATFORM_DISABLED.x ? (
+                  <span className="text-xs text-muted-foreground">{t('xComingSoon')}</span>
+                ) : null}
+              </div>
             </button>
-            <div className="farcaster-signin-wrapper">
-              <SignInButton
-                hideSignOut
-                onSuccess={handleFarcasterSuccess}
-                onError={handleFarcasterError}
-              />
-              Farcaster
-            </div>
+            {PLATFORM_DISABLED.farcaster ? (
+              <button
+                type="button"
+                disabled
+                className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 cursor-not-allowed opacity-60"
+              >
+                <Image src="/farcaster-logo.svg" alt="Farcaster logo" width={32} height={32} className="h-8 w-8 object-contain" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Farcaster</span>
+                  <span className="text-xs text-muted-foreground">{t('farcasterComingSoon')}</span>
+                </div>
+              </button>
+            ) : (
+              <div className="farcaster-signin-wrapper">
+                <SignInButton
+                  hideSignOut
+                  onSuccess={handleFarcasterSuccess}
+                  onError={handleFarcasterError}
+                />
+                Farcaster
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

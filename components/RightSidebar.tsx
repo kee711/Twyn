@@ -87,11 +87,12 @@ export function RightSidebar({ className }: RightSidebarProps) {
     pendingThreadChain,
     applyPendingThreadChain,
     generationStatus,
-    platformMode,
-    setPlatformMode,
-    activePlatforms,
-    togglePlatformActive,
-    platformContents,
+  platformMode,
+  setPlatformMode,
+  activePlatforms,
+  togglePlatformActive,
+  setPlatformActive,
+  platformContents,
     setPlatformThreads,
     updatePlatformThreadContent,
     updatePlatformThreadMedia,
@@ -114,6 +115,17 @@ export function RightSidebar({ className }: RightSidebarProps) {
       setSelectedPlatform(fallback);
     }
   }, [isUnlinked, activePlatforms, selectedPlatform]);
+
+  useEffect(() => {
+    const activeCount = PLATFORM_KEYS.reduce(
+      (count, platform) => count + (activePlatforms[platform] ? 1 : 0),
+      0,
+    );
+
+    if (activeCount === 0) {
+      setPlatformActive('threads', true);
+    }
+  }, [activePlatforms, setPlatformActive]);
 
   const handleUnlinkToggle = () => {
     setPlatformMode(isUnlinked ? 'linked' : 'unlinked');
