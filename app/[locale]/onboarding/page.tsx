@@ -9,6 +9,7 @@ import { SocialOnboarding } from '@/components/onboarding/SocialOnboarding';
 import { PricingModal } from '@/components/modals/PricingModal';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { featureFlags } from '@/lib/config/web3';
 
 export default function OnboardingPage() {
   const t = useTranslations('pages.onboarding');
@@ -36,7 +37,7 @@ export default function OnboardingPage() {
       sessionStorage.removeItem('signup_in_progress');
       sessionStorage.removeItem('inviteCode');
       sessionStorage.removeItem('inviteCodeId');
-      
+
       // Clear server-side cookies
       fetch('/api/auth/clear-signup-cookies', { method: 'POST' })
         .catch(err => console.error('Failed to clear signup cookies:', err));
@@ -89,13 +90,18 @@ export default function OnboardingPage() {
         }
 
         // Check if user has social accounts to determine if we should show step 4
-        const { data: socialAccounts } = await supabase
-          .from('social_accounts')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .limit(1);
+        // In web3 mode, never show threads connection
+        if (featureFlags.showOnlyFarcasterAuth()) {
+          setShowThreadsConnection(false);
+        } else {
+          const { data: socialAccounts } = await supabase
+            .from('social_accounts')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .limit(1);
 
-        setShowThreadsConnection(!socialAccounts || socialAccounts.length === 0);
+          setShowThreadsConnection(!socialAccounts || socialAccounts.length === 0);
+        }
         setOnboardingType('user');
       } else if (type === 'social' && accountId) {
         setOnboardingType('social');
@@ -406,8 +412,8 @@ export default function OnboardingPage() {
   return (
     <>
       {onboardingType === 'user' && (
-        <UserOnboarding 
-          onComplete={handleUserOnboardingComplete} 
+        <UserOnboarding
+          onComplete={handleUserOnboardingComplete}
           showThreadsConnection={showThreadsConnection}
         />
       )}
