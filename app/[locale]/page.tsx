@@ -1,8 +1,8 @@
 import { generatePageMetadata } from '@/lib/generatePageMetadata';
 import HomeClient from './HomeClient';
 import { getTranslations } from 'next-intl/server';
-import { redirect } from 'next/navigation';
 import { featureFlags } from '@/lib/config/web3';
+import { AutoLogout } from './AutoLogout';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -15,9 +15,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default function Home() {
-  // In web3 mode, redirect directly to topic-finder (no landing page)
+  // In web3 mode, perform auto logout and redirect to signin
   if (featureFlags.enableDirectSigninRouting()) {
-    redirect('/contents/topic-finder');
+    return <AutoLogout />;
   }
 
   // Regular mode: show landing page
