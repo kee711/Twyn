@@ -76,6 +76,13 @@ export default function middleware(req: NextRequest) {
     pathname
   )
 
+  // In web3 mode, redirect root path to topic-finder (unauthenticated users)
+  if (featureFlags.enableDirectSigninRouting()) {
+    if (pathnameWithoutLocale === '/' || pathnameWithoutLocale === '') {
+      return NextResponse.redirect(new URL('/contents/topic-finder', req.url))
+    }
+  }
+
   // Check if it's a public page
   const isPublicPage = publicPages.some(page =>
     pathnameWithoutLocale === page ||
