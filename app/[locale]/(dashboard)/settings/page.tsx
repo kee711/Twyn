@@ -366,7 +366,7 @@ export default function SettingsPage() {
                 {userProfile?.plan_type === 'Pro' && (
                   <Button onClick={() => setShowPricingModal(true)}>{t('plan.managePlan')}</Button>
                 )}
-                {userProfile?.plan_type === 'Expert' && (
+                {(userProfile?.plan_type === 'ProPlus' || userProfile?.plan_type === 'Expert') && (
                   <Button onClick={() => setShowPricingModal(true)}>{t('plan.managePlan')}</Button>
                 )}
               </div>
