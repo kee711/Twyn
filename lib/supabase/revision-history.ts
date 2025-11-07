@@ -49,23 +49,45 @@ function calculateWordCountDiff(str1: string, str2: string): number {
  * 현재 사용자의 user_profiles_id 가져오기
  */
 async function getUserProfileId(): Promise<{ id: string | null; error: Error | null }> {
+    console.log('👤 [getUserProfileId] Starting...');
     const supabase = createClient();
 
+    console.log('👤 [getUserProfileId] Getting authenticated user...');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log('👤 [getUserProfileId] Auth result:', {
+        hasUser: !!user,
+        userId: user?.id,
+        hasError: !!authError,
+        error: authError?.message
+    });
+
     if (authError || !user) {
+        console.error('❌ [getUserProfileId] User not authenticated');
         return { id: null, error: new Error('User not authenticated') };
     }
 
+    console.log('👤 [getUserProfileId] Querying user_profiles table...');
     const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('user_profiles_id')
         .eq('user_id', user.id)
         .single();
 
+    console.log('👤 [getUserProfileId] Profile query result:', {
+        hasProfile: !!profile,
+        userProfilesId: profile?.user_profiles_id,
+        hasError: !!profileError,
+        error: profileError?.message,
+        errorCode: profileError?.code,
+        errorDetails: profileError?.details
+    });
+
     if (profileError || !profile) {
+        console.error('❌ [getUserProfileId] User profile not found');
         return { id: null, error: new Error('User profile not found') };
     }
 
+    console.log('✅ [getUserProfileId] Success:', profile.user_profiles_id);
     return { id: profile.user_profiles_id, error: null };
 }
 
@@ -75,16 +97,34 @@ async function getUserProfileId(): Promise<{ id: string | null; error: Error | n
 export async function createRevisionHistory(
     input: CreateRevisionHistoryInput
 ): Promise<{ data: RevisionHistory | null; error: Error | null }> {
+    console.log('🔧 [createRevisionHistory] Starting with input:', {
+        hasContentId: !!input.content_id,
+        contentId: input.content_id,
+        aiContentLength: input.ai_generated_content?.length,
+        finalContentLength: input.user_final_content?.length,
+        revisionType: input.revision_type
+    });
+
     try {
+        console.log('🔧 [createRevisionHistory] Creating Supabase client...');
         const supabase = createClient();
 
         // user_profiles_id 가져오기
+        console.log('🔧 [createRevisionHistory] Getting user profile ID...');
         const { id: userProfilesId, error: profileError } = await getUserProfileId();
+        console.log('🔧 [createRevisionHistory] User profile result:', {
+            userProfilesId,
+            hasError: !!profileError,
+            error: profileError?.message
+        });
+
         if (profileError || !userProfilesId) {
+            console.error('❌ [createRevisionHistory] Failed to get user profile:', profileError);
             return { data: null, error: profileError || new Error('Failed to get user profile') };
         }
 
         // 편집 거리와 단어 수 차이 자동 계산
+        console.log('🔧 [createRevisionHistory] Calculating edit distance and word count diff...');
         const edit_distance = calculateEditDistance(
             input.ai_generated_content,
             input.user_final_content
@@ -93,32 +133,57 @@ export async function createRevisionHistory(
             input.ai_generated_content,
             input.user_final_content
         );
+        console.log('🔧 [createRevisionHistory] Metrics:', { edit_distance, word_count_diff });
+
+        const insertData = {
+            user_profiles_id: userProfilesId,
+            content_id: input.content_id,
+            ai_generated_content: input.ai_generated_content,
+            ai_generated_metadata: input.ai_generated_metadata || {},
+            user_final_content: input.user_final_content,
+            user_final_metadata: input.user_final_metadata || {},
+            revision_type: input.revision_type || 'published',
+            edit_distance,
+            word_count_diff,
+            generation_params: input.generation_params || {},
+            notes: input.notes,
+            tags: input.tags || []
+        };
+
+        console.log('🔧 [createRevisionHistory] Inserting data:', {
+            user_profiles_id: insertData.user_profiles_id,
+            content_id: insertData.content_id,
+            revision_type: insertData.revision_type,
+            edit_distance: insertData.edit_distance,
+            word_count_diff: insertData.word_count_diff
+        });
 
         const { data, error } = await supabase
             .from('revision_history')
-            .insert({
-                user_profiles_id: userProfilesId,
-                content_id: input.content_id,
-                ai_generated_content: input.ai_generated_content,
-                ai_generated_metadata: input.ai_generated_metadata || {},
-                user_final_content: input.user_final_content,
-                user_final_metadata: input.user_final_metadata || {},
-                revision_type: input.revision_type || 'published',
-                edit_distance,
-                word_count_diff,
-                generation_params: input.generation_params || {},
-                notes: input.notes,
-                tags: input.tags || []
-            })
+            .insert(insertData)
             .select()
             .single();
 
         if (error) {
+            console.error('❌ [createRevisionHistory] Supabase insert error:', {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint
+            });
             return { data: null, error };
         }
 
+        console.log('✅ [createRevisionHistory] Successfully inserted:', {
+            id: data.id,
+            user_profiles_id: data.user_profiles_id
+        });
         return { data, error: null };
     } catch (error) {
+        console.error('❌ [createRevisionHistory] Exception:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return { data: null, error: error as Error };
     }
 }
@@ -297,6 +362,16 @@ export async function saveRevisionOnPublish(params: {
     generationParams?: any;
     metadata?: any;
 }): Promise<{ success: boolean; error?: Error }> {
+    console.log('📝 [saveRevisionOnPublish] Called with params:', {
+        contentId: params.contentId,
+        aiContentLength: params.aiContent?.length,
+        finalContentLength: params.finalContent?.length,
+        isScheduled: params.isScheduled,
+        hasGenerationParams: !!params.generationParams,
+        hasMetadata: !!params.metadata
+    });
+
+    console.log('📝 [saveRevisionOnPublish] Calling createRevisionHistory...');
     const { data, error } = await createRevisionHistory({
         content_id: params.contentId,
         ai_generated_content: params.aiContent,
@@ -308,9 +383,13 @@ export async function saveRevisionOnPublish(params: {
     });
 
     if (error) {
-        console.error('Failed to save revision history:', error);
+        console.error('❌ [saveRevisionOnPublish] Failed to save revision history:', error);
         return { success: false, error };
     }
 
+    console.log('✅ [saveRevisionOnPublish] Successfully saved revision history:', {
+        revisionId: data?.id,
+        userProfilesId: data?.user_profiles_id
+    });
     return { success: true };
 }
