@@ -107,15 +107,15 @@ export async function POST(request: NextRequest) {
             user = newUser
             // user_profiles 테이블에 직접 생성되므로 별도 프로필 생성 불필요
 
-            console.log('Created new Base Account user:', user.id)
+            console.log('[Base Account API] Created new Base Account user:', user.user_id)
         } else {
-            console.log('Existing Base Account user found:', user.id)
+            console.log('[Base Account API] Existing Base Account user found:', user.user_id)
         }
 
         return NextResponse.json({
             success: true,
             user: {
-                id: user.id,
+                id: user.user_id,
                 email: user.email,
                 name: user.name,
                 address: user.base_account_address,

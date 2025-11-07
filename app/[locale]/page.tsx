@@ -15,9 +15,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default function Home() {
-  // In web3 mode, redirect directly to signin page (no landing page)
+  // In web3 mode, redirect directly to topic-finder (no landing page)
   if (featureFlags.enableDirectSigninRouting()) {
-    redirect('/signin');
+    redirect('/contents/topic-finder');
   }
 
   // Regular mode: show landing page

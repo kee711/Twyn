@@ -40,6 +40,8 @@ export const authOptions: AuthOptions = {
         isSignup: { label: 'isSignup', type: 'text' },
         isFarcaster: { label: 'isFarcaster', type: 'text' },
         fid: { label: 'fid', type: 'text' },
+        isBaseAccount: { label: 'isBaseAccount', type: 'text' },
+        address: { label: 'address', type: 'text' },
       },
       async authorize(credentials, req) {
         try {
@@ -48,6 +50,34 @@ export const authOptions: AuthOptions = {
           const isSignup = credentials?.isSignup === 'true'
           const isFarcaster = credentials?.isFarcaster === 'true'
           const fid = credentials?.fid
+          const isBaseAccount = credentials?.isBaseAccount === 'true'
+          const address = credentials?.address
+
+          // Handle Base Account authentication
+          if (isBaseAccount && address) {
+            // Look up user by Base Account address
+            const { data: baseUser, error: baseError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('base_account_address', address)
+              .maybeSingle()
+
+            if (baseError && baseError.code !== 'PGRST116') {
+              console.error('Error fetching Base Account user:', baseError)
+              return null
+            }
+
+            if (baseUser) {
+              return {
+                id: baseUser.user_id,
+                email: baseUser.email,
+                name: baseUser.name || `Base User ${address.slice(0, 6)}...${address.slice(-4)}`,
+                image: baseUser.image || null,
+              }
+            }
+
+            return null
+          }
 
           // Handle Farcaster authentication
           if (isFarcaster && fid) {
