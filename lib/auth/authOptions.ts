@@ -55,6 +55,7 @@ export const authOptions: AuthOptions = {
 
           // Handle Base Account authentication
           if (isBaseAccount && address) {
+            console.log('[authOptions] Base Account authentication attempt for:', address)
             // Look up user by Base Account address
             const { data: baseUser, error: baseError } = await supabase
               .from('user_profiles')
@@ -63,11 +64,16 @@ export const authOptions: AuthOptions = {
               .maybeSingle()
 
             if (baseError && baseError.code !== 'PGRST116') {
-              console.error('Error fetching Base Account user:', baseError)
+              console.error('[authOptions] Error fetching Base Account user:', baseError)
               return null
             }
 
             if (baseUser) {
+              console.log('[authOptions] Base Account user found:', {
+                user_id: baseUser.user_id,
+                email: baseUser.email,
+                name: baseUser.name
+              })
               return {
                 id: baseUser.user_id,
                 email: baseUser.email,
@@ -76,6 +82,7 @@ export const authOptions: AuthOptions = {
               }
             }
 
+            console.log('[authOptions] Base Account user not found for address:', address)
             return null
           }
 
