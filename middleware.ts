@@ -5,7 +5,7 @@ import { routing } from './i18n/routing'
 import { getToken } from 'next-auth/jwt'
 import { featureFlags, web3Config } from './lib/config/web3'
 
-const publicPages = ['/', '/signin', '/signup', '/error', '/privacy', '/data-deletion-policy']
+const publicPages = ['/', '/signin', '/signup', '/error', '/privacy', '/data-deletion-policy', '/test-base']
 
 const intlMiddleware = createIntlMiddleware(routing)
 
