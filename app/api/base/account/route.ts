@@ -105,11 +105,99 @@ export async function POST(request: NextRequest) {
             }
 
             user = newUser
-            // user_profiles 테이블에 직접 생성되므로 별도 프로필 생성 불필요
-
             console.log('[Base Account API] Created new Base Account user:', user.user_id)
+
+            // Create social_accounts entry for Farcaster platform
+            const socialId = address.toLowerCase();
+            const { data: socialAccount, error: socialError } = await supabase
+                .from('social_accounts')
+                .insert({
+                    owner: user.user_id,
+                    platform: 'farcaster',
+                    social_id: socialId,
+                    username: `${address.slice(0, 6)}...${address.slice(-4)}`,
+                    is_active: true,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                })
+                .select('id')
+                .single();
+
+            if (socialError) {
+                console.error('[Base Account API] Failed to create social_accounts entry:', socialError);
+            } else if (socialAccount) {
+                console.log('[Base Account API] Created social_accounts entry:', socialAccount.id);
+
+                // Set as selected account
+                const { error: selectionError } = await supabase
+                    .from('user_selected_accounts')
+                    .insert({
+                        user_id: user.user_id,
+                        platform: 'farcaster',
+                        social_account_id: socialAccount.id,
+                        updated_at: new Date().toISOString(),
+                    });
+
+                if (selectionError) {
+                    console.error('[Base Account API] Failed to set selected account:', selectionError);
+                } else {
+                    console.log('[Base Account API] Set as selected Farcaster account');
+                }
+            }
         } else {
             console.log('[Base Account API] Existing Base Account user found:', user.user_id)
+
+            // Check if social_accounts entry exists
+            const socialId = address.toLowerCase();
+            const { data: existingSocialAccount } = await supabase
+                .from('social_accounts')
+                .select('id')
+                .eq('owner', user.user_id)
+                .eq('platform', 'farcaster')
+                .eq('social_id', socialId)
+                .maybeSingle();
+
+            if (!existingSocialAccount) {
+                console.log('[Base Account API] Creating missing social_accounts entry for existing user');
+
+                const { data: socialAccount, error: socialError } = await supabase
+                    .from('social_accounts')
+                    .insert({
+                        owner: user.user_id,
+                        platform: 'farcaster',
+                        social_id: socialId,
+                        username: `${address.slice(0, 6)}...${address.slice(-4)}`,
+                        is_active: true,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    })
+                    .select('id')
+                    .single();
+
+                if (socialError) {
+                    console.error('[Base Account API] Failed to create social_accounts entry:', socialError);
+                } else if (socialAccount) {
+                    console.log('[Base Account API] Created social_accounts entry:', socialAccount.id);
+
+                    // Set as selected account
+                    const { error: selectionError } = await supabase
+                        .from('user_selected_accounts')
+                        .upsert({
+                            user_id: user.user_id,
+                            platform: 'farcaster',
+                            social_account_id: socialAccount.id,
+                            updated_at: new Date().toISOString(),
+                        }, { onConflict: 'user_id,platform' });
+
+                    if (selectionError) {
+                        console.error('[Base Account API] Failed to set selected account:', selectionError);
+                    } else {
+                        console.log('[Base Account API] Set as selected Farcaster account');
+                    }
+                }
+            } else {
+                console.log('[Base Account API] Social account already exists:', existingSocialAccount.id);
+            }
         }
 
         return NextResponse.json({
