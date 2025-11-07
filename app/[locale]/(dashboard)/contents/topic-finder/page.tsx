@@ -41,9 +41,7 @@ import type { AssistantBlock, AssistantMessage, ConversationMessage, ThinkingPro
 
 const DEFAULT_LANGGRAPH_TOPIC = 'social media marketing strategy for AI startups';
 
-// Base URL for LangGraph FastAPI server
-// Prefer client-exposed env var if available; fallback to server env at build time.
-const LANGGRAPH_API_BASE = (process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || process.env.LANGGRAPH_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+// Calls to LangGraph are proxied through Next API to avoid CORS issues.
 
 interface SubmittedContext {
     headline: string;
@@ -2425,7 +2423,7 @@ export default function TopicFinderPage() {
                 .filter(Boolean)
                 .join('\n\n');
             const resolvedTopic = trimmed || lockedContext.headline || DEFAULT_LANGGRAPH_TOPIC;
-            const response = await fetch(`${LANGGRAPH_API_BASE}/research/enhanced`, {
+            const response = await fetch('/api/langgraph', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ topic: resolvedTopic }),
@@ -2439,25 +2437,30 @@ export default function TopicFinderPage() {
                 throw new Error(message);
             }
 
-            const events: LanggraphEvent[] = Array.isArray(payload?.events) ? payload.events : [];
-            let aggregated = aggregateLanggraphPayload(events);
-            if (!aggregated && payload && typeof payload === 'object') {
-                aggregated = payload as Record<string, unknown>;
+            // Prefer server-built UI blocks to avoid duplicated parsing on client
+            const serverBlocks: unknown[] = Array.isArray(payload?.blocks) ? payload.blocks : [];
+            let blocks = serverBlocks as any[];
+            if (!blocks.length) {
+                const events: LanggraphEvent[] = Array.isArray(payload?.events) ? payload.events : [];
+                let aggregated = aggregateLanggraphPayload(events);
+                if (!aggregated && payload && typeof payload === 'object') {
+                    aggregated = payload as Record<string, unknown>;
+                }
+                blocks = aggregated
+                    ? buildAssistantBlocks(aggregated)
+                    : [
+                        {
+                            id: createId(),
+                            type: 'text' as const,
+                            content:
+                                events.length > 0
+                                    ? events
+                                        .map((event) => `${event.event.toUpperCase()}\n${JSON.stringify(event.data, null, 2)}`)
+                                        .join('\n\n')
+                                    : 'No structured result returned.',
+                        },
+                    ];
             }
-            const blocks = aggregated
-                ? buildAssistantBlocks(aggregated)
-                : [
-                    {
-                        id: createId(),
-                        type: 'text' as const,
-                        content:
-                            events.length > 0
-                                ? events
-                                    .map((event) => `${event.event.toUpperCase()}\n${JSON.stringify(event.data, null, 2)}`)
-                                    .join('\n\n')
-                                : 'No structured result returned.',
-                    },
-                ];
             const hasAudienceWidget = blocks.some((block) => block.type === 'widget' && block.widgetType === 'audience');
             const hasReferenceBlocks = blocks.some((block) => block.type === 'threads' || block.type === 'x');
             const hasRecommendationWidget = blocks.some((block) => block.type === 'widget' && block.widgetType === 'topics');
@@ -2477,6 +2480,7 @@ export default function TopicFinderPage() {
                 })
             );
 
+            const rawPayload = (payload && (payload.raw ?? payload.aggregated)) ? (payload.raw ?? payload.aggregated) : undefined;
             setConversation((prev) =>
                 prev.map((entry) =>
                     entry.id === assistantId
@@ -2484,7 +2488,7 @@ export default function TopicFinderPage() {
                             ...entry,
                             status: 'complete',
                             blocks,
-                            raw: aggregated ?? events,
+                            raw: rawPayload ?? blocks,
                         }
                         : entry
                 )
