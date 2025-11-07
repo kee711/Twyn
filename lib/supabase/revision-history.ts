@@ -52,25 +52,27 @@ async function getUserProfileId(): Promise<{ id: string | null; error: Error | n
     console.log('👤 [getUserProfileId] Starting...');
     const supabase = createClient();
 
-    console.log('👤 [getUserProfileId] Getting authenticated user...');
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('👤 [getUserProfileId] Auth result:', {
-        hasUser: !!user,
-        userId: user?.id,
-        hasError: !!authError,
-        error: authError?.message
+    console.log('👤 [getUserProfileId] Getting session...');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('👤 [getUserProfileId] Session result:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        hasError: !!sessionError,
+        error: sessionError?.message
     });
 
-    if (authError || !user) {
-        console.error('❌ [getUserProfileId] User not authenticated');
+    if (sessionError || !session?.user) {
+        console.error('❌ [getUserProfileId] No active session');
         return { id: null, error: new Error('User not authenticated') };
     }
 
-    console.log('👤 [getUserProfileId] Querying user_profiles table...');
+    const userId = session.user.id;
+    console.log('👤 [getUserProfileId] Querying user_profiles table with user_id:', userId);
+
     const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('user_profiles_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
     console.log('👤 [getUserProfileId] Profile query result:', {
@@ -98,6 +100,8 @@ export async function createRevisionHistory(
     input: CreateRevisionHistoryInput
 ): Promise<{ data: RevisionHistory | null; error: Error | null }> {
     console.log('🔧 [createRevisionHistory] Starting with input:', {
+        hasUserProfilesId: !!input.user_profiles_id,
+        userProfilesId: input.user_profiles_id,
         hasContentId: !!input.content_id,
         contentId: input.content_id,
         aiContentLength: input.ai_generated_content?.length,
@@ -109,18 +113,25 @@ export async function createRevisionHistory(
         console.log('🔧 [createRevisionHistory] Creating Supabase client...');
         const supabase = createClient();
 
-        // user_profiles_id 가져오기
-        console.log('🔧 [createRevisionHistory] Getting user profile ID...');
-        const { id: userProfilesId, error: profileError } = await getUserProfileId();
-        console.log('🔧 [createRevisionHistory] User profile result:', {
-            userProfilesId,
-            hasError: !!profileError,
-            error: profileError?.message
-        });
+        let userProfilesId = input.user_profiles_id;
 
-        if (profileError || !userProfilesId) {
-            console.error('❌ [createRevisionHistory] Failed to get user profile:', profileError);
-            return { data: null, error: profileError || new Error('Failed to get user profile') };
+        // user_profiles_id가 제공되지 않은 경우에만 조회
+        if (!userProfilesId) {
+            console.log('🔧 [createRevisionHistory] user_profiles_id not provided, fetching...');
+            const { id, error: profileError } = await getUserProfileId();
+            console.log('🔧 [createRevisionHistory] User profile result:', {
+                userProfilesId: id,
+                hasError: !!profileError,
+                error: profileError?.message
+            });
+
+            if (profileError || !id) {
+                console.error('❌ [createRevisionHistory] Failed to get user profile:', profileError);
+                return { data: null, error: profileError || new Error('Failed to get user profile') };
+            }
+            userProfilesId = id;
+        } else {
+            console.log('🔧 [createRevisionHistory] Using provided user_profiles_id:', userProfilesId);
         }
 
         // 편집 거리와 단어 수 차이 자동 계산
@@ -355,6 +366,7 @@ export async function getRevisionStatistics(): Promise<{
  * 콘텐츠 발행/예약 시 자동으로 퇴고 이력 저장
  */
 export async function saveRevisionOnPublish(params: {
+    userProfilesId?: string;
     contentId?: string;
     aiContent: string;
     finalContent: string;
@@ -363,6 +375,8 @@ export async function saveRevisionOnPublish(params: {
     metadata?: any;
 }): Promise<{ success: boolean; error?: Error }> {
     console.log('📝 [saveRevisionOnPublish] Called with params:', {
+        hasUserProfilesId: !!params.userProfilesId,
+        userProfilesId: params.userProfilesId,
         contentId: params.contentId,
         aiContentLength: params.aiContent?.length,
         finalContentLength: params.finalContent?.length,
@@ -373,6 +387,7 @@ export async function saveRevisionOnPublish(params: {
 
     console.log('📝 [saveRevisionOnPublish] Calling createRevisionHistory...');
     const { data, error } = await createRevisionHistory({
+        user_profiles_id: params.userProfilesId,
         content_id: params.contentId,
         ai_generated_content: params.aiContent,
         user_final_content: params.finalContent,

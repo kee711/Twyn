@@ -50,6 +50,7 @@ export interface RevisionHistory {
 }
 
 export interface CreateRevisionHistoryInput {
+    user_profiles_id?: string; // Optional - will be fetched if not provided
     content_id?: string;
     ai_generated_content: string;
     ai_generated_metadata?: RevisionMetadata;
