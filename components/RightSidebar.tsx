@@ -681,9 +681,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
         if (originalAiContent && result.parentThreadId) {
           try {
-            console.log('🔍 [REVISION-SCHEDULE] Starting revision history save...');
-            const { saveRevisionOnPublish } = await import('@/lib/supabase/revision-history');
-
+            console.log('🔍 [REVISION-SCHEDULE] Converting content to strings...');
             const aiContent = originalAiContent
               .map(t => getContentString(t.content))
               .filter(c => c.trim())
@@ -696,24 +694,34 @@ export function RightSidebar({ className }: RightSidebarProps) {
               .join('\n\n');
             console.log('🔍 [REVISION-SCHEDULE] finalContent length:', finalContent.length);
 
-            console.log('🔍 [REVISION-SCHEDULE] Calling saveRevisionOnPublish...');
-            const saveResult = await saveRevisionOnPublish({
-              contentId: result.parentThreadId,
-              aiContent,
-              finalContent,
-              isScheduled: true,
-              generationParams: {
-                platform: 'threads',
-                threadCount: threadPayload.threads.length,
-                scheduledAt: selectedDateTime
-              },
-              metadata: {
-                platform: 'threads',
-                publishType: 'scheduled',
-                scheduledAt: selectedDateTime
-              }
+            console.log('🔍 [REVISION-SCHEDULE] Calling API /api/revision-history...');
+            const response = await fetch('/api/revision-history', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contentId: result.parentThreadId,
+                aiContent,
+                finalContent,
+                isScheduled: true,
+                generationParams: {
+                  platform: 'threads',
+                  threadCount: threadPayload.threads.length,
+                  scheduledAt: selectedDateTime
+                },
+                metadata: {
+                  platform: 'threads',
+                  publishType: 'scheduled',
+                  scheduledAt: selectedDateTime
+                }
+              })
             });
-            console.log('✅ [REVISION-SCHEDULE] Save result:', saveResult);
+
+            const saveResult = await response.json();
+            console.log('✅ [REVISION-SCHEDULE] API response:', saveResult);
+
+            if (!response.ok) {
+              throw new Error(saveResult.error || 'Failed to save revision history');
+            }
           } catch (error) {
             console.error('❌ [REVISION-SCHEDULE] Failed to save revision history:', error);
             console.error('❌ [REVISION-SCHEDULE] Error details:', {
@@ -812,18 +820,12 @@ export function RightSidebar({ className }: RightSidebarProps) {
               console.log('🔍 [REVISION] result.parentThreadId:', result.parentThreadId);
 
               try {
-                console.log('🔍 [REVISION] Importing saveRevisionOnPublish...');
-                const { saveRevisionOnPublish } = await import('@/lib/supabase/revision-history');
-                console.log('🔍 [REVISION] Import successful');
-
                 console.log('🔍 [REVISION] Converting originalAiContent to string...');
-                console.log('🔍 [REVISION] originalAiContent length:', originalAiContent?.length);
                 const aiContent = originalAiContent
                   .map(t => getContentString(t.content))
                   .filter(c => c.trim())
                   .join('\n\n');
                 console.log('🔍 [REVISION] aiContent length:', aiContent.length);
-                console.log('🔍 [REVISION] aiContent preview:', aiContent.substring(0, 100));
 
                 console.log('🔍 [REVISION] Converting finalContent to string...');
                 const finalContent = threadPayload.threads
@@ -831,24 +833,33 @@ export function RightSidebar({ className }: RightSidebarProps) {
                   .filter(c => c.trim())
                   .join('\n\n');
                 console.log('🔍 [REVISION] finalContent length:', finalContent.length);
-                console.log('🔍 [REVISION] finalContent preview:', finalContent.substring(0, 100));
 
-                console.log('🔍 [REVISION] Calling saveRevisionOnPublish...');
-                const saveResult = await saveRevisionOnPublish({
-                  contentId: result.parentThreadId,
-                  aiContent,
-                  finalContent,
-                  isScheduled: false,
-                  generationParams: {
-                    platform: 'threads',
-                    threadCount: threadPayload.threads.length
-                  },
-                  metadata: {
-                    platform: 'threads',
-                    publishType: 'immediate'
-                  }
+                console.log('🔍 [REVISION] Calling API /api/revision-history...');
+                const response = await fetch('/api/revision-history', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contentId: result.parentThreadId,
+                    aiContent,
+                    finalContent,
+                    isScheduled: false,
+                    generationParams: {
+                      platform: 'threads',
+                      threadCount: threadPayload.threads.length
+                    },
+                    metadata: {
+                      platform: 'threads',
+                      publishType: 'immediate'
+                    }
+                  })
                 });
-                console.log('✅ [REVISION] Save result:', saveResult);
+
+                const saveResult = await response.json();
+                console.log('✅ [REVISION] API response:', saveResult);
+
+                if (!response.ok) {
+                  throw new Error(saveResult.error || 'Failed to save revision history');
+                }
               } catch (error) {
                 console.error('❌ [REVISION] Failed to save revision history:', error);
                 console.error('❌ [REVISION] Error details:', {
