@@ -23,12 +23,12 @@ const PLATFORM_LABELS = getPlatformDisplayNames() as Record<PlatformKey, string>
 const PLATFORM_DISABLED: Record<PlatformKey, boolean> = {
   threads: false,
   x: true,
-  farcaster: true,
+  farcaster: false, // Farcaster is now enabled
 };
 
 const CONNECT_DISABLED_MESSAGE: Partial<Record<PlatformKey, string>> = {
   x: 'xComingSoon',
-  farcaster: 'farcasterComingSoon',
+  // farcaster: 'farcasterComingSoon', // Removed - Farcaster is now supported
 };
 
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
