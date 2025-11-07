@@ -8,7 +8,7 @@ import { Session } from 'next-auth'
 import { SessionProvider } from 'next-auth/react'
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactNode, useMemo, useState } from 'react'
+import { ReactNode, useMemo, useState, useEffect } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { OnchainKitProvider } from '@coinbase/onchainkit'
 import { base } from 'wagmi/chains'
@@ -25,6 +25,35 @@ export function Providers({
   session
 }: ProvidersProps) {
   const [queryClient] = useState(() => new QueryClient());
+
+  // Global error handler
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('[Global Error Handler]:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error,
+        stack: event.error?.stack
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('[Unhandled Promise Rejection]:', {
+        reason: event.reason,
+        promise: event.promise
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   // Mini app initialization is now handled by MiniAppInitializer component
 

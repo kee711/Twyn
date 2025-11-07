@@ -53,6 +53,12 @@ export function MiniAppInitializer() {
 
                 } catch (error) {
                     console.log(`[MiniApp] Ready call failed (${attempt.name}):`, error)
+                    console.error('[MiniApp] Error details:', {
+                        message: error instanceof Error ? error.message : String(error),
+                        stack: error instanceof Error ? error.stack : undefined,
+                        type: typeof error,
+                        error
+                    })
 
                     // If this is the last attempt, log final status
                     if (attempt === attempts[attempts.length - 1]) {
