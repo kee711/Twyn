@@ -206,40 +206,40 @@ export default function SignInClient() {
     }
   }, [callbackUrl]);
 
-  // Base Account 자동 감지 및 로그인
-  useEffect(() => {
-    // Prevent multiple login attempts
-    if (isConnectingBase || session) {
-      return;
-    }
+  // Base Account 자동 감지 및 로그인 - DISABLED for debugging
+  // useEffect(() => {
+  //   // Prevent multiple login attempts
+  //   if (isConnectingBase || session) {
+  //     return;
+  //   }
 
-    // Check for Base Account from mini app SDK
-    if (isBaseConnected && baseAccount && featureFlags.showOnlyFarcasterAuth()) {
-      // Prevent duplicate processing
-      if (hasProcessedBaseAccountRef.current && lastProcessedAddressRef.current === baseAccount) {
-        console.log('[SignIn] Base Account already processed:', baseAccount);
-        return;
-      }
+  //   // Check for Base Account from mini app SDK
+  //   if (isBaseConnected && baseAccount && featureFlags.showOnlyFarcasterAuth()) {
+  //     // Prevent duplicate processing
+  //     if (hasProcessedBaseAccountRef.current && lastProcessedAddressRef.current === baseAccount) {
+  //       console.log('[SignIn] Base Account already processed:', baseAccount);
+  //       return;
+  //     }
 
-      console.log('[SignIn] Base Account detected from mini app:', baseAccount);
-      hasProcessedBaseAccountRef.current = true;
-      lastProcessedAddressRef.current = baseAccount;
-      handleBaseAccountAuth(baseAccount);
-    }
-    // Check for Wagmi wallet connection
-    else if (isConnected && address && featureFlags.showOnlyFarcasterAuth()) {
-      // Prevent duplicate processing
-      if (hasProcessedBaseAccountRef.current && lastProcessedAddressRef.current === address) {
-        console.log('[SignIn] Wallet address already processed:', address);
-        return;
-      }
+  //     console.log('[SignIn] Base Account detected from mini app:', baseAccount);
+  //     hasProcessedBaseAccountRef.current = true;
+  //     lastProcessedAddressRef.current = baseAccount;
+  //     handleBaseAccountAuth(baseAccount);
+  //   }
+  //   // Check for Wagmi wallet connection
+  //   else if (isConnected && address && featureFlags.showOnlyFarcasterAuth()) {
+  //     // Prevent duplicate processing
+  //     if (hasProcessedBaseAccountRef.current && lastProcessedAddressRef.current === address) {
+  //       console.log('[SignIn] Wallet address already processed:', address);
+  //       return;
+  //     }
 
-      console.log('[SignIn] Wallet connected:', address);
-      hasProcessedBaseAccountRef.current = true;
-      lastProcessedAddressRef.current = address;
-      handleBaseAccountAuth(address);
-    }
-  }, [isBaseConnected, baseAccount, isConnected, address, session, isConnectingBase, handleBaseAccountAuth]);
+  //     console.log('[SignIn] Wallet connected:', address);
+  //     hasProcessedBaseAccountRef.current = true;
+  //     lastProcessedAddressRef.current = address;
+  //     handleBaseAccountAuth(address);
+  //   }
+  // }, [isBaseConnected, baseAccount, isConnected, address, session, isConnectingBase, handleBaseAccountAuth]);
 
   // 세션이 있으면 온보딩 상태 확인 후 리다이렉트
   useEffect(() => {
@@ -528,10 +528,34 @@ export default function SignInClient() {
                     <div className="text-xs text-gray-500 font-mono">
                       {address || baseAccount || ''}
                     </div>
-                    <p className="text-xs text-gray-500">
-                      {isConnectingBase ? '로그인 중...' : '자동으로 로그인됩니다'}
-                    </p>
                   </div>
+
+                  {/* Manual Login Button */}
+                  <Button
+                    onClick={() => {
+                      const walletAddress = address || baseAccount;
+                      if (walletAddress) {
+                        hasProcessedBaseAccountRef.current = false;
+                        lastProcessedAddressRef.current = null;
+                        handleBaseAccountAuth(walletAddress);
+                      }
+                    }}
+                    size="lg"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={isConnectingBase}
+                  >
+                    {isConnectingBase ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        로그인 중...
+                      </>
+                    ) : (
+                      '🔐 로그인'
+                    )}
+                  </Button>
                 </div>
               ) : (
                 // Base Account 연결 버튼 상태
