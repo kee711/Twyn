@@ -136,6 +136,7 @@ export default function SignInClient() {
     try {
       setIsConnectingBase(true);
       console.log('[SignIn] Starting Base Account authentication for:', walletAddress);
+      console.log('[SignIn] Callback URL:', callbackUrl);
 
       // Base Account로 사용자 생성/인증
       const response = await fetch('/api/base/account', {
@@ -161,14 +162,35 @@ export default function SignInClient() {
       // NextAuth로 로그인
       if (data.user) {
         console.log('[SignIn] Proceeding with NextAuth login for user:', data.user.id);
-        await signIn('credentials', {
+        console.log('[SignIn] NextAuth credentials:', {
+          email: data.user.email,
+          isBaseAccount: 'true',
+          address: walletAddress,
+          callbackUrl,
+        });
+
+        const result = await signIn('credentials', {
           email: data.user.email,
           password: 'base_account_auth',
           isBaseAccount: 'true',
           address: walletAddress,
-          redirect: true,
+          redirect: false, // Don't redirect automatically to see the result
           callbackUrl,
         });
+
+        console.log('[SignIn] NextAuth signIn result:', result);
+
+        if (result?.error) {
+          console.error('[SignIn] NextAuth error:', result.error);
+          throw new Error(`NextAuth error: ${result.error}`);
+        }
+
+        if (result?.ok) {
+          console.log('[SignIn] NextAuth login successful, redirecting to:', result.url || callbackUrl);
+          window.location.href = result.url || callbackUrl;
+        } else {
+          throw new Error('NextAuth login failed without error message');
+        }
       } else {
         throw new Error('No user data returned from Base Account API');
       }
