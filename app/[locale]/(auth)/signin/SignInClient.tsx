@@ -34,6 +34,8 @@ export default function SignInClient() {
   const [isConnectingBase, setIsConnectingBase] = useState(false)
   const hasProcessedSignInRef = useRef(false)
   const lastProcessedFidRef = useRef<number | null>(null)
+  const hasProcessedBaseAccountRef = useRef(false)
+  const lastProcessedAddressRef = useRef<string | null>(null)
 
   // Base Account integration - Wagmi hooks
   const { address, isConnected } = useAccount()
@@ -117,20 +119,6 @@ export default function SignInClient() {
     return () => clearTimeout(timer)
   }, [searchParams, router])
 
-  // Base Account 자동 감지 및 로그인
-  useEffect(() => {
-    // Check for Base Account from mini app SDK
-    if (isBaseConnected && baseAccount && !session && featureFlags.showOnlyFarcasterAuth()) {
-      console.log('[SignIn] Base Account detected from mini app:', baseAccount);
-      handleBaseAccountAuth(baseAccount);
-    }
-    // Check for Wagmi wallet connection
-    else if (isConnected && address && !session && featureFlags.showOnlyFarcasterAuth()) {
-      console.log('[SignIn] Wallet connected:', address);
-      handleBaseAccountAuth(address);
-    }
-  }, [isBaseConnected, baseAccount, isConnected, address, session]);
-
   // Base Account 인증 처리
   const handleBaseAccountAuth = useCallback(async (walletAddress: string) => {
     try {
@@ -196,11 +184,62 @@ export default function SignInClient() {
       }
     } catch (error) {
       console.error('[SignIn] Base Account auth failed:', error);
-      toast.error(`Base Account authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      // Reset the processed flag to allow retry
+      hasProcessedBaseAccountRef.current = false;
+      lastProcessedAddressRef.current = null;
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Base Account authentication failed: ${errorMessage}`, {
+        duration: 5000,
+        action: {
+          label: 'Retry',
+          onClick: () => {
+            if (walletAddress) {
+              handleBaseAccountAuth(walletAddress);
+            }
+          }
+        }
+      });
     } finally {
       setIsConnectingBase(false);
     }
   }, [callbackUrl]);
+
+  // Base Account 자동 감지 및 로그인
+  useEffect(() => {
+    // Prevent multiple login attempts
+    if (isConnectingBase || session) {
+      return;
+    }
+
+    // Check for Base Account from mini app SDK
+    if (isBaseConnected && baseAccount && featureFlags.showOnlyFarcasterAuth()) {
+      // Prevent duplicate processing
+      if (hasProcessedBaseAccountRef.current && lastProcessedAddressRef.current === baseAccount) {
+        console.log('[SignIn] Base Account already processed:', baseAccount);
+        return;
+      }
+
+      console.log('[SignIn] Base Account detected from mini app:', baseAccount);
+      hasProcessedBaseAccountRef.current = true;
+      lastProcessedAddressRef.current = baseAccount;
+      handleBaseAccountAuth(baseAccount);
+    }
+    // Check for Wagmi wallet connection
+    else if (isConnected && address && featureFlags.showOnlyFarcasterAuth()) {
+      // Prevent duplicate processing
+      if (hasProcessedBaseAccountRef.current && lastProcessedAddressRef.current === address) {
+        console.log('[SignIn] Wallet address already processed:', address);
+        return;
+      }
+
+      console.log('[SignIn] Wallet connected:', address);
+      hasProcessedBaseAccountRef.current = true;
+      lastProcessedAddressRef.current = address;
+      handleBaseAccountAuth(address);
+    }
+  }, [isBaseConnected, baseAccount, isConnected, address, session, isConnectingBase, handleBaseAccountAuth]);
 
   // 세션이 있으면 온보딩 상태 확인 후 리다이렉트
   useEffect(() => {

@@ -11,10 +11,16 @@ export default function ErrorPage() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
   const [showDebug, setShowDebug] = useState(false)
+  const [isRetrying, setIsRetrying] = useState(false)
 
   const getErrorMessage = (error: string) => {
     return t(`messages.${error}`) || t('messages.default')
   }
+
+  // Detect if running in Base mini app
+  const isBaseMiniApp = typeof window !== 'undefined' &&
+    (window.location.hostname.includes('base.eth') ||
+      window.navigator.userAgent.includes('Base'));
 
   // Collect all debug information
   const debugInfo = {
@@ -22,10 +28,22 @@ export default function ErrorPage() {
     timestamp: new Date().toISOString(),
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
     url: typeof window !== 'undefined' ? window.location.href : 'N/A',
+    isBaseMiniApp,
     searchParams: Object.fromEntries(searchParams.entries()),
     localStorage: typeof window !== 'undefined' ? {
       hasSession: !!localStorage.getItem('next-auth.session-token') || !!localStorage.getItem('__Secure-next-auth.session-token'),
     } : {},
+  }
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    // Clear storage and redirect
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      sessionStorage.clear();
+      // Reload the page to trigger Base Account detection again
+      window.location.href = '/signin';
+    }
   }
 
   return (
@@ -39,7 +57,18 @@ export default function ErrorPage() {
         </div>
 
         <div className="space-y-4">
-          <Button asChild className="w-full">
+          {/* Retry button for Base mini app */}
+          {isBaseMiniApp && (
+            <Button
+              className="w-full"
+              onClick={handleRetry}
+              disabled={isRetrying}
+            >
+              {isRetrying ? '🔄 Retrying...' : '🔄 Retry Login'}
+            </Button>
+          )}
+
+          <Button asChild className="w-full" variant={isBaseMiniApp ? "outline" : "default"}>
             <Link href="/signin">
               {t('backToSignin')}
             </Link>
