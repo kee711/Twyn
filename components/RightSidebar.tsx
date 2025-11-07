@@ -87,12 +87,12 @@ export function RightSidebar({ className }: RightSidebarProps) {
     pendingThreadChain,
     applyPendingThreadChain,
     generationStatus,
-  platformMode,
-  setPlatformMode,
-  activePlatforms,
-  togglePlatformActive,
-  setPlatformActive,
-  platformContents,
+    platformMode,
+    setPlatformMode,
+    activePlatforms,
+    togglePlatformActive,
+    setPlatformActive,
+    platformContents,
     setPlatformThreads,
     updatePlatformThreadContent,
     updatePlatformThreadMedia,
@@ -673,6 +673,41 @@ export function RightSidebar({ className }: RightSidebarProps) {
           threadCount: threadPayload.threads.length,
           isAiGenerated: !!originalAiContent,
         });
+
+        // 퇴고 이력 저장
+        if (originalAiContent && result.parentThreadId) {
+          try {
+            const { saveRevisionOnPublish } = await import('@/lib/supabase/revision-history');
+            const aiContent = originalAiContent
+              .map(t => getContentString(t.content))
+              .filter(c => c.trim())
+              .join('\n\n');
+            const finalContent = threadPayload.threads
+              .map(t => getContentString(t.content))
+              .filter(c => c.trim())
+              .join('\n\n');
+
+            await saveRevisionOnPublish({
+              contentId: result.parentThreadId,
+              aiContent,
+              finalContent,
+              isScheduled: true,
+              generationParams: {
+                platform: 'threads',
+                threadCount: threadPayload.threads.length,
+                scheduledAt: selectedDateTime
+              },
+              metadata: {
+                platform: 'threads',
+                publishType: 'scheduled',
+                scheduledAt: selectedDateTime
+              }
+            });
+          } catch (error) {
+            console.error('Failed to save revision history:', error);
+            // 이력 저장 실패는 스케줄 성공에 영향을 주지 않음
+          }
+        }
       });
     } catch (error) {
       console.error('Error scheduling:', error);
@@ -753,6 +788,37 @@ export function RightSidebar({ className }: RightSidebarProps) {
                 }
               } catch (error) {
                 console.error('Error updating ai_generated field:', error);
+              }
+
+              // 퇴고 이력 저장
+              try {
+                const { saveRevisionOnPublish } = await import('@/lib/supabase/revision-history');
+                const aiContent = originalAiContent
+                  .map(t => getContentString(t.content))
+                  .filter(c => c.trim())
+                  .join('\n\n');
+                const finalContent = threadPayload.threads
+                  .map(t => getContentString(t.content))
+                  .filter(c => c.trim())
+                  .join('\n\n');
+
+                await saveRevisionOnPublish({
+                  contentId: result.parentThreadId,
+                  aiContent,
+                  finalContent,
+                  isScheduled: false,
+                  generationParams: {
+                    platform: 'threads',
+                    threadCount: threadPayload.threads.length
+                  },
+                  metadata: {
+                    platform: 'threads',
+                    publishType: 'immediate'
+                  }
+                });
+              } catch (error) {
+                console.error('Failed to save revision history:', error);
+                // 이력 저장 실패는 발행 성공에 영향을 주지 않음
               }
             }
 
