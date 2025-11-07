@@ -41,14 +41,14 @@ const authMiddleware = withAuth(
     }
 
     // In web3 mode, redirect authenticated users from root to topic-finder
-    if (featureFlags.enableDirectSigninRouting()) {
+    if (featureFlags.enableDirectSigninRouting() && token) {
       // Remove locale prefix for checking
       const pathnameWithoutLocale = routing.locales.reduce(
         (path, locale) => path.replace(new RegExp(`^/${locale}(/|$)`), '/'),
         pathname
       )
 
-      // If user is on root path, redirect to topic-finder
+      // If authenticated user is on root path, redirect to topic-finder
       if (pathnameWithoutLocale === '/' || pathnameWithoutLocale === '') {
         return NextResponse.redirect(new URL(web3Config.defaultRedirectPath, req.url))
       }
@@ -76,10 +76,10 @@ export default function middleware(req: NextRequest) {
     pathname
   )
 
-  // In web3 mode, redirect root path to topic-finder (unauthenticated users)
+  // In web3 mode, redirect root path to signin (unauthenticated users)
   if (featureFlags.enableDirectSigninRouting()) {
     if (pathnameWithoutLocale === '/' || pathnameWithoutLocale === '') {
-      return NextResponse.redirect(new URL('/contents/topic-finder', req.url))
+      return NextResponse.redirect(new URL('/signin', req.url))
     }
   }
 
