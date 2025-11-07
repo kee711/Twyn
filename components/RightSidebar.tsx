@@ -675,19 +675,29 @@ export function RightSidebar({ className }: RightSidebarProps) {
         });
 
         // 퇴고 이력 저장
+        console.log('🔍 [REVISION-SCHEDULE] Checking revision history save conditions');
+        console.log('🔍 [REVISION-SCHEDULE] originalAiContent exists:', !!originalAiContent);
+        console.log('🔍 [REVISION-SCHEDULE] result.parentThreadId:', result.parentThreadId);
+
         if (originalAiContent && result.parentThreadId) {
           try {
+            console.log('🔍 [REVISION-SCHEDULE] Starting revision history save...');
             const { saveRevisionOnPublish } = await import('@/lib/supabase/revision-history');
+
             const aiContent = originalAiContent
               .map(t => getContentString(t.content))
               .filter(c => c.trim())
               .join('\n\n');
+            console.log('🔍 [REVISION-SCHEDULE] aiContent length:', aiContent.length);
+
             const finalContent = threadPayload.threads
               .map(t => getContentString(t.content))
               .filter(c => c.trim())
               .join('\n\n');
+            console.log('🔍 [REVISION-SCHEDULE] finalContent length:', finalContent.length);
 
-            await saveRevisionOnPublish({
+            console.log('🔍 [REVISION-SCHEDULE] Calling saveRevisionOnPublish...');
+            const saveResult = await saveRevisionOnPublish({
               contentId: result.parentThreadId,
               aiContent,
               finalContent,
@@ -703,10 +713,16 @@ export function RightSidebar({ className }: RightSidebarProps) {
                 scheduledAt: selectedDateTime
               }
             });
+            console.log('✅ [REVISION-SCHEDULE] Save result:', saveResult);
           } catch (error) {
-            console.error('Failed to save revision history:', error);
-            // 이력 저장 실패는 스케줄 성공에 영향을 주지 않음
+            console.error('❌ [REVISION-SCHEDULE] Failed to save revision history:', error);
+            console.error('❌ [REVISION-SCHEDULE] Error details:', {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined
+            });
           }
+        } else {
+          console.log('⚠️ [REVISION-SCHEDULE] Skipping revision history save - conditions not met');
         }
       });
     } catch (error) {
@@ -791,18 +807,34 @@ export function RightSidebar({ className }: RightSidebarProps) {
               }
 
               // 퇴고 이력 저장
+              console.log('🔍 [REVISION] Starting revision history save process');
+              console.log('🔍 [REVISION] originalAiContent exists:', !!originalAiContent);
+              console.log('🔍 [REVISION] result.parentThreadId:', result.parentThreadId);
+
               try {
+                console.log('🔍 [REVISION] Importing saveRevisionOnPublish...');
                 const { saveRevisionOnPublish } = await import('@/lib/supabase/revision-history');
+                console.log('🔍 [REVISION] Import successful');
+
+                console.log('🔍 [REVISION] Converting originalAiContent to string...');
+                console.log('🔍 [REVISION] originalAiContent length:', originalAiContent?.length);
                 const aiContent = originalAiContent
                   .map(t => getContentString(t.content))
                   .filter(c => c.trim())
                   .join('\n\n');
+                console.log('🔍 [REVISION] aiContent length:', aiContent.length);
+                console.log('🔍 [REVISION] aiContent preview:', aiContent.substring(0, 100));
+
+                console.log('🔍 [REVISION] Converting finalContent to string...');
                 const finalContent = threadPayload.threads
                   .map(t => getContentString(t.content))
                   .filter(c => c.trim())
                   .join('\n\n');
+                console.log('🔍 [REVISION] finalContent length:', finalContent.length);
+                console.log('🔍 [REVISION] finalContent preview:', finalContent.substring(0, 100));
 
-                await saveRevisionOnPublish({
+                console.log('🔍 [REVISION] Calling saveRevisionOnPublish...');
+                const saveResult = await saveRevisionOnPublish({
                   contentId: result.parentThreadId,
                   aiContent,
                   finalContent,
@@ -816,8 +848,13 @@ export function RightSidebar({ className }: RightSidebarProps) {
                     publishType: 'immediate'
                   }
                 });
+                console.log('✅ [REVISION] Save result:', saveResult);
               } catch (error) {
-                console.error('Failed to save revision history:', error);
+                console.error('❌ [REVISION] Failed to save revision history:', error);
+                console.error('❌ [REVISION] Error details:', {
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined
+                });
                 // 이력 저장 실패는 발행 성공에 영향을 주지 않음
               }
             }
