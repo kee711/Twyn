@@ -37,23 +37,47 @@ export default function SignInClient() {
   const hasProcessedBaseAccountRef = useRef(false)
   const lastProcessedAddressRef = useRef<string | null>(null)
 
-  // Base Account integration - Wagmi hooks
-  const { address, isConnected } = useAccount()
-  const { connect, connectors } = useConnect()
+  // Base Account integration - Wagmi hooks (with error handling)
+  let address: string | undefined
+  let isConnected = false
+  let connect: any
+  let connectors: any[] = []
+  let coinbaseConnector: any
 
-  // Get Coinbase Wallet connector
-  const coinbaseConnector = connectors.find(
-    (connector) => connector.id === 'coinbaseWalletSDK'
-  )
+  try {
+    const accountData = useAccount()
+    address = accountData.address
+    isConnected = accountData.isConnected
 
-  // Base Account hook for mini app environment
-  const {
-    account: baseAccount,
-    isConnected: isBaseConnected,
-    isLoading: isBaseLoading,
-    connect: connectBase,
-    error: baseError
-  } = useBaseAccount()
+    const connectData = useConnect()
+    connect = connectData.connect
+    connectors = connectData.connectors
+
+    // Get Coinbase Wallet connector
+    coinbaseConnector = connectors.find(
+      (connector) => connector.id === 'coinbaseWalletSDK'
+    )
+  } catch (error) {
+    console.error('[SignIn] Wagmi hooks error:', error)
+  }
+
+  // Base Account hook for mini app environment (with error handling)
+  let baseAccount: string | undefined
+  let isBaseConnected = false
+  let isBaseLoading = false
+  let connectBase: any
+  let baseError: any
+
+  try {
+    const baseAccountData = useBaseAccount()
+    baseAccount = baseAccountData.account
+    isBaseConnected = baseAccountData.isConnected
+    isBaseLoading = baseAccountData.isLoading
+    connectBase = baseAccountData.connect
+    baseError = baseAccountData.error
+  } catch (error) {
+    console.error('[SignIn] useBaseAccount hook error:', error)
+  }
 
   // Check for error messages in URL after page load
   useEffect(() => {
@@ -346,18 +370,29 @@ export default function SignInClient() {
     setIsFarcasterModalOpen(false);
   }, [t]);
 
-  const {
-    connect: connectFarcaster,
-    signIn: signInFarcaster,
-    reconnect: reconnectFarcaster,
-    isError: isFarcasterError,
-    url: farcasterUrl,
-    isPolling: isFarcasterPolling,
-  } = useSignIn({
-    onSuccess: handleFarcasterStatus,
-    onStatusResponse: handleFarcasterStatus,
-    onError: handleFarcasterError,
-  });
+  // Farcaster useSignIn hook (with error handling)
+  let connectFarcaster: any
+  let signInFarcaster: any
+  let reconnectFarcaster: any
+  let isFarcasterError = false
+  let farcasterUrl: string | undefined
+  let isFarcasterPolling = false
+
+  try {
+    const farcasterData = useSignIn({
+      onSuccess: handleFarcasterStatus,
+      onStatusResponse: handleFarcasterStatus,
+      onError: handleFarcasterError,
+    })
+    connectFarcaster = farcasterData.connect
+    signInFarcaster = farcasterData.signIn
+    reconnectFarcaster = farcasterData.reconnect
+    isFarcasterError = farcasterData.isError
+    farcasterUrl = farcasterData.url
+    isFarcasterPolling = farcasterData.isPolling
+  } catch (error) {
+    console.error('[SignIn] Farcaster useSignIn hook error:', error)
+  }
 
   // Farcaster 로그인 핸들러 (먼저 정의)
   const handleFarcasterSignIn = useCallback(async () => {
