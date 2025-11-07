@@ -20,6 +20,17 @@ interface SocialAccountSelectorProps {
 // Use web3-aware platform display names
 const PLATFORM_LABELS = getPlatformDisplayNames() as Record<PlatformKey, string>;
 
+const PLATFORM_DISABLED: Record<PlatformKey, boolean> = {
+  threads: false,
+  x: true,
+  farcaster: true,
+};
+
+const CONNECT_DISABLED_MESSAGE: Partial<Record<PlatformKey, string>> = {
+  x: 'xComingSoon',
+  farcaster: 'farcasterComingSoon',
+};
+
 export function SocialAccountSelector({ className }: SocialAccountSelectorProps) {
   const t = useTranslations('SocialAccountSelector');
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -247,6 +258,11 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
         {(Object.keys(groupedAccounts) as PlatformKey[]).map((platform) => {
           const platformAccounts = groupedAccounts[platform];
           const selection = selectedAccounts[platform];
+          const isConnectDisabled = PLATFORM_DISABLED[platform] ?? false;
+          const comingSoonKey = CONNECT_DISABLED_MESSAGE[platform];
+          const emptyStateMessage = comingSoonKey
+            ? t(comingSoonKey as any)
+            : t('noAccountsRegistered');
           return (
             <div key={platform} className="rounded-xl border border-border/50 bg-muted/20 p-3">
               <div className="mb-2 flex items-center justify-between">
@@ -257,18 +273,23 @@ export function SocialAccountSelector({ className }: SocialAccountSelectorProps)
               </div>
               {platformAccounts.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border/60 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-                  {t('noAccountsRegistered')}
+                  {emptyStateMessage}
                 </div>
               ) : (
                 <div className="space-y-2">
                   {platformAccounts.map((account) => {
                     const isSelected = selection === account.id;
+                    const isDisabled = isConnectDisabled;
                     return (
                       <button
                         type="button"
                         key={account.id}
-                        onClick={() => handleSelectAccount(platform, account.id)}
-                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${isSelected ? 'border-primary bg-primary/5 text-foreground' : 'border-border/40 bg-card hover:border-primary'}`}
+                        disabled={isDisabled}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          handleSelectAccount(platform, account.id);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm ${isDisabled ? 'cursor-not-allowed opacity-60' : 'transition hover:border-primary'} ${isSelected ? 'border-primary bg-primary/5 text-foreground' : 'border-border/40 bg-card'}`}
                       >
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{account.username || account.social_id}</span>

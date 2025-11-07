@@ -77,6 +77,17 @@ const STORAGE_KEY = 'sidebar-open-items';
 // Use web3-aware platform display names
 const PLATFORM_DISPLAY_NAMES = getPlatformDisplayNames() as Record<PlatformKey, string>;
 
+const DISABLED_PLATFORM_MAP: Record<PlatformKey, boolean> = {
+  threads: false,
+  x: true,
+  farcaster: true,
+};
+
+const PLATFORM_COMING_SOON_KEY: Partial<Record<PlatformKey, string>> = {
+  x: 'xComingSoon',
+  farcaster: 'farcasterComingSoon',
+};
+
 const PLATFORM_ICON_MAP: Record<PlatformKey, { src: string; alt: string }> = {
   threads: { src: '/threads_logo_wh.svg', alt: 'Threads logo' },
   x: { src: '/x-logo.jpg', alt: 'X logo' },
@@ -991,48 +1002,54 @@ function AccountSelectionModal({
           aria-hidden={connectModalOpen}
         >
           {PLATFORM_KEYS.map((platform) => {
-            const platformAccounts = accountsByPlatform[platform];
-            const selectedId = selectedAccounts?.[platform];
-            return (
-              <div key={platform} className="space-y-3">
-                <div className="flex gap-2 items-center justify-between">
-                  <span className="text-xs font-light text-muted-foreground">
-                    {PLATFORM_DISPLAY_NAMES[platform]}
-                  </span>
-                  <div className="h-px w-full bg-border/60" />
-                </div>
+          const platformAccounts = accountsByPlatform[platform];
+          const selectedId = selectedAccounts?.[platform];
+          const platformDisabled = DISABLED_PLATFORM_MAP[platform];
+          const comingSoonKey = PLATFORM_COMING_SOON_KEY[platform];
+          return (
+            <div key={platform} className="space-y-3">
+              <div className="flex gap-2 items-center justify-between">
+                <span className="text-xs font-light text-muted-foreground">
+                  {PLATFORM_DISPLAY_NAMES[platform]}
+                </span>
+                <div className="h-px w-full bg-border/60" />
+              </div>
 
-                {platformAccounts.length > 0 ? (
-                  <div className="space-y-2">
-                    {platformAccounts.map((account) => {
-                      const isSelected = selectedId === account.id;
-                      const icon = PLATFORM_ICON_MAP[account.platform];
+              {platformAccounts.length > 0 ? (
+                <div className="space-y-2">
+                  {platformAccounts.map((account) => {
+                    const isSelected = selectedId === account.id;
+                    const icon = PLATFORM_ICON_MAP[account.platform];
 
-                      return (
-                        <button
-                          type="button"
-                          key={account.id}
-                          onPointerDown={(event) => handleAccountPointerDown(event, account)}
-                          onPointerUp={(event) => handleAccountPointerUp(event, platform, account)}
-                          onPointerLeave={handleAccountPointerLeave}
-                          onPointerCancel={handleAccountPointerLeave}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              handleSelect(platform, account.id);
-                            }
-                          }}
-                          className={cn(
-                            'flex w-full rounded-full p-1 items-center gap-3 text-left transition',
-                            isSelected
-                              ? ''
+                    return (
+                      <button
+                        type="button"
+                        key={account.id}
+                        disabled={platformDisabled}
+                        onPointerDown={(event) => handleAccountPointerDown(event, account)}
+                        onPointerUp={(event) => handleAccountPointerUp(event, platform, account)}
+                        onPointerLeave={handleAccountPointerLeave}
+                        onPointerCancel={handleAccountPointerLeave}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            if (platformDisabled) return;
+                            event.preventDefault();
+                            handleSelect(platform, account.id);
+                          }
+                        }}
+                        className={cn(
+                          'flex w-full rounded-full p-1 items-center gap-3 text-left transition',
+                          isSelected
+                            ? ''
+                            : platformDisabled
+                              ? 'cursor-not-allowed opacity-50'
                               : 'hover:bg-muted/60',
-                            !isSelected && 'opacity-50 hover:opacity-100'
-                          )}
-                        >
-                          <div className="relative h-10 w-10">
-                            <AccountAvatar
-                              account={account}
+                          !isSelected && !platformDisabled && 'opacity-50 hover:opacity-100'
+                        )}
+                      >
+                        <div className="relative h-10 w-10">
+                          <AccountAvatar
+                            account={account}
                               className="h-10 w-10 border border-border/40 bg-background"
                             />
                             <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-background bg-background">
@@ -1044,53 +1061,72 @@ function AccountSelectionModal({
                                 className="h-4.5 w-4.5 object-contain"
                               />
                             </div>
-                          </div>
+                        </div>
 
-                          <div className="flex flex-1 flex-col">
-                            <span className="text-sm font-medium text-foreground">
-                              {account.username || account.social_id}
-                            </span>
-                          </div>
+                        <div className="flex flex-1 flex-col">
+                          <span className="text-sm font-medium text-foreground">
+                            {account.username || account.social_id}
+                          </span>
+                        </div>
 
-                          {isSelected ? (
-                            <Check className="h-4 w-4 text-primary" />
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border/60 bg-background px-4 py-4 text-xs text-muted-foreground">
-                    {tAccounts('noAccountsRegistered')}
-                  </div>
-                )}
+                        {isSelected ? (
+                          <Check className="h-4 w-4 text-primary" />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/60 bg-background px-4 py-4 text-xs text-muted-foreground">
+                  {comingSoonKey ? tAccounts(comingSoonKey as any) : tAccounts('noAccountsRegistered')}
+                </div>
+              )}
 
-                {platform !== 'farcaster' ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex w-full rounded-full bg-muted border-0 items-center gap-2 justify-center"
-                    onClick={() => handleConnect(platform)}
-                  >
-                    <Plus className="h-4 w-4 object-contain" />
-                    <span className="text-xs font-medium text-foreground">Connect {PLATFORM_DISPLAY_NAMES[platform]}</span>
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex w-full rounded-full bg-muted border-0 items-center gap-2 justify-center"
-                    onClick={handleFarcasterConnectClick}
-                    disabled={!userId || isFarcasterPolling}
-                  >
-                    <Plus className="h-4 w-4 object-contain" />
-                    <span className="text-xs font-medium text-foreground">
-                      {isFarcasterPolling ? 'Connecting…' : 'Connect Farcaster'}
-                    </span>
-                  </Button>
-                )}
-              </div>
-            );
+              {platform !== 'farcaster' ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={platformDisabled}
+                  className={cn(
+                    'flex w-full rounded-full bg-muted border-0 items-center gap-2 justify-center',
+                    platformDisabled && 'cursor-not-allowed opacity-60'
+                  )}
+                  onClick={() => {
+                    if (platformDisabled) return;
+                    handleConnect(platform);
+                  }}
+                >
+                  <Plus className="h-4 w-4 object-contain" />
+                  <span className="text-xs font-medium text-foreground">
+                    {platformDisabled && comingSoonKey
+                      ? tAccounts(comingSoonKey as any)
+                      : `Connect ${PLATFORM_DISPLAY_NAMES[platform]}`}
+                  </span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!userId || isFarcasterPolling || platformDisabled}
+                  className={cn(
+                    'flex w-full rounded-full bg-muted border-0 items-center gap-2 justify-center',
+                    (platformDisabled || !userId || isFarcasterPolling) && 'cursor-not-allowed opacity-60'
+                  )}
+                  onClick={() => {
+                    if (platformDisabled) return;
+                    handleFarcasterConnectClick();
+                  }}
+                >
+                  <Plus className="h-4 w-4 object-contain" />
+                  <span className="text-xs font-medium text-foreground">
+                    {platformDisabled && comingSoonKey
+                      ? tAccounts(comingSoonKey as any)
+                      : isFarcasterPolling ? 'Connecting…' : 'Connect Farcaster'}
+                  </span>
+                </Button>
+              )}
+            </div>
+          );
           })}
         </div>
       </DialogContent>

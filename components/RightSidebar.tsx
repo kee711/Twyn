@@ -125,6 +125,17 @@ export function RightSidebar({ className }: RightSidebarProps) {
     }
   }, [isUnlinked, activePlatforms, selectedPlatform]);
 
+  useEffect(() => {
+    const activeCount = PLATFORM_KEYS.reduce(
+      (count, platform) => count + (activePlatforms[platform] ? 1 : 0),
+      0,
+    );
+
+    if (activeCount === 0) {
+      setPlatformActive('threads', true);
+    }
+  }, [activePlatforms, setPlatformActive]);
+
   const handleUnlinkToggle = () => {
     setPlatformMode(isUnlinked ? 'linked' : 'unlinked');
   };
@@ -697,6 +708,65 @@ export function RightSidebar({ className }: RightSidebarProps) {
           threadCount: threadPayload.threads.length,
           isAiGenerated: !!originalAiContent,
         });
+
+        // 퇴고 이력 저장
+        console.log('🔍 [REVISION-SCHEDULE] Checking revision history save conditions');
+        console.log('🔍 [REVISION-SCHEDULE] originalAiContent exists:', !!originalAiContent);
+        console.log('🔍 [REVISION-SCHEDULE] result.parentThreadId:', result.parentThreadId);
+
+        if (originalAiContent && result.parentThreadId) {
+          try {
+            console.log('🔍 [REVISION-SCHEDULE] Converting content to strings...');
+            const aiContent = originalAiContent
+              .map(t => getContentString(t.content))
+              .filter(c => c.trim())
+              .join('\n\n');
+            console.log('🔍 [REVISION-SCHEDULE] aiContent length:', aiContent.length);
+
+            const finalContent = threadPayload.threads
+              .map(t => getContentString(t.content))
+              .filter(c => c.trim())
+              .join('\n\n');
+            console.log('🔍 [REVISION-SCHEDULE] finalContent length:', finalContent.length);
+
+            console.log('🔍 [REVISION-SCHEDULE] Calling API /api/revision-history...');
+            const response = await fetch('/api/revision-history', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contentId: result.parentThreadId,
+                aiContent,
+                finalContent,
+                isScheduled: true,
+                generationParams: {
+                  platform: 'threads',
+                  threadCount: threadPayload.threads.length,
+                  scheduledAt: selectedDateTime
+                },
+                metadata: {
+                  platform: 'threads',
+                  publishType: 'scheduled',
+                  scheduledAt: selectedDateTime
+                }
+              })
+            });
+
+            const saveResult = await response.json();
+            console.log('✅ [REVISION-SCHEDULE] API response:', saveResult);
+
+            if (!response.ok) {
+              throw new Error(saveResult.error || 'Failed to save revision history');
+            }
+          } catch (error) {
+            console.error('❌ [REVISION-SCHEDULE] Failed to save revision history:', error);
+            console.error('❌ [REVISION-SCHEDULE] Error details:', {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined
+            });
+          }
+        } else {
+          console.log('⚠️ [REVISION-SCHEDULE] Skipping revision history save - conditions not met');
+        }
       });
     } catch (error) {
       console.error('Error scheduling:', error);
@@ -812,41 +882,159 @@ export function RightSidebar({ className }: RightSidebarProps) {
                 }
               }
 
-              await publishExternalPlatforms();
-            }
-          } finally {
-            restoreUnsupportedPlatforms();
-          }
-        });
-      } else {
-        await publishExternalPlatforms();
-        restoreUnsupportedPlatforms();
-      }
-    } catch (error) {
-      console.error('❌ handlePublish error:', error);
-    }
-  };
+              // 퇴고 이력 저장
+              console.log('🔍 [REVISION] Starting revision history save process');
+              console.log('🔍 [REVISION] originalAiContent exists:', !!originalAiContent);
+              console.log('🔍 [REVISION] result.parentThreadId:', result.parentThreadId);
 
-  return (
-    <>
-      {/* 데스크톱 RightSidebar */}
-      <div className={cn(
-        "bg-muted h-full rounded-l-xl transition-all duration-300 ease-in-out overflow-hidden hidden md:block",
-        !isCollapsed ? "w-[380px]" : "w-[50px]",
-        className
-      )}>
-        {isCollapsed ? (
-          /* Collapsed state - show only toggle button */
-          <div className="flex flex-col h-full p-2 cursor-pointer" onClick={() => setIsCollapsed(false)}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0"
-            >
-              <PanelLeftClose className="h-6 w-6 text-muted-foreground" />
-            </Button>
-          </div>
-        ) : (
+              try {
+                console.log('🔍 [REVISION] Converting originalAiContent to string...');
+                const aiContent = originalAiContent
+                  .map(t => getContentString(t.content))
+                  .filter(c => c.trim())
+                  .join('\n\n');
+                console.log('🔍 [REVISION] aiContent length:', aiContent.length);
+
+                console.log('🔍 [REVISION] Converting finalContent to string...');
+                const finalContent = threadPayload.threads
+                  .map(t => getContentString(t.content))
+                  .filter(c => c.trim())
+                  .join('\n\n');
+                console.log('🔍 [REVISION] finalContent length:', finalContent.length);
+
+                console.log('🔍 [REVISION] Calling API /api/revision-history...');
+                const response = await fetch('/api/revision-history', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contentId: result.parentThreadId,
+                    aiContent,
+                    finalContent,
+                    isScheduled: false,
+                    generationParams: {
+                      platform: 'threads',
+                      threadCount: threadPayload.threads.length
+                    },
+                    metadata: {
+                      platform: 'threads',
+                      publishType: 'immediate'
+                    }
+                  })
+                });
+
+                const saveResult = await response.json();
+                console.log('✅ [REVISION] API response:', saveResult);
+
+                if (!response.ok) {
+                  throw new Error(saveResult.error || 'Failed to save revision history');
+                }
+              } catch (error) {
+                console.error('❌ [REVISION] Failed to save revision history:', error);
+                console.error('❌ [REVISION] Error details:', {
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined
+                });
+                // 이력 저장 실패는 발행 성공에 영향을 주지 않음
+              }
+            }
+
+            await publishExternalPlatforms();
+          }
+          } finally {
+          restoreUnsupportedPlatforms();
+        }
+      });
+    } else {
+      await publishExternalPlatforms();
+      restoreUnsupportedPlatforms();
+    }
+  } catch (error) {
+    console.error('❌ handlePublish error:', error);
+  }
+};
+
+return (
+  <>
+    {/* 데스크톱 RightSidebar */}
+    <div className={cn(
+      "bg-muted h-full rounded-l-xl transition-all duration-300 ease-in-out overflow-hidden hidden md:block",
+      !isCollapsed ? "w-[380px]" : "w-[50px]",
+      className
+    )}>
+      {isCollapsed ? (
+        /* Collapsed state - show only toggle button */
+        <div className="flex flex-col h-full p-2 cursor-pointer" onClick={() => setIsCollapsed(false)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+          >
+            <PanelLeftClose className="h-6 w-6 text-muted-foreground" />
+          </Button>
+        </div>
+      ) : (
+        <RightSidebarContent
+          showAiInput={showAiInput}
+          setShowAiInput={setShowAiInput}
+          pathname={pathname}
+          scheduleTime={scheduleTime}
+          handleSaveToDraft={handleSaveToDraft}
+          handleSchedule={handleSchedule}
+          handlePublish={handlePublish}
+          fetchPublishTimes={fetchPublishTimes}
+          toggleSidebar={() => setIsCollapsed(true)}
+          isMobile={false}
+          currentSocialId={currentSocialId}
+          getSelectedAccount={getSelectedAccount}
+          mobileViewportHeight={mobileViewportHeight}
+          // Thread chain props
+          threadChain={threadChain}
+          addNewThread={addThread}
+          removeThread={removeThread}
+          updateThreadContent={updateThreadContent}
+          updateThreadMedia={updateThreadMedia}
+          platformButtons={platformButtons}
+          activePlatforms={activePlatforms}
+          isUnlinked={isUnlinked}
+          selectedPlatform={selectedPlatform}
+          hasFarcasterAccount={hasFarcasterAccount}
+          farcasterSignerActive={farcasterSignerActive}
+          onToggleUnlink={handleUnlinkToggle}
+          onSelectPlatform={handlePlatformSelect}
+          onTogglePlatformActive={handlePlatformToggle}
+          platformContents={platformContents}
+          onPlatformThreadContentChange={updatePlatformThreadContent}
+          onPlatformThreadMediaChange={updatePlatformThreadMedia}
+          onPlatformAddThread={addPlatformThread}
+          onPlatformRemoveThread={removePlatformThread}
+        />
+      )}
+    </div>
+
+    {/* 모바일 바텀시트 */}
+    {isMobile && (
+      <>
+        {/* 오버레이 */}
+        {isRightSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={handleOverlayClick}
+          />
+        )}
+
+        {/* 바텀시트 */}
+        <div
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-50 transform bg-background transition-transform duration-300 ease-in-out md:hidden",
+            "rounded-t-xl border-t shadow-lg",
+            isRightSidebarOpen ? "translate-y-0" : "translate-y-full"
+          )}
+          style={{
+            maxHeight: mobileViewportHeight > 0
+              ? `${Math.min(mobileViewportHeight * 0.85, mobileViewportHeight - 60)}px`
+              : '85dvh'
+          }}
+        >
           <RightSidebarContent
             showAiInput={showAiInput}
             setShowAiInput={setShowAiInput}
@@ -856,8 +1044,8 @@ export function RightSidebar({ className }: RightSidebarProps) {
             handleSchedule={handleSchedule}
             handlePublish={handlePublish}
             fetchPublishTimes={fetchPublishTimes}
-            toggleSidebar={() => setIsCollapsed(true)}
-            isMobile={false}
+            toggleSidebar={closeRightSidebar}
+            isMobile={true}
             currentSocialId={currentSocialId}
             getSelectedAccount={getSelectedAccount}
             mobileViewportHeight={mobileViewportHeight}
@@ -882,95 +1070,33 @@ export function RightSidebar({ className }: RightSidebarProps) {
             onPlatformAddThread={addPlatformThread}
             onPlatformRemoveThread={removePlatformThread}
           />
-        )}
-      </div>
+        </div>
 
-      {/* 모바일 바텀시트 */}
-      {isMobile && (
-        <>
-          {/* 오버레이 */}
-          {isRightSidebarOpen && (
-            <div
-              className="fixed inset-0 z-40 bg-black/50 md:hidden"
-              onClick={handleOverlayClick}
-            />
-          )}
-
-          {/* 바텀시트 */}
-          <div
-            className={cn(
-              "fixed bottom-0 left-0 right-0 z-50 transform bg-background transition-transform duration-300 ease-in-out md:hidden",
-              "rounded-t-xl border-t shadow-lg",
-              isRightSidebarOpen ? "translate-y-0" : "translate-y-full"
-            )}
-            style={{
-              maxHeight: mobileViewportHeight > 0
-                ? `${Math.min(mobileViewportHeight * 0.85, mobileViewportHeight - 60)}px`
-                : '85dvh'
-            }}
+        {/* 모바일 토글 버튼 (우측 하단) */}
+        {!isRightSidebarOpen && (
+          <Button
+            variant="default"
+            size="icon"
+            onClick={openRightSidebar}
+            className="fixed bottom-5 text-md right-4 z-30 h-fit w-fit py-3.5 px-4 rounded-full shadow-lg flex items-center gap-1.5"
           >
-            <RightSidebarContent
-              showAiInput={showAiInput}
-              setShowAiInput={setShowAiInput}
-              pathname={pathname}
-              scheduleTime={scheduleTime}
-              handleSaveToDraft={handleSaveToDraft}
-              handleSchedule={handleSchedule}
-              handlePublish={handlePublish}
-              fetchPublishTimes={fetchPublishTimes}
-              toggleSidebar={closeRightSidebar}
-              isMobile={true}
-              currentSocialId={currentSocialId}
-              getSelectedAccount={getSelectedAccount}
-              mobileViewportHeight={mobileViewportHeight}
-              // Thread chain props
-              threadChain={threadChain}
-              addNewThread={addThread}
-              removeThread={removeThread}
-              updateThreadContent={updateThreadContent}
-              updateThreadMedia={updateThreadMedia}
-              platformButtons={platformButtons}
-              activePlatforms={activePlatforms}
-              isUnlinked={isUnlinked}
-              selectedPlatform={selectedPlatform}
-              hasFarcasterAccount={hasFarcasterAccount}
-              farcasterSignerActive={farcasterSignerActive}
-              onToggleUnlink={handleUnlinkToggle}
-              onSelectPlatform={handlePlatformSelect}
-              onTogglePlatformActive={handlePlatformToggle}
-              platformContents={platformContents}
-              onPlatformThreadContentChange={updatePlatformThreadContent}
-              onPlatformThreadMediaChange={updatePlatformThreadMedia}
-              onPlatformAddThread={addPlatformThread}
-              onPlatformRemoveThread={removePlatformThread}
-            />
-          </div>
+            <Plus className="h-6 w-6 text-white" />
+            <span className="text-white">New Post</span>
+          </Button>
+        )}
+      </>
+    )}
 
-          {/* 모바일 토글 버튼 (우측 하단) */}
-          {!isRightSidebarOpen && (
-            <Button
-              variant="default"
-              size="icon"
-              onClick={openRightSidebar}
-              className="fixed bottom-5 text-md right-4 z-30 h-fit w-fit py-3.5 px-4 rounded-full shadow-lg flex items-center gap-1.5"
-            >
-              <Plus className="h-6 w-6 text-white" />
-              <span className="text-white">New Post</span>
-            </Button>
-          )}
-        </>
-      )}
-
-      {/* Schedule Time Selection Dialog */}
-      <SelectPublishTimeDialog
-        open={showScheduleDialog}
-        onOpenChange={setShowScheduleDialog}
-        onConfirm={handleConfirmSchedule}
-        currentScheduledTime={scheduleTime}
-      />
-      <OwnershipModal />
-    </>
-  );
+    {/* Schedule Time Selection Dialog */}
+    <SelectPublishTimeDialog
+      open={showScheduleDialog}
+      onOpenChange={setShowScheduleDialog}
+      onConfirm={handleConfirmSchedule}
+      currentScheduledTime={scheduleTime}
+    />
+    <OwnershipModal />
+  </>
+);
 }
 
 // RightSidebar 콘텐츠 분리 컴포넌트
