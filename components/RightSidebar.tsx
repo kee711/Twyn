@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ThreadChain } from "@/components/ThreadChain";
 import { cn } from "@/lib/utils";
@@ -112,13 +112,25 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const isUnlinked = platformMode === 'unlinked';
   const { runOwnershipFlow, OwnershipModal } = useOwnershipFlow();
 
-  useEffect(() => {
-    if (!isUnlinked) {
-      const supportedPlatforms = getSupportedPlatforms();
-      const defaultPlatform = supportedPlatforms.includes('threads') ? 'threads' : supportedPlatforms[0];
-      setSelectedPlatform(defaultPlatform);
+  const getAccountForPlatform = useCallback((platform: PlatformKey) => {
+    return accounts.find(account => account.platform?.toLowerCase?.() === platform && account.is_active);
+  }, [accounts]);
+
+  const hasFarcasterAccount = Boolean(getAccountForPlatform('farcaster'));
+
+  const preferredDefaultPlatform = useMemo<PlatformKey>(() => {
+    const supportedPlatforms = getSupportedPlatforms();
+    if (
+      hasFarcasterAccount &&
+      farcasterSignerActive &&
+      supportedPlatforms.includes('farcaster' as PlatformKey)
+    ) {
+      return 'farcaster';
     }
-  }, [isUnlinked]);
+    return supportedPlatforms.includes('threads' as PlatformKey)
+      ? 'threads'
+      : supportedPlatforms[0];
+  }, [hasFarcasterAccount, farcasterSignerActive]);
 
   const handleUnlinkToggle = () => {
     setPlatformMode(isUnlinked ? 'linked' : 'unlinked');
@@ -209,12 +221,6 @@ export function RightSidebar({ className }: RightSidebarProps) {
     }, []);
   };
 
-  const getAccountForPlatform = (platform: PlatformKey) => {
-    return accounts.find(account => account.platform?.toLowerCase?.() === platform && account.is_active);
-  };
-
-  const hasFarcasterAccount = Boolean(getAccountForPlatform('farcaster'));
-
   // Ensure at least one eligible platform stays active without re-enabling unsupported ones
   useEffect(() => {
     const activeCount = PLATFORM_KEYS.reduce(
@@ -251,6 +257,38 @@ export function RightSidebar({ className }: RightSidebarProps) {
       setPlatformActive('farcaster', false);
     }
   }, [hasFarcasterAccount, farcasterSignerActive, activePlatforms.farcaster, setPlatformActive]);
+
+  useEffect(() => {
+    if (!isUnlinked) {
+      if (selectedPlatform !== preferredDefaultPlatform) {
+        setSelectedPlatform(preferredDefaultPlatform);
+      }
+      return;
+    }
+
+    if (!activePlatforms[selectedPlatform]) {
+      const fallback =
+        PLATFORM_KEYS.find(platform => activePlatforms[platform]) || preferredDefaultPlatform;
+      setSelectedPlatform(fallback);
+    }
+  }, [isUnlinked, activePlatforms, selectedPlatform, preferredDefaultPlatform]);
+
+  useEffect(() => {
+    if (preferredDefaultPlatform === 'farcaster') {
+      if (!activePlatforms.farcaster) {
+        setPlatformActive('farcaster', true);
+      }
+      if (isUnlinked && selectedPlatform !== 'farcaster') {
+        setSelectedPlatform('farcaster');
+      }
+    }
+  }, [
+    preferredDefaultPlatform,
+    activePlatforms.farcaster,
+    setPlatformActive,
+    isUnlinked,
+    selectedPlatform,
+  ]);
 
   const ensureAccountsForPlatforms = (platforms: PlatformKey[]) => {
     const missing = platforms.filter(platform => !getAccountForPlatform(platform));
