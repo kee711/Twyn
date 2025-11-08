@@ -1,15 +1,21 @@
-// import { Sidebar } from "@/components/Sidebar";
 import { SidebarSimple } from "@/components/SidebarSimple";
-// import { MobileSidebarProvider } from "@/contexts/MobileSidebarContext";
-// import { MobileMenuButton } from "@/components/MobileMenuButton";
-// import { GlobalModalProvider } from "@/components/providers/GlobalModalProvider";
-// import { DashboardContent } from "@/components/dashboard/DashboardContent";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/authOptions";
+import { redirect } from "next/navigation";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Check authentication on server side
+  const session = await getServerSession(authOptions);
+
+  // If not authenticated, redirect to signin
+  if (!session) {
+    redirect('/signin');
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <SidebarSimple className="h-full" />

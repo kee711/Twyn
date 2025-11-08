@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
-export default function Error({
+export default function DashboardError({
     error,
     reset,
 }: {
@@ -33,7 +33,7 @@ export default function Error({
         setErrorDetails(details)
 
         // Log the error to console
-        console.error('[Global Error]:', error)
+        console.error('[Dashboard Error]:', error)
         console.error('[Error Stack]:', error?.stack)
         console.error('[Error Digest]:', error?.digest)
         console.error('[Error Details]:', details)
@@ -43,9 +43,9 @@ export default function Error({
         <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50">
             <div className="w-full max-w-2xl space-y-6 rounded-lg border bg-white p-8 shadow-lg">
                 <div className="space-y-2 text-center">
-                    <h1 className="text-3xl font-bold text-red-600">Application Error</h1>
+                    <h1 className="text-3xl font-bold text-red-600">Dashboard Error</h1>
                     <p className="text-lg text-gray-600">
-                        Something went wrong!
+                        Something went wrong in the dashboard!
                     </p>
                 </div>
 
@@ -77,6 +77,17 @@ export default function Error({
                             className="w-full"
                         >
                             🔄 Try Again
+                        </Button>
+
+                        <Button
+                            onClick={() => {
+                                window.location.href = '/contents/topic-finder'
+                            }}
+                            variant="outline"
+                            size="lg"
+                            className="w-full"
+                        >
+                            🏠 Go to Topic Finder
                         </Button>
 
                         <Button

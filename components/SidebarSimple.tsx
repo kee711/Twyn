@@ -2,10 +2,16 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
 
 export function SidebarSimple({ className }: { className?: string }) {
-    const { data: session } = useSession()
+    const { data: session, status } = useSession()
     const pathname = usePathname()
+
+    useEffect(() => {
+        console.log('[SidebarSimple] Session status:', status)
+        console.log('[SidebarSimple] Session data:', session)
+    }, [session, status])
 
     const navItems = [
         { name: 'Topic Finder', href: '/contents/topic-finder', icon: '🔍' },
@@ -15,6 +21,59 @@ export function SidebarSimple({ className }: { className?: string }) {
     ]
 
     const isActive = (href: string) => pathname?.includes(href)
+
+    // Show loading state
+    if (status === 'loading') {
+        return (
+            <div className={className} style={{
+                width: '250px',
+                backgroundColor: '#1a1a1a',
+                color: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px'
+            }}>
+                <div style={{ fontSize: '14px', color: '#999' }}>Loading...</div>
+            </div>
+        )
+    }
+
+    // Show error state if not authenticated
+    if (status === 'unauthenticated') {
+        return (
+            <div className={className} style={{
+                width: '250px',
+                backgroundColor: '#1a1a1a',
+                color: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px'
+            }}>
+                <div style={{ fontSize: '14px', color: '#ff6b6b', textAlign: 'center' }}>
+                    Not authenticated
+                </div>
+                <button
+                    onClick={() => window.location.href = '/signin'}
+                    style={{
+                        marginTop: '16px',
+                        padding: '8px 16px',
+                        fontSize: '14px',
+                        backgroundColor: '#333',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Go to Sign In
+                </button>
+            </div>
+        )
+    }
 
     return (
         <div className={className} style={{
