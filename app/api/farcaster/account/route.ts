@@ -8,11 +8,13 @@ export async function POST(req: Request) {
     console.log('[farcaster/account] Request received');
 
     const body = await req.json();
-    const { fid, username, isSignIn } = body || {};
+    const { fid, username, isSignIn, autoApproveSigner } = body || {};
     if (!fid) {
       console.warn('[farcaster/account] Missing fid in payload', body);
       return NextResponse.json({ ok: false, error: "Missing fid" }, { status: 400 });
     }
+
+    console.log('[farcaster/account] Processing request:', { fid, username, isSignIn, autoApproveSigner });
 
     const supabase = await createClient();
 
@@ -212,14 +214,23 @@ export async function POST(req: Request) {
       updated_at: new Date().toISOString(),
     };
 
+    // Auto-approve signer if requested (from Base App)
+    if (autoApproveSigner) {
+      console.log('[farcaster/account] Auto-approving signer for Base App');
+      basePayload.signer_approved_at = new Date().toISOString();
+      basePayload.is_active = true;
+      // Mark that this signer was auto-approved from Base App
+      basePayload.signed_key_request_state = 'completed';
+    }
+
     if (existingAccount?.custody_address) basePayload.custody_address = existingAccount.custody_address;
     if (existingAccount?.signer_public_key_hex) basePayload.signer_public_key_hex = existingAccount.signer_public_key_hex;
     if (existingAccount?.signer_private_key_enc) basePayload.signer_private_key_enc = existingAccount.signer_private_key_enc;
     if (existingAccount?.signed_key_request_token) basePayload.signed_key_request_token = existingAccount.signed_key_request_token;
-    if (existingAccount?.signed_key_request_state) basePayload.signed_key_request_state = existingAccount.signed_key_request_state;
+    if (!autoApproveSigner && existingAccount?.signed_key_request_state) basePayload.signed_key_request_state = existingAccount.signed_key_request_state;
     if (existingAccount?.signed_key_request_expires_at) basePayload.signed_key_request_expires_at = existingAccount.signed_key_request_expires_at;
-    if (existingAccount?.signer_approved_at) basePayload.signer_approved_at = existingAccount.signer_approved_at;
-    if (typeof existingAccount?.is_active === 'boolean') basePayload.is_active = existingAccount.is_active;
+    if (!autoApproveSigner && existingAccount?.signer_approved_at) basePayload.signer_approved_at = existingAccount.signer_approved_at;
+    if (!autoApproveSigner && typeof existingAccount?.is_active === 'boolean') basePayload.is_active = existingAccount.is_active;
 
     if (existingAccount) {
       const { error: updateError } = await supabase
