@@ -72,6 +72,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const tNav = useTranslations('navigation');
   const [showAiInput, setShowAiInput] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [hasManuallyCollapsed, setHasManuallyCollapsed] = useState(false);
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number>(0);
   const { accounts, currentSocialId, getSelectedAccount, farcasterSignerActive } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
@@ -111,19 +112,12 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const { runOwnershipFlow, OwnershipModal } = useOwnershipFlow();
 
   useEffect(() => {
-    const supportedPlatforms = getSupportedPlatforms();
-    const defaultPlatform = supportedPlatforms.includes('threads') ? 'threads' : supportedPlatforms[0];
-
     if (!isUnlinked) {
+      const supportedPlatforms = getSupportedPlatforms();
+      const defaultPlatform = supportedPlatforms.includes('threads') ? 'threads' : supportedPlatforms[0];
       setSelectedPlatform(defaultPlatform);
-      return;
     }
-
-    if (!activePlatforms[selectedPlatform]) {
-      const fallback = PLATFORM_KEYS.find(platform => activePlatforms[platform]) || defaultPlatform;
-      setSelectedPlatform(fallback);
-    }
-  }, [isUnlinked, activePlatforms, selectedPlatform]);
+  }, [isUnlinked]);
 
   const handleUnlinkToggle = () => {
     setPlatformMode(isUnlinked ? 'linked' : 'unlinked');
@@ -351,6 +345,16 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const [scheduleTime, setScheduleTime] = useState<string | null>(null);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
+  const collapseDesktopSidebar = useCallback(() => {
+    setHasManuallyCollapsed(true);
+    setIsCollapsed(true);
+  }, []);
+
+  const expandDesktopSidebar = useCallback(() => {
+    setHasManuallyCollapsed(false);
+    setIsCollapsed(false);
+  }, []);
+
   // 모바일에서는 isRightSidebarOpen 상태 사용, 데스크톱에서는 기존 isCollapsed 사용
   const toggleSidebar = useCallback(() => {
     if (isMobile) {
@@ -364,25 +368,34 @@ export function RightSidebar({ className }: RightSidebarProps) {
     }
   }, [isMobile, isRightSidebarOpen, closeRightSidebar, openRightSidebar]);
 
+  const hasThreadContent = threadChain.some(thread => getContentString(thread.content).trim() !== '');
+
   // threadChain이 추가될때만 사이드바 펼치기
   useEffect(() => {
-    const hasContent = threadChain.some(thread => getContentString(thread.content).trim() !== '');
     if (isMobile) {
-      if ((hasContent || generationStatus) && !isRightSidebarOpen) {
+      if ((hasThreadContent || generationStatus) && !isRightSidebarOpen) {
         openRightSidebar();
       }
-    } else if ((hasContent || generationStatus) && isCollapsed) {
-      setIsCollapsed(false);
+    } else if ((hasThreadContent || generationStatus) && isCollapsed && !hasManuallyCollapsed) {
+      expandDesktopSidebar();
     }
   }, [
-    threadChain,
+    hasThreadContent,
     generationStatus,
     isMobile,
     isRightSidebarOpen,
     isCollapsed,
     openRightSidebar,
     closeRightSidebar,
+    hasManuallyCollapsed,
+    expandDesktopSidebar,
   ]);
+
+  useEffect(() => {
+    if (!hasThreadContent && !generationStatus) {
+      setHasManuallyCollapsed(false);
+    }
+  }, [hasThreadContent, generationStatus]);
 
   // 모바일에서 오버레이 클릭 시 사이드바 닫기
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -1007,7 +1020,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       )}>
         {isCollapsed ? (
           /* Collapsed state - show only toggle button */
-          <div className="flex flex-col h-full p-2 cursor-pointer" onClick={() => setIsCollapsed(false)}>
+          <div className="flex flex-col h-full p-2 cursor-pointer" onClick={expandDesktopSidebar}>
             <Button
               variant="ghost"
               size="icon"
@@ -1026,7 +1039,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
             handleSchedule={handleSchedule}
             handlePublish={handlePublish}
             fetchPublishTimes={fetchPublishTimes}
-            toggleSidebar={() => setIsCollapsed(true)}
+            toggleSidebar={collapseDesktopSidebar}
             isMobile={false}
             currentSocialId={currentSocialId}
             getSelectedAccount={getSelectedAccount}
