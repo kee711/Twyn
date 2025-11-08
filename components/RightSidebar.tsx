@@ -73,6 +73,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const [showAiInput, setShowAiInput] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [hasManuallyCollapsed, setHasManuallyCollapsed] = useState(false);
+  const [hasManuallyClosedMobile, setHasManuallyClosedMobile] = useState(false);
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number>(0);
   const { accounts, currentSocialId, getSelectedAccount, farcasterSignerActive } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
@@ -355,26 +356,48 @@ export function RightSidebar({ className }: RightSidebarProps) {
     setIsCollapsed(false);
   }, []);
 
+  const closeMobileSidebar = useCallback(() => {
+    setHasManuallyClosedMobile(true);
+    closeRightSidebar();
+  }, [closeRightSidebar]);
+
+  const openMobileSidebar = useCallback(() => {
+    setHasManuallyClosedMobile(false);
+    openRightSidebar();
+  }, [openRightSidebar]);
+
   // 모바일에서는 isRightSidebarOpen 상태 사용, 데스크톱에서는 기존 isCollapsed 사용
   const toggleSidebar = useCallback(() => {
     if (isMobile) {
       if (isRightSidebarOpen) {
-        closeRightSidebar();
+        closeMobileSidebar();
       } else {
-        openRightSidebar();
+        openMobileSidebar();
       }
     } else {
-      setIsCollapsed(prev => !prev);
+      if (isCollapsed) {
+        expandDesktopSidebar();
+      } else {
+        collapseDesktopSidebar();
+      }
     }
-  }, [isMobile, isRightSidebarOpen, closeRightSidebar, openRightSidebar]);
+  }, [
+    isMobile,
+    isRightSidebarOpen,
+    closeMobileSidebar,
+    openMobileSidebar,
+    isCollapsed,
+    collapseDesktopSidebar,
+    expandDesktopSidebar,
+  ]);
 
   const hasThreadContent = threadChain.some(thread => getContentString(thread.content).trim() !== '');
 
   // threadChain이 추가될때만 사이드바 펼치기
   useEffect(() => {
     if (isMobile) {
-      if ((hasThreadContent || generationStatus) && !isRightSidebarOpen) {
-        openRightSidebar();
+      if ((hasThreadContent || generationStatus) && !isRightSidebarOpen && !hasManuallyClosedMobile) {
+        openMobileSidebar();
       }
     } else if ((hasThreadContent || generationStatus) && isCollapsed && !hasManuallyCollapsed) {
       expandDesktopSidebar();
@@ -385,22 +408,24 @@ export function RightSidebar({ className }: RightSidebarProps) {
     isMobile,
     isRightSidebarOpen,
     isCollapsed,
-    openRightSidebar,
-    closeRightSidebar,
+    openMobileSidebar,
     hasManuallyCollapsed,
+    hasManuallyClosedMobile,
     expandDesktopSidebar,
+    closeMobileSidebar,
   ]);
 
   useEffect(() => {
     if (!hasThreadContent && !generationStatus) {
       setHasManuallyCollapsed(false);
+      setHasManuallyClosedMobile(false);
     }
   }, [hasThreadContent, generationStatus]);
 
   // 모바일에서 오버레이 클릭 시 사이드바 닫기
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && isMobile) {
-      toggleSidebar();
+      closeMobileSidebar();
     }
   };
 
@@ -464,12 +489,20 @@ export function RightSidebar({ className }: RightSidebarProps) {
 
       // Open sidebar if on mobile
       if (isMobile && !isRightSidebarOpen) {
-        openRightSidebar();
+        openMobileSidebar();
       } else if (!isMobile && isCollapsed) {
-        setIsCollapsed(false);
+        expandDesktopSidebar();
       }
     }
-  }, [pendingThreadChain]);
+  }, [
+    pendingThreadChain,
+    applyPendingThreadChain,
+    isMobile,
+    isRightSidebarOpen,
+    openMobileSidebar,
+    isCollapsed,
+    expandDesktopSidebar,
+  ]);
 
 
 
@@ -1100,8 +1133,8 @@ export function RightSidebar({ className }: RightSidebarProps) {
               handleSaveToDraft={handleSaveToDraft}
               handleSchedule={handleSchedule}
               handlePublish={handlePublish}
-              fetchPublishTimes={fetchPublishTimes}
-              toggleSidebar={closeRightSidebar}
+            fetchPublishTimes={fetchPublishTimes}
+            toggleSidebar={closeMobileSidebar}
               isMobile={true}
               currentSocialId={currentSocialId}
               getSelectedAccount={getSelectedAccount}
@@ -1134,7 +1167,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
             <Button
               variant="default"
               size="icon"
-              onClick={openRightSidebar}
+              onClick={openMobileSidebar}
               className="fixed bottom-5 text-md right-4 z-30 h-fit w-fit py-3.5 px-4 rounded-full shadow-lg flex items-center gap-1.5"
             >
               <Plus className="h-6 w-6 text-white" />
