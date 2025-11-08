@@ -41,7 +41,7 @@ export default function SignInClient() {
   let address: string | undefined
   let isConnected = false
   let connect: any
-  let connectors: any[] = []
+  let connectors: readonly any[] = []
   let coinbaseConnector: any
 
   try {
@@ -62,7 +62,7 @@ export default function SignInClient() {
   }
 
   // Base Account hook for mini app environment (with error handling)
-  let baseAccount: string | undefined
+  let baseAccount: string | undefined | null
   let isBaseConnected = false
   let isBaseLoading = false
   let connectBase: any
