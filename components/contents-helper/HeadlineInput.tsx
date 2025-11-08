@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 
 interface HeadlineInputProps {
     value?: string;
@@ -30,13 +31,23 @@ export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isS
     };
 
     if (inline) {
+        const shouldTruncate = ellipsis && !isSelected;
+
         return (
-            <div onClick={onClick} className={`w-full rounded-[20px] px-6 py-3 flex flex-row items-start gap-3 shadow-sm cursor-pointer transition-all duration-300 ${isSelected ? 'border border-gray-200 bg-gray-200 flex-wrap' : 'border-none bg-gray-50'}`}>
+            <div
+                onClick={onClick}
+                className={cn(
+                    'w-full rounded-[20px] px-5 py-3 text-left shadow-sm transition-all duration-300 cursor-pointer',
+                    'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
+                    isSelected ? 'border border-gray-200 bg-gray-200' : 'border border-transparent bg-gray-50'
+                )}
+            >
                 <div
-                    className={
-                        `text-lg font-medium placeholder-[#B0B0B0] outline-none px-2 py-1 cursor-pointer transition-all duration-300 ` +
-                        (isSelected ? 'text-gray-700 whitespace-normal' : 'text-gray-500 overflow-hidden whitespace-nowrap text-ellipsis')
-                    }
+                    className={cn(
+                        'text-base font-medium text-gray-600 sm:text-lg',
+                        isSelected && 'text-gray-700',
+                        shouldTruncate ? 'truncate' : 'whitespace-pre-line break-words'
+                    )}
                 >
                     {headline}
                 </div>

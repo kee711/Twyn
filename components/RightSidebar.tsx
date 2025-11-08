@@ -171,10 +171,17 @@ export function RightSidebar({ className }: RightSidebarProps) {
       setSelectedPlatform(platform);
       return;
     }
-    if (platform === 'farcaster' && (!hasFarcasterAccount || !farcasterSignerActive)) {
+
+    const isCurrentlyActive = activePlatforms[platform];
+    if (
+      platform === 'farcaster' &&
+      !isCurrentlyActive &&
+      (!hasFarcasterAccount || !farcasterSignerActive)
+    ) {
       toast.error(t('farcasterSignerRequired'));
       return;
     }
+
     handlePlatformToggle(platform);
   };
 
@@ -1222,6 +1229,7 @@ function RightSidebarContent({
     const isSelected = selectedPlatform === key && isUnlinked;
     const isFarcaster = key === 'farcaster';
     const isFarcasterEnableBlocked = isFarcaster && !isActive && (!hasFarcasterAccount || !farcasterSignerActive);
+    const isSelectionBlocked = !isUnlinked && isFarcasterEnableBlocked;
     const disabledTitle = isFarcasterEnableBlocked ? t('farcasterSignerRequired') : undefined;
 
     return (
@@ -1231,7 +1239,7 @@ function RightSidebarContent({
           'flex items-center gap-1 rounded-full border px-1 py-0 transition-colors',
           'bg-muted border-border/40',
           !isActive && 'opacity-60',
-          isFarcasterEnableBlocked && 'opacity-40'
+          isSelectionBlocked && 'opacity-40'
         )}
       >
         <button
@@ -1241,7 +1249,7 @@ function RightSidebarContent({
             'flex h-8 w-8 items-center justify-center rounded-full border transition-colors',
             isSelected ? 'border-primary bg-primary/10' : 'border-transparent'
           )}
-          disabled={isFarcasterEnableBlocked}
+          disabled={isSelectionBlocked}
           title={disabledTitle}
         >
           <NextImage

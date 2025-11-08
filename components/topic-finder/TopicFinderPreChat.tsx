@@ -277,20 +277,23 @@ export const TopicFinderPreChat = ({
                 <div className="w-full max-w-3xl">
                     <div className="space-y-4">
                         <div className="mb-6 flex flex-col gap-4">
-                            {topicResults.length > 0 &&
-                                topicResults.map((topic, index) => (
-                                    <div key={index} className="relative">
-                                        <HeadlineInput
-                                            value={topic.topic || ''}
-                                            onChange={(value) => onTopicChange(index, value)}
-                                            inline
-                                            ellipsis
-                                            isSelected={selectedHeadline === topic.topic}
-                                            onClick={() => onSelectHeadline(topic.topic)}
-                                            onInstructionChange={onInstructionChange}
-                                        />
-                                    </div>
-                                ))}
+                            {topicResults.length > 0 && (
+                                <div className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-white/80 p-3 shadow-sm">
+                                    {topicResults.map((topic, index) => (
+                                        <div key={index} className="relative">
+                                            <HeadlineInput
+                                                value={topic.topic || ''}
+                                                onChange={(value) => onTopicChange(index, value)}
+                                                inline
+                                                ellipsis
+                                                isSelected={selectedHeadline === topic.topic}
+                                                onClick={() => onSelectHeadline(topic.topic)}
+                                                onInstructionChange={onInstructionChange}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             {isGeneratingTopics && (
                                 <div className="flex max-w-3xl flex-col gap-4">
                                     <div className="h-[48px] w-3/4 rounded-[20px] bg-gray-300 animate-pulse" />
