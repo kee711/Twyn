@@ -72,7 +72,7 @@ export function HeadlineInput({ value, readOnly, onChange, inline, ellipsis, isS
                     value={instruction}
                     onChange={e => setInstruction(e.target.value)}
                     placeholder={t('instructionPlaceholder')}
-                    className="w-full bg-transparent text-sm font-medium text-gray-500 placeholder-[#B0B0B0] outline-none px-1 md:px-2"
+                    className="w-full bg-transparent text-base font-medium text-gray-500 placeholder-[#B0B0B0] outline-none px-1 md:px-2 md:text-sm"
                     readOnly={readOnly}
                 />
 

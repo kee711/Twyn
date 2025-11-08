@@ -143,7 +143,7 @@ export const TopicFinderPreChat = ({
                 transition={{ duration: 0.25 }}
                 className="flex w-full max-w-3xl flex-col gap-3"
             >
-                <div className="grid w-full grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <PreferenceCard
                         title={t('personaTitle')}
                         options={personas}
