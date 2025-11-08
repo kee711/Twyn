@@ -1,5 +1,6 @@
 'use client'
 
+import { MobileSidebarProvider } from '@/contexts/MobileSidebarContext';
 import { SimpleDashboardLayout } from "./SimpleDashboardLayout";
 
 // Use simple layout for Base mini app to avoid complex provider issues
@@ -8,5 +9,9 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <SimpleDashboardLayout>{children}</SimpleDashboardLayout>;
-} 
+  return (
+    <MobileSidebarProvider>
+      <SimpleDashboardLayout>{children}</SimpleDashboardLayout>
+    </MobileSidebarProvider>
+  );
+}
