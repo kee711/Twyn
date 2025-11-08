@@ -40,14 +40,19 @@ const authMiddleware = withAuth(
       }
     }
 
+    // Remove locale prefix for checking
+    const pathnameWithoutLocale = routing.locales.reduce(
+      (path, locale) => path.replace(new RegExp(`^/${locale}(/|$)`), '/'),
+      pathname
+    )
+
+    // Redirect dashboard root to topic-finder
+    if (pathnameWithoutLocale === '/dashboard' || pathnameWithoutLocale === '/dashboard/') {
+      return NextResponse.redirect(new URL('/contents/topic-finder', req.url))
+    }
+
     // In web3 mode, redirect authenticated users from root to topic-finder
     if (featureFlags.enableDirectSigninRouting() && token) {
-      // Remove locale prefix for checking
-      const pathnameWithoutLocale = routing.locales.reduce(
-        (path, locale) => path.replace(new RegExp(`^/${locale}(/|$)`), '/'),
-        pathname
-      )
-
       // If authenticated user is on root path, redirect to topic-finder
       if (pathnameWithoutLocale === '/' || pathnameWithoutLocale === '') {
         return NextResponse.redirect(new URL(web3Config.defaultRedirectPath, req.url))
