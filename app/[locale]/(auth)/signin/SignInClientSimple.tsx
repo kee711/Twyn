@@ -36,7 +36,7 @@ export default function SignInClientSimple() {
 
             if (result?.ok) {
                 addLog('Login successful! Redirecting...')
-                window.location.href = '/contents/topic-finder'
+                window.location.href = '/contents/topic-finder-test'
             } else {
                 addLog(`Login failed: ${result?.error}`)
             }
@@ -63,7 +63,7 @@ export default function SignInClientSimple() {
                 <h1>Already logged in!</h1>
                 <p>Email: {session?.user?.email}</p>
                 <button
-                    onClick={() => window.location.href = '/contents/topic-finder'}
+                    onClick={() => window.location.href = '/contents/topic-finder-test'}
                     style={{
                         padding: '10px 20px',
                         fontSize: '14px',
