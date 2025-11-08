@@ -146,9 +146,6 @@ export default function DebugPage() {
                     <Button onClick={() => window.location.href = '/contents/topic-finder'}>
                         Go to Topic Finder
                     </Button>
-                    <Button onClick={() => window.location.href = '/contents/topic-finder-test'}>
-                        Go to Topic Finder Test
-                    </Button>
                     <Button onClick={() => window.location.href = '/signin'} variant="outline">
                         Go to Sign In
                     </Button>

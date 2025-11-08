@@ -1,36 +1,21 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useEffect } from 'react'
+import { Sidebar } from '@/components/Sidebar'
+import { MobileMenuButton } from '@/components/MobileMenuButton'
+import { DashboardContent } from '@/components/dashboard/DashboardContent'
+import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
 
 export function SimpleDashboardLayout({ children }: { children: React.ReactNode }) {
-    const { data: session, status } = useSession()
-
-    useEffect(() => {
-        console.log('[SimpleDashboardLayout] Status:', status)
-        console.log('[SimpleDashboardLayout] Session:', session)
-    }, [session, status])
+    const { status } = useSession()
 
     if (status === 'loading') {
         return (
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '100vh',
-                backgroundColor: '#f5f5f5',
-                fontFamily: 'system-ui'
-            }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                        width: '40px',
-                        height: '40px',
-                        border: '4px solid #e0e0e0',
-                        borderTop: '4px solid #2196f3',
-                        borderRadius: '50%',
-                        margin: '0 auto 15px'
-                    }} />
-                    <p style={{ color: '#666' }}>Loading...</p>
+            <div className="flex min-h-screen items-center justify-center bg-muted/30">
+                <div className="flex flex-col items-center gap-3 rounded-2xl border bg-background px-6 py-8 shadow-sm">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Loading dashboard…</p>
                 </div>
             </div>
         )
@@ -38,160 +23,31 @@ export function SimpleDashboardLayout({ children }: { children: React.ReactNode 
 
     if (status === 'unauthenticated') {
         return (
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '100vh',
-                backgroundColor: '#f5f5f5',
-                fontFamily: 'system-ui',
-                padding: '20px'
-            }}>
-                <div style={{
-                    backgroundColor: 'white',
-                    padding: '30px',
-                    borderRadius: '12px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    textAlign: 'center',
-                    maxWidth: '400px'
-                }}>
-                    <h2 style={{ fontSize: '24px', marginBottom: '15px', color: '#d32f2f' }}>
-                        Not Authenticated
-                    </h2>
-                    <p style={{ color: '#666', marginBottom: '20px' }}>
-                        Please sign in to access the dashboard.
+            <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+                <div className="w-full max-w-md space-y-4 rounded-2xl border bg-background p-8 text-center shadow-xl">
+                    <h2 className="text-2xl font-semibold text-foreground">Sign in required</h2>
+                    <p className="text-sm text-muted-foreground">
+                        Please sign in to access your dashboard and continue planning content.
                     </p>
-                    <button
-                        onClick={() => window.location.href = '/signin'}
-                        style={{
-                            padding: '12px 24px',
-                            fontSize: '14px',
-                            backgroundColor: '#2196f3',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontWeight: '500'
-                        }}
-                    >
+                    <Button size="lg" onClick={() => (window.location.href = '/signin')}>
                         Go to Sign In
-                    </button>
+                    </Button>
                 </div>
             </div>
         )
     }
 
     return (
-        <div style={{
-            display: 'flex',
-            minHeight: '100vh',
-            backgroundColor: '#f5f5f5'
-        }}>
-            {/* Simple Sidebar */}
-            <div style={{
-                width: '250px',
-                backgroundColor: '#1a1a1a',
-                color: 'white',
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column'
-            }}>
-                <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>
-                    Twyn
-                </h1>
+        <div className="flex min-h-screen bg-muted/30">
+            <Sidebar className="border-r border-border bg-background" />
 
-                <nav style={{ flex: 1 }}>
-                    <a
-                        href="/contents/topic-finder"
-                        style={{
-                            display: 'block',
-                            padding: '12px 16px',
-                            marginBottom: '8px',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                            color: 'white',
-                            backgroundColor: '#333'
-                        }}
-                    >
-                        🔍 Topic Finder
-                    </a>
-                    <a
-                        href="/contents/draft"
-                        style={{
-                            display: 'block',
-                            padding: '12px 16px',
-                            marginBottom: '8px',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                            color: 'white'
-                        }}
-                    >
-                        📝 Draft
-                    </a>
-                    <a
-                        href="/schedule"
-                        style={{
-                            display: 'block',
-                            padding: '12px 16px',
-                            marginBottom: '8px',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                            color: 'white'
-                        }}
-                    >
-                        📅 Schedule
-                    </a>
-                    <a
-                        href="/debug"
-                        style={{
-                            display: 'block',
-                            padding: '12px 16px',
-                            marginBottom: '8px',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                            color: 'white'
-                        }}
-                    >
-                        🔍 Debug
-                    </a>
-                </nav>
-
-                <div style={{
-                    borderTop: '1px solid #333',
-                    paddingTop: '20px'
-                }}>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>
-                        {session?.user?.name || session?.user?.email}
-                    </div>
-                    <button
-                        onClick={async () => {
-                            const { signOut } = await import('next-auth/react')
-                            await signOut({ redirect: false })
-                            window.location.href = '/signin'
-                        }}
-                        style={{
-                            width: '100%',
-                            padding: '8px 16px',
-                            fontSize: '14px',
-                            backgroundColor: '#333',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Sign Out
-                    </button>
+            <div className="flex min-h-screen flex-1 flex-col">
+                <MobileMenuButton />
+                <div className="flex-1 overflow-hidden p-3 md:p-6">
+                    <DashboardContent>
+                        <div className="h-full">{children}</div>
+                    </DashboardContent>
                 </div>
-            </div>
-
-            {/* Main Content */}
-            <div style={{
-                flex: 1,
-                overflow: 'auto',
-                backgroundColor: '#f5f5f5'
-            }}>
-                {children}
             </div>
         </div>
     )

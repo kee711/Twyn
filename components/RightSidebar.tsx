@@ -71,7 +71,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const t = useTranslations('components.rightSidebar');
   const tNav = useTranslations('navigation');
   const [showAiInput, setShowAiInput] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number>(0);
   const { accounts, currentSocialId, getSelectedAccount, farcasterSignerActive } = useSocialAccountStore();
   const { isRightSidebarOpen, openRightSidebar, closeRightSidebar, isMobile } = useMobileSidebar();
@@ -124,17 +124,6 @@ export function RightSidebar({ className }: RightSidebarProps) {
       setSelectedPlatform(fallback);
     }
   }, [isUnlinked, activePlatforms, selectedPlatform]);
-
-  useEffect(() => {
-    const activeCount = PLATFORM_KEYS.reduce(
-      (count, platform) => count + (activePlatforms[platform] ? 1 : 0),
-      0,
-    );
-
-    if (activeCount === 0) {
-      setPlatformActive('threads', true);
-    }
-  }, [activePlatforms, setPlatformActive]);
 
   const handleUnlinkToggle = () => {
     setPlatformMode(isUnlinked ? 'linked' : 'unlinked');
@@ -223,6 +212,37 @@ export function RightSidebar({ className }: RightSidebarProps) {
   };
 
   const hasFarcasterAccount = Boolean(getAccountForPlatform('farcaster'));
+
+  // Ensure at least one eligible platform stays active without re-enabling unsupported ones
+  useEffect(() => {
+    const activeCount = PLATFORM_KEYS.reduce(
+      (count, platform) => count + (activePlatforms[platform] ? 1 : 0),
+      0,
+    );
+
+    if (activeCount > 0) {
+      return;
+    }
+
+    const eligiblePlatforms = PLATFORM_KEYS.filter((platform) => {
+      if (platform === 'farcaster') {
+        return hasFarcasterAccount && farcasterSignerActive;
+      }
+      return true;
+    });
+
+    if (eligiblePlatforms.length === 0) {
+      return;
+    }
+
+    const fallbackPlatform = eligiblePlatforms.includes('threads')
+      ? 'threads'
+      : eligiblePlatforms[0];
+
+    if (fallbackPlatform && !activePlatforms[fallbackPlatform]) {
+      setPlatformActive(fallbackPlatform, true);
+    }
+  }, [activePlatforms, farcasterSignerActive, hasFarcasterAccount, setPlatformActive]);
 
   useEffect(() => {
     if ((!hasFarcasterAccount || !farcasterSignerActive) && activePlatforms.farcaster) {
@@ -325,21 +345,37 @@ export function RightSidebar({ className }: RightSidebarProps) {
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
   // 모바일에서는 isRightSidebarOpen 상태 사용, 데스크톱에서는 기존 isCollapsed 사용
-  const toggleSidebar = isMobile ?
-    (isRightSidebarOpen ? closeRightSidebar : openRightSidebar) :
-    () => setIsCollapsed(prev => !prev);
+  const toggleSidebar = useCallback(() => {
+    if (isMobile) {
+      if (isRightSidebarOpen) {
+        closeRightSidebar();
+      } else {
+        openRightSidebar();
+      }
+    } else {
+      setIsCollapsed(prev => !prev);
+    }
+  }, [isMobile, isRightSidebarOpen, closeRightSidebar, openRightSidebar]);
 
   // threadChain이 추가될때만 사이드바 펼치기
   useEffect(() => {
     const hasContent = threadChain.some(thread => getContentString(thread.content).trim() !== '');
     if (isMobile) {
       if ((hasContent || generationStatus) && !isRightSidebarOpen) {
-        toggleSidebar();
+        openRightSidebar();
       }
     } else if ((hasContent || generationStatus) && isCollapsed) {
-      toggleSidebar();
+      setIsCollapsed(false);
     }
-  }, [threadChain.length, threadChain, generationStatus]);
+  }, [
+    threadChain,
+    generationStatus,
+    isMobile,
+    isRightSidebarOpen,
+    isCollapsed,
+    openRightSidebar,
+    closeRightSidebar,
+  ]);
 
   // 모바일에서 오버레이 클릭 시 사이드바 닫기
   const handleOverlayClick = (e: React.MouseEvent) => {
