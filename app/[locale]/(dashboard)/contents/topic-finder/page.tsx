@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
 import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import useThreadChainStore from '@/stores/useThreadChainStore';
 import { ThreadContent } from '@/components/contents-helper/types';
 import { useTopicResultsStore } from '@/stores/useTopicResultsStore';
@@ -1266,7 +1267,9 @@ export default function TopicFinderPage() {
     const [chatInput, setChatInput] = useState('');
     const [conversation, setConversation] = useState<ConversationMessage[]>([]);
     const [isSubmittingMessage, setIsSubmittingMessage] = useState(false);
+    const [agentMode, setAgentMode] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement | null>(null);
+    const router = useRouter();
 
     // Memoize Supabase client to prevent creating new instances
     const supabase = useMemo(() => createClient(), []);
@@ -1905,6 +1908,43 @@ export default function TopicFinderPage() {
         syncMyContents();
     }, []); // 빈 의존성 배열로 마운트 시에만 실행
 
+    // Agent credits preflight: open pricing modal if no credits
+    const ensureAgentCredits = useCallback(async (): Promise<boolean> => {
+        try {
+            if (!agentMode) return true;
+            if (!userId) return true; // fallback to server guard
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .select('plan_type, agent_credits, agent_credits_reset_at')
+                .eq('user_id', userId)
+                .maybeSingle();
+            if (error) return true; // don’t block on client error; server will enforce
+            const plan = (data?.plan_type as string) || 'Free';
+            const unlimited = plan === 'ProPlus' || plan === 'Expert';
+            const credits = typeof data?.agent_credits === 'number' ? data!.agent_credits : 0;
+            // If last reset is before this month, allow call (server will reset and decrement)
+            const resetAt = data?.agent_credits_reset_at ? new Date(data.agent_credits_reset_at) : null;
+            const now = new Date();
+            const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+            const needsReset = !resetAt || resetAt < monthStart;
+            if (plan === 'Free' || (!unlimited && credits <= 0)) {
+                if (!unlimited && credits <= 0 && needsReset) {
+                    return true; // allow one call; server will reset
+                }
+                toast.error('사용 한도에 도달했습니다');
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('modal', 'pricing');
+                    router.replace(url.pathname + '?' + url.searchParams.toString());
+                } catch {}
+                return false;
+            }
+            return true;
+        } catch {
+            return true;
+        }
+    }, [agentMode, router, supabase, userId]);
+
     // Optimized background prefetch with priority control
     useEffect(() => {
         if (!currentSocialId) return;
@@ -2310,6 +2350,12 @@ export default function TopicFinderPage() {
             }
         }
 
+        // Preflight: if Agent Mode is on, ensure credits exist before transitioning UI
+        if (agentMode) {
+            const ok = await ensureAgentCredits();
+            if (!ok) return; // do not set submittedContext or switch to chat view
+        }
+
         let lockedContext = submittedContext;
         if (!lockedContext) {
             lockedContext = {
@@ -2428,14 +2474,24 @@ export default function TopicFinderPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ topic: resolvedTopic }),
             });
-            const payload = await response.json().catch(() => ({}));
             if (!response.ok) {
+                if (response.status === 402) {
+                    toast.error('사용 한도에 도달했습니다');
+                    try {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('modal', 'pricing');
+                        router.replace(url.pathname + '?' + url.searchParams.toString());
+                    } catch {}
+                    throw new Error('사용 한도에 도달했습니다');
+                }
+                const payloadErr = await response.json().catch(() => ({}));
                 const message =
-                    typeof payload?.error === 'string' && payload.error.trim().length > 0
-                        ? payload.error
+                    typeof (payloadErr as any)?.error === 'string' && ((payloadErr as any).error as string).trim().length > 0
+                        ? (payloadErr as any).error
                         : 'Failed to run LangGraph workflow.';
                 throw new Error(message);
             }
+            const payload = await response.json().catch(() => ({}));
 
             // Prefer server-built UI blocks to avoid duplicated parsing on client
             const serverBlocks: unknown[] = Array.isArray(payload?.blocks) ? payload.blocks : [];
@@ -2546,6 +2602,8 @@ export default function TopicFinderPage() {
         }
     }, [
         chatInput,
+        agentMode,
+        ensureAgentCredits,
         submittedContext,
         selectedHeadline,
         selectedPersona,
@@ -2573,8 +2631,13 @@ export default function TopicFinderPage() {
             return;
         }
 
-        await submitChatMessage(initialMessage);
-    }, [isPreChatReady, selectedHeadline, submitChatMessage]);
+        if (agentMode) {
+            await submitChatMessage(initialMessage);
+        } else {
+            // Legacy path: generate post directly and open RightSidebar without switching view
+            await handleGenerateDetail();
+        }
+    }, [agentMode, handleGenerateDetail, isPreChatReady, selectedHeadline, submitChatMessage]);
 
     const handleRepurposeContent = useCallback(
         async (item: NormalizedSocialContent, platform: 'threads' | 'x') => {
@@ -2713,6 +2776,8 @@ export default function TopicFinderPage() {
                             selectedHeadline={selectedHeadline}
                             onSelectHeadline={setSelectedHeadline}
                             onRemoveTopics={removeTopicResult}
+                            agentMode={agentMode}
+                            onAgentModeChange={setAgentMode}
                         />
                     ) : (
                         <TopicFinderChatView

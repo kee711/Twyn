@@ -87,12 +87,12 @@ export function RightSidebar({ className }: RightSidebarProps) {
     pendingThreadChain,
     applyPendingThreadChain,
     generationStatus,
-  platformMode,
-  setPlatformMode,
-  activePlatforms,
-  togglePlatformActive,
-  setPlatformActive,
-  platformContents,
+    platformMode,
+    setPlatformMode,
+    activePlatforms,
+    togglePlatformActive,
+    setPlatformActive,
+    platformContents,
     setPlatformThreads,
     updatePlatformThreadContent,
     updatePlatformThreadMedia,
@@ -673,6 +673,65 @@ export function RightSidebar({ className }: RightSidebarProps) {
           threadCount: threadPayload.threads.length,
           isAiGenerated: !!originalAiContent,
         });
+
+        // 퇴고 이력 저장
+        console.log('🔍 [REVISION-SCHEDULE] Checking revision history save conditions');
+        console.log('🔍 [REVISION-SCHEDULE] originalAiContent exists:', !!originalAiContent);
+        console.log('🔍 [REVISION-SCHEDULE] result.parentThreadId:', result.parentThreadId);
+
+        if (originalAiContent && result.parentThreadId) {
+          try {
+            console.log('🔍 [REVISION-SCHEDULE] Converting content to strings...');
+            const aiContent = originalAiContent
+              .map(t => getContentString(t.content))
+              .filter(c => c.trim())
+              .join('\n\n');
+            console.log('🔍 [REVISION-SCHEDULE] aiContent length:', aiContent.length);
+
+            const finalContent = threadPayload.threads
+              .map(t => getContentString(t.content))
+              .filter(c => c.trim())
+              .join('\n\n');
+            console.log('🔍 [REVISION-SCHEDULE] finalContent length:', finalContent.length);
+
+            console.log('🔍 [REVISION-SCHEDULE] Calling API /api/revision-history...');
+            const response = await fetch('/api/revision-history', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contentId: result.parentThreadId,
+                aiContent,
+                finalContent,
+                isScheduled: true,
+                generationParams: {
+                  platform: 'threads',
+                  threadCount: threadPayload.threads.length,
+                  scheduledAt: selectedDateTime
+                },
+                metadata: {
+                  platform: 'threads',
+                  publishType: 'scheduled',
+                  scheduledAt: selectedDateTime
+                }
+              })
+            });
+
+            const saveResult = await response.json();
+            console.log('✅ [REVISION-SCHEDULE] API response:', saveResult);
+
+            if (!response.ok) {
+              throw new Error(saveResult.error || 'Failed to save revision history');
+            }
+          } catch (error) {
+            console.error('❌ [REVISION-SCHEDULE] Failed to save revision history:', error);
+            console.error('❌ [REVISION-SCHEDULE] Error details:', {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined
+            });
+          }
+        } else {
+          console.log('⚠️ [REVISION-SCHEDULE] Skipping revision history save - conditions not met');
+        }
       });
     } catch (error) {
       console.error('Error scheduling:', error);
@@ -753,6 +812,61 @@ export function RightSidebar({ className }: RightSidebarProps) {
                 }
               } catch (error) {
                 console.error('Error updating ai_generated field:', error);
+              }
+
+              // 퇴고 이력 저장
+              console.log('🔍 [REVISION] Starting revision history save process');
+              console.log('🔍 [REVISION] originalAiContent exists:', !!originalAiContent);
+              console.log('🔍 [REVISION] result.parentThreadId:', result.parentThreadId);
+
+              try {
+                console.log('🔍 [REVISION] Converting originalAiContent to string...');
+                const aiContent = originalAiContent
+                  .map(t => getContentString(t.content))
+                  .filter(c => c.trim())
+                  .join('\n\n');
+                console.log('🔍 [REVISION] aiContent length:', aiContent.length);
+
+                console.log('🔍 [REVISION] Converting finalContent to string...');
+                const finalContent = threadPayload.threads
+                  .map(t => getContentString(t.content))
+                  .filter(c => c.trim())
+                  .join('\n\n');
+                console.log('🔍 [REVISION] finalContent length:', finalContent.length);
+
+                console.log('🔍 [REVISION] Calling API /api/revision-history...');
+                const response = await fetch('/api/revision-history', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contentId: result.parentThreadId,
+                    aiContent,
+                    finalContent,
+                    isScheduled: false,
+                    generationParams: {
+                      platform: 'threads',
+                      threadCount: threadPayload.threads.length
+                    },
+                    metadata: {
+                      platform: 'threads',
+                      publishType: 'immediate'
+                    }
+                  })
+                });
+
+                const saveResult = await response.json();
+                console.log('✅ [REVISION] API response:', saveResult);
+
+                if (!response.ok) {
+                  throw new Error(saveResult.error || 'Failed to save revision history');
+                }
+              } catch (error) {
+                console.error('❌ [REVISION] Failed to save revision history:', error);
+                console.error('❌ [REVISION] Error details:', {
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined
+                });
+                // 이력 저장 실패는 발행 성공에 영향을 주지 않음
               }
             }
 

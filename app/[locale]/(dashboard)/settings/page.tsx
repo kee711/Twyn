@@ -44,6 +44,8 @@ export default function SettingsPage() {
     email?: string;
     user_id?: string;
     plan_type?: string;
+    agent_credits?: number | null;
+    agent_credits_reset_at?: string | null;
   } | null>(null)
 
   // 소셜 계정 관련 상태 (social_accounts 테이블)
@@ -201,6 +203,25 @@ export default function SettingsPage() {
   const handlePricingModalClose = () => {
     setShowPricingModal(false)
     fetchUserProfile() // 변경된 플랜 정보를 다시 로드
+  }
+
+  // Helpers for credit display
+  const plan = userProfile?.plan_type || 'Free'
+  const isUnlimited = plan === 'ProPlus' || plan === 'Expert'
+  const remainingCredits = isUnlimited ? null : (typeof userProfile?.agent_credits === 'number' ? userProfile?.agent_credits : null)
+
+  const formatDateTime = (iso?: string | null) => {
+    if (!iso) return '-'
+    const d = new Date(iso)
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  }
+
+  const nextMonthlyReset = () => {
+    const now = new Date()
+    const year = now.getUTCFullYear()
+    const month = now.getUTCMonth()
+    const firstOfNext = new Date(Date.UTC(month === 11 ? year + 1 : year, (month + 1) % 12, 1, 0, 0, 0))
+    return `${firstOfNext.getUTCFullYear()}-${String(firstOfNext.getUTCMonth()+1).padStart(2,'0')}-01 00:00 UTC`
   }
 
   return (
@@ -366,8 +387,40 @@ export default function SettingsPage() {
                 {userProfile?.plan_type === 'Pro' && (
                   <Button onClick={() => setShowPricingModal(true)}>{t('plan.managePlan')}</Button>
                 )}
-                {userProfile?.plan_type === 'Expert' && (
+                {(userProfile?.plan_type === 'ProPlus' || userProfile?.plan_type === 'Expert') && (
                   <Button onClick={() => setShowPricingModal(true)}>{t('plan.managePlan')}</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Agent Credits */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Credits</CardTitle>
+              <CardDescription>LangGraph 기반 에이전트 호출 사용량</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p>
+                  현재 플랜: <span className="font-medium">{plan}</span>
+                </p>
+                <p>
+                  잔여 크레딧: {isUnlimited ? (
+                    <Badge variant="secondary">무제한</Badge>
+                  ) : (
+                    <span className="font-medium">{remainingCredits ?? '-'}</span>
+                  )}
+                </p>
+                <div className="text-sm text-muted-foreground">
+                  <p>월별 리셋 기준: 매월 1일 00:00 (UTC)</p>
+                  <p>마지막 리셋/업데이트: {formatDateTime(userProfile?.agent_credits_reset_at)}</p>
+                  <p>다음 리셋 예상: {nextMonthlyReset()}</p>
+                </div>
+                {plan === 'Free' && (
+                  <div className="pt-2">
+                    <Button onClick={() => setShowPricingModal(true)}>업그레이드</Button>
+                  </div>
                 )}
               </div>
             </CardContent>

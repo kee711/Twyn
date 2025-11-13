@@ -69,6 +69,9 @@ interface TopicFinderPreChatProps {
     selectedHeadline: string;
     onSelectHeadline: (headline: string) => void;
     onRemoveTopics: () => void;
+    // Agent mode toggle
+    agentMode?: boolean;
+    onAgentModeChange?: (value: boolean) => void;
 }
 
 export const TopicFinderPreChat = ({
@@ -109,6 +112,8 @@ export const TopicFinderPreChat = ({
     selectedHeadline,
     onSelectHeadline,
     onRemoveTopics,
+    agentMode = false,
+    onAgentModeChange,
 }: TopicFinderPreChatProps) => {
     return (
         <>
@@ -245,6 +250,15 @@ export const TopicFinderPreChat = ({
                                 </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        {/* Agent mode toggle right next to dropdown */}
+                        <div className="flex items-center gap-2 pl-1">
+                            <span className="text-xs text-muted-foreground">에이전트 모드</span>
+                            <Switch
+                                id="agent-mode"
+                                checked={!!agentMode}
+                                onCheckedChange={(checked) => onAgentModeChange?.(checked)}
+                            />
+                        </div>
                     </div>
                     <div className='flex gap-2'>
                         <Button
