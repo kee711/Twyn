@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/authOptions';
 
 const DEFAULT_TOPIC = 'social media marketing strategy for AI startups';
 const API_BASE = process.env.LANGGRAPH_API_URL;
@@ -168,6 +171,74 @@ export async function POST(request: Request) {
       : DEFAULT_TOPIC;
 
   try {
+    // Enforce agent credits before calling upstream
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id || null;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const admin = createAdminClient();
+    // Fetch profile
+    const { data: profile } = await admin
+      .from('user_profiles')
+      .select('id, user_id, plan_type, agent_credits, agent_credits_reset_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const plan = (profile?.plan_type as string) || 'Free';
+
+    // Helper: month start
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+
+    const isBeforeThisMonth = (d?: string | null) => {
+      if (!d) return true;
+      const ts = new Date(d);
+      return ts.getUTCFullYear() < monthStart.getUTCFullYear() ||
+        (ts.getUTCFullYear() === monthStart.getUTCFullYear() && ts.getUTCMonth() < monthStart.getUTCMonth());
+    };
+
+    const PLAN_DEFAULTS: Record<string, number | null> = {
+      Free: 0,
+      Pro: 60,
+      ProPlus: null, // unlimited
+      Expert: null, // backward compat alias for ProPlus
+    };
+
+    const defaultCredits = PLAN_DEFAULTS[plan] ?? 0;
+
+    if (defaultCredits === 0) {
+      return NextResponse.json({ error: 'Insufficient agent credits for your plan.' }, { status: 402 });
+    }
+
+    // Unlimited plans bypass credit check
+    if (defaultCredits === null) {
+      // proceed without decrement
+    } else {
+      let credits = typeof profile?.agent_credits === 'number' ? profile.agent_credits : undefined;
+      const needsReset = isBeforeThisMonth(profile?.agent_credits_reset_at as any);
+
+      if (needsReset || credits === undefined) {
+        credits = defaultCredits;
+      }
+
+      if (!credits || credits <= 0) {
+        return NextResponse.json({ error: 'Out of agent credits.' }, { status: 402 });
+      }
+
+      const updated = {
+        agent_credits: credits - 1,
+        agent_credits_reset_at: new Date().toISOString(),
+      } as any;
+
+      await admin
+        .from('user_profiles')
+        .update(updated)
+        .eq('user_id', userId);
+    }
+
     const upstream = await fetch(`${API_BASE}/research/enhanced`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -17,6 +17,43 @@ import { Check, Sparkles } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
 
+// Helpers to alias legacy Expert -> Pro Plus
+const isProPlus = (t?: string) => t === 'ProPlus' || t === 'Pro Plus' || t === 'Expert';
+const normalizePlanKey = (t: string) => (isProPlus(t) ? 'ProPlus' : t);
+const displayPlanName = (t: string) => (isProPlus(t) ? 'Pro Plus' : t);
+
+// Map UI plans to Polar product IDs via env (client-safe)
+const POLAR_PRODUCTS: Record<string, { monthly?: string; annual?: string }> = {
+  Pro: {
+    monthly: process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_MONTHLY,
+    annual: process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_YEARLY,
+  },
+  ProPlus: {
+    monthly:
+      process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_PLUS_MONTHLY ||
+      process.env.NEXT_PUBLIC_POLAR_PRODUCT_EXPERT_MONTHLY ||
+      process.env.NEXT_PUBLIC_POLAR_PRODUCT_TEAM,
+    annual:
+      process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_PLUS_YEARLY ||
+      process.env.NEXT_PUBLIC_POLAR_PRODUCT_EXPERT_YEARLY,
+  },
+};
+
+// Optional: Hosted Checkout Links (if provided, used instead of API route)
+const POLAR_CHECKOUT_LINKS: Record<string, { monthly?: string; annual?: string }> = {
+  Pro: {
+    monthly: process.env.NEXT_PUBLIC_POLAR_CHECKOUT_LINK_PRO_MONTHLY,
+    annual: process.env.NEXT_PUBLIC_POLAR_CHECKOUT_LINK_PRO_YEARLY,
+  },
+  ProPlus: {
+    monthly:
+      process.env.NEXT_PUBLIC_POLAR_CHECKOUT_LINK_PRO_PLUS_MONTHLY ||
+      process.env.NEXT_PUBLIC_POLAR_CHECKOUT_LINK_EXPERT_MONTHLY ||
+      process.env.NEXT_PUBLIC_POLAR_CHECKOUT_LINK_TEAM,
+    annual: process.env.NEXT_PUBLIC_POLAR_CHECKOUT_LINK_PRO_PLUS_YEARLY,
+  },
+};
+
 interface Plan {
   id: string;
   plan_type: string;
@@ -459,7 +496,7 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
       features.push('AI-powered content generation');
       features.push(`${plan.account_limit || 0} social account binding`);
       features.push('Advanced analytics');
-    } else if (plan.plan_type === 'Expert') {
+    } else if (isProPlus(plan.plan_type)) {
       features.push('<span class="font-bold bg-gradient-to-r from-violet-500 to-rose-300 bg-clip-text text-transparent" style="animation: gentlePulse 3s ease-in-out infinite;">Unlimited</span> social account binding');
       features.push('Dedicated support');
       features.push('Everything in Pro');
@@ -485,17 +522,17 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
     }
 
     // Define plan hierarchy for downgrade logic
-    const planHierarchy = { 'Free': 1, 'Pro': 2, 'Expert': 3 };
-    const currentPlanLevel = planHierarchy[currentUserPlan as keyof typeof planHierarchy] || 1;
-    const targetPlanLevel = planHierarchy[plan.plan_type as keyof typeof planHierarchy] || 1;
+    const planHierarchy = { Free: 1, Pro: 2, ProPlus: 3, Expert: 3 } as const;
+    const currentPlanLevel = planHierarchy[normalizePlanKey(currentUserPlan) as keyof typeof planHierarchy] || 1;
+    const targetPlanLevel = planHierarchy[normalizePlanKey(plan.plan_type) as keyof typeof planHierarchy] || 1;
 
     // If target plan is lower level than current plan, it's a downgrade
     if (targetPlanLevel < currentPlanLevel) {
-      return `Downgrade to ${plan.plan_type}`;
+      return `Downgrade to ${displayPlanName(plan.plan_type)}`;
     }
 
     // Otherwise it's an upgrade
-    return `Upgrade to ${plan.plan_type}`;
+    return `Upgrade to ${displayPlanName(plan.plan_type)}`;
   };
 
   const handlePlanAction = async (plan: Plan) => {
@@ -512,12 +549,55 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
       }
     }
     // Handle other plan actions for existing users
+    if (!isNewUser) {
+      // Determine upgrade vs downgrade
+      const planHierarchy = { Free: 1, Pro: 2, ProPlus: 3 } as const;
+      const currentLevel = planHierarchy[normalizePlanKey(currentUserPlan) as keyof typeof planHierarchy] || 1;
+      const targetLevel = planHierarchy[normalizePlanKey(plan.plan_type) as keyof typeof planHierarchy] || 1;
+
+      // Downgrade: redirect to Polar Customer Portal
+      if (targetLevel < currentLevel) {
+        window.location.href = "/api/billing/portal";
+        return;
+      }
+
+      // Paid plans go through Polar checkout
+      const userId = session?.user?.id;
+      const email = session?.user?.email as string | undefined;
+
+      if (!userId || !email) {
+        toast.error('Missing user information for checkout');
+        return;
+      }
+
+      // Prefer hosted checkout link if configured
+      const linkCfg = POLAR_CHECKOUT_LINKS[normalizePlanKey(plan.plan_type)];
+      const hostedLink = isAnnual ? linkCfg?.annual ?? linkCfg?.monthly : linkCfg?.monthly;
+      if (hostedLink) {
+        const u = new URL(hostedLink);
+        // Try to attach user identity for webhook mapping
+        u.searchParams.set('customerExternalId', userId);
+        u.searchParams.set('customerEmail', email);
+        window.location.href = u.toString();
+        return;
+      }
+
+      // Fallback to API-based checkout
+      const productCfg = POLAR_PRODUCTS[normalizePlanKey(plan.plan_type)];
+      const productId = isAnnual ? productCfg?.annual ?? productCfg?.monthly : productCfg?.monthly;
+      if (!productId) {
+        toast.error('Product not available');
+        return;
+      }
+      const url = `/api/checkout/polar?products=${encodeURIComponent(productId)}&customerExternalId=${encodeURIComponent(userId)}&customerEmail=${encodeURIComponent(email)}`;
+      window.location.href = url;
+    }
   };
 
   const getDescription = (plan: Plan) => {
     if (plan.plan_type === 'Free') return 'Perfect for getting started';
     if (plan.plan_type === 'Pro') return 'For content creators and small businesses';
-    if (plan.plan_type === 'Expert') return 'For contents experts and agencies';
+    if (isProPlus(plan.plan_type)) return 'For contents experts and agencies';
     return '';
   };
 
@@ -603,7 +683,7 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
                 )}
 
                 <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-xl">{plan.plan_type}</CardTitle>
+                  <CardTitle className="text-xl">{displayPlanName(plan.plan_type)}</CardTitle>
                   <div className="space-y-1">
                     <div className="text-3xl font-bold">
                       {getPrice(plan)}
@@ -633,7 +713,7 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
                   <Button
                     className="w-full"
                     variant={getBadge(plan) === 'Most Popular' ? 'default' : 'outline'}
-                    disabled={plan.plan_type === currentUserPlan || (isNewUser === false && plan.plan_type === 'Free')}
+                    disabled={plan.plan_type === currentUserPlan}
                     onClick={() => handlePlanAction(plan)}
                   >
                     {getCTA(plan)}
